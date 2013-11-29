@@ -1,0 +1,2 @@
+<http://www.test.net/test_point1> <http://www.w3.org/2002/07/owl#sameAs> <http://www.test.net/test_point2> .
+<http://www.test.net/test_point1> <http://www.w3.org/2002/07/owl#sameAs> <http://www.test.net/test_linestring1> .

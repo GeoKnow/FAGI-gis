@@ -1,0 +1,8 @@
+<http://www.test.net/test_point1> <http://www.opengis.net/ont/geosparql#hasGeometry> _:a .
+_:a <http://www.opengis.net/ont/geosparql#asWKT> "POINT(0 0)" .
+
+<http://www.test.net/test_point2> <http://www.opengis.net/ont/geosparql#hasGeometry> _:b .
+_:b <http://www.opengis.net/ont/geosparql#asWKT> "POINT(1 1)" .
+
+<http://www.test.net/test_linestring1> <http://www.opengis.net/ont/geosparql#hasGeometry> _:c .
+_:c <http://www.opengis.net/ont/geosparql#asWKT> "LINESTRING(0 0, 0 1, 1 1, 1 0, 0 0)" .

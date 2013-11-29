@@ -1,0 +1,17 @@
+Database pane:
+	-- Enter connection information for the postgis db.
+	
+Importer pane:
+	-- For each dataset enter a SPARQL endpoint URL, a graph URI and a regex (subject regex) that will be used to identify root nodes (features of interest).
+	-- Press Import
+	-- If import process completes successfully, but only half the progress bar is filled then the specified dataset contained either geometries or metadata but not both (see dev-documentation for definitions).
+	
+Fuser pane:
+	-- Load links file (must be an .nt file in the following format: <nodeA> <any predicate> <nodeB> .).
+	-- Score
+		-- Select transformation from dropdown.
+		-- Press 'Score' to score the transformation on the imported links. Links on which the specific transformation may be applied will be coloured magenta.
+	-- Fuse
+		-- Select transformation from dropdown.
+		-- Select links on which the transformation is to be applied.
+		-- Press 'Fuse'. The resulting geometry(-ies) will be added to the 'fused_geometries' table in the postgis db.
