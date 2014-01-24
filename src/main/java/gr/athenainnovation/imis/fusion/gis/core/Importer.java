@@ -32,6 +32,8 @@ public class Importer {
     // Regexes to match the predicates of the expected triple path from subject node to its attached WKT geometry serialisation.
     private static final String HAS_GEOMETRY_REGEX = "http://www.opengis.net/ont/geosparql#hasGeometry";
     private static final String AS_WKT_REGEX = "http://www.opengis.net/ont/geosparql#asWKT";
+    private static final String LONG_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#long";
+    private static final String LAT_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#lat";
     
     /**
      * Constructs a new instance of the importer with the given {@link PostGISImporter}.
@@ -61,7 +63,7 @@ public class Importer {
         final String subjectRegex = sourceDataset.getSubjectRegex();
         checkIfValidRegexArgument(subjectRegex);
         
-        final String restriction = "?s ?p ?o FILTER (regex(?s, \"" + subjectRegex + "\", \"i\")) FILTER (!regex(?p, \"" + HAS_GEOMETRY_REGEX +"\", \"i\"))";
+        final String restriction = "?s ?p ?o FILTER (regex(?s, \"" + subjectRegex + "\", \"i\")) FILTER (!regex(?p, \"" + HAS_GEOMETRY_REGEX +"\", \"i\"))"; //put wkt filter jan16
         final String queryString = "SELECT ?s ?p ?o WHERE { " + restriction + " }";
         
         final int totalCount = queryExpectedResultSetSize(sourceEndpoint, sourceGraph, restriction);
@@ -72,6 +74,7 @@ public class Importer {
         try {
             postGISImporter.loadInfo(datasetIdent, sourceEndpoint, sourceGraph);
             
+            //System.out.println("\nqueryString from Importer\n" + queryString);
             final Query query = QueryFactory.create(queryString);
             queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph);
             
@@ -80,7 +83,7 @@ public class Importer {
             while(resultSet.hasNext()) {
                 final QuerySolution querySolution = resultSet.next();
                 
-                final String subject = querySolution.getResource("?s").getURI();
+                final String subject = querySolution.getResource("?s").toString();
                 final String predicate = querySolution.getResource("?p").getURI();
                 final String object;
                 final Optional<String>  objectLang;
@@ -134,47 +137,119 @@ public class Importer {
         final String sourceGraph = sourceDataset.getGraph();
         final String subjectRegex = sourceDataset.getSubjectRegex();
         checkIfValidRegexArgument(subjectRegex);
+                         
+        //check the serialisation of the dataset with a count query. If it doesn t find WKT the serialisation is wgs84        
         
+        //check which is the dataset to define triples format
+
+         //test wgs84
+        final String restrictionForWgs = "?s ?p1 ?o1 . ?s ?p2 ?o2 FILTER(regex(?s, \"" + subjectRegex + "\", \"i\")) " + "FILTER(regex(?p1, \"" + LAT_REGEX + "\", \"i\"))" +
+                "FILTER(regex(?p2, \"" + LONG_REGEX + "\", \"i\"))";
+        
+        final String queryString1 = "SELECT ?s ?o1 ?o2 WHERE { " + restrictionForWgs + " }";
+        int countWgs = checkForSerialisation(sourceEndpoint, sourceGraph, restrictionForWgs);
+        //System.out.println("countWgs SUCCESS   " + countWgs);
+        //execute wgs84
+        //double wgs = objectNode.asLiteral().getDouble();
+        //test wgs84  //construct POINT long lat
+        
+         
         final String restriction = "?s ?p1 _:a . _:a ?p2 ?g FILTER(regex(?s, \"" + subjectRegex + "\", \"i\")) " + "FILTER(regex(?p1, \"" + HAS_GEOMETRY_REGEX + "\", \"i\"))" +
                 "FILTER(regex(?p2, \"" + AS_WKT_REGEX + "\", \"i\"))";
+        int countWKT = checkForSerialisation(sourceEndpoint, sourceGraph, restriction);
         final String queryString = "SELECT ?s ?g WHERE { " + restriction + " }";
+
         
-        final int totalCount = queryExpectedResultSetSize(sourceEndpoint, sourceGraph, restriction);
+        //final int totalCount = queryExpectedResultSetSize(sourceEndpoint, sourceGraph, restriction);
         int currentCount = 1;
         
         QueryExecution queryExecution = null;
         
-        try {
-            final Query query = QueryFactory.create(queryString);
-            queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph);
+        if (!(countWKT > 0)){ //if geosparql geometry doesn' t exist        
             
-            final ResultSet resultSet = queryExecution.execSelect();
-            
-            while(resultSet.hasNext()) {
-                final QuerySolution querySolution = resultSet.next();
-                
-                final String subject = querySolution.getResource("?s").getURI();
-                final RDFNode objectNode = querySolution.get("?g");
-                if(objectNode.isLiteral()) {
-                    final String geometry = objectNode.asLiteral().getLexicalForm();
-                    postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+            try {
+                final Query query = QueryFactory.create(queryString1);
+                queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph);
+
+                final ResultSet resultSet = queryExecution.execSelect();
+
+                while(resultSet.hasNext()) {
+                    
+                    
+                    final QuerySolution querySolution = resultSet.next();
+
+                    final String subject = querySolution.getResource("?s").getURI();
+                    final RDFNode objectNode1 = querySolution.get("?o1"); //lat
+                    final RDFNode objectNode2 = querySolution.get("?o2"); //long
+                    
+                    if(objectNode1.isLiteral() && objectNode2.isLiteral()) {
+                        final double latitude = objectNode1.asLiteral().getDouble();
+                        final double longitude = objectNode2.asLiteral().getDouble();
+                        
+                        //construct wkt serialization
+                        String geometry = "POINT ("+ longitude + " " + latitude +")";
+                        //System.out.println("wgs84 from importer  " + geometry);
+                        postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+                    }
+                    else {
+                        LOG.warn("Resource found where geometry serialisation literal expected.");
+                    }
+
+                    callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));
+                    
+                    
                 }
-                else {
-                    LOG.warn("Resource found where geometry serialisation literal expected.");
+            }
+            catch (SQLException | RuntimeException ex) {
+                LOG.error(ex.getMessage(), ex);
+                throw new RuntimeException(ex);
+            }
+            finally {
+                if(queryExecution != null) {
+                    queryExecution.close();
                 }
-                
-                callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) totalCount)));
             }
         }
-        catch (SQLException | RuntimeException ex) {
-            LOG.error(ex.getMessage(), ex);
-            throw new RuntimeException(ex);
-        }
-        finally {
-            if(queryExecution != null) {
-                queryExecution.close();
+                       
+        
+        
+        else{ //if geosparql geometry exists
+            try {
+                final Query query = QueryFactory.create(queryString);
+                queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph);
+                
+                final ResultSet resultSet = queryExecution.execSelect();
+                
+                while(resultSet.hasNext()) {
+                    final QuerySolution querySolution = resultSet.next();
+                    
+                    final String subject = querySolution.getResource("?s").getURI();                    
+                    final RDFNode objectNode = querySolution.get("?g");
+                    if(objectNode.isLiteral()) {
+                        final String geometry = objectNode.asLiteral().getLexicalForm();
+                        //System.out.println("geometry objectNode.asLiteral().getLexicalForm():   "+ geometry);
+                        
+                        postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+                    }
+                    else {
+                        LOG.warn("Resource found where geometry serialisation literal expected.");
+                    }
+                    
+                    callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWKT)));
+                }
+            }
+            catch (SQLException | RuntimeException ex) {
+                LOG.error(ex.getMessage(), ex);
+                throw new RuntimeException(ex);
+            }
+            finally {
+                if(queryExecution != null) {
+                    queryExecution.close();
+                }
             }
         }
+    
+
     }
     
     /**
@@ -202,6 +277,36 @@ public class Importer {
         int count = -1;
         
         final String queryString = "SELECT (COUNT (?s) as ?count) WHERE { " + restriction + " }";
+        QueryExecution queryExecution = null;
+        
+        try {
+            final Query query = QueryFactory.create(queryString);
+            queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph);
+            
+            final ResultSet resultSet = queryExecution.execSelect();
+            
+            while(resultSet.hasNext()) {
+                final QuerySolution querySolution = resultSet.next();
+                
+                count = querySolution.getLiteral("?count").getInt();
+            }
+        }
+        catch (RuntimeException ex) {
+            LOG.warn(ex.getMessage(), ex);
+        }
+        finally {
+            if(queryExecution != null) {
+                queryExecution.close();
+            }
+        }
+        
+        return count;
+    }
+    
+        private int checkForSerialisation(final String sourceEndpoint, final String sourceGraph, final String restriction) {
+        int count = -1;
+        
+        final String queryString = "SELECT (COUNT (?s) as ?count) WHERE { " + restriction + " } LIMIT 10";
         QueryExecution queryExecution = null;
         
         try {

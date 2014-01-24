@@ -22,7 +22,7 @@ public class DatabaseInitialiser {
     private static final String DB_SCHEMA = "/schema.sql";
     
     /**
-     * Execute database initialisation logic.
+     * Execute database initialization logic.
      * @param dbConfig database configuration
      * @throws SQLException 
      */

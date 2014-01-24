@@ -35,7 +35,7 @@ public class KeepBothTransformation extends AbstractFusionTransformation {
     }
 
     @Override
-    public double score(Connection connection, String nodeA, String nodeB) throws SQLException {
+    public double score(Connection connection, String nodeA, String nodeB, Double threshold) throws SQLException {
         return 1.0;
     }
 

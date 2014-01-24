@@ -24,10 +24,11 @@ public abstract class AbstractFusionTransformation {
      * @param connection connection to database
      * @param nodeA first node URI
      * @param nodeB second node URI
+     * @param threshold threshold
      * @return score value in range [0.0...1.0]
      * @throws SQLException
      */
-    public abstract double score(final Connection connection, final String nodeA, final String nodeB) throws SQLException;
+    public abstract double score(final Connection connection, final String nodeA, final String nodeB, final Double threshold) throws SQLException;
     
     /**
      * 
@@ -46,12 +47,21 @@ public abstract class AbstractFusionTransformation {
      * @throws SQLException
      */
     protected int insertFusedGeometry(final Connection connection, final String nodeA, final String nodeB, final String fusedGeometry) throws SQLException {
-        final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_GeometryFromText(?, 4326))";
+        //System.out.println("fusedGeometry from insertFusedGeometry in Abstract    " + fusedGeometry);
+         
+        //4326 srid
+        final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_GeometryFromText(?, 4326))"; 
         
-        try (final PreparedStatement statement = connection.prepareStatement(query)) {
+        //3035 srid
+        //final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_GeometryFromText(?, 3035))";
+        //try removing ST_GeometryFromText from this Class and putting it to every Transformation separetely for the quries to get constucted right
+        //final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,?)"; 
+        
+        try (final PreparedStatement statement = connection.prepareStatement(query)) {            
             statement.setString(1, nodeA);
             statement.setString(2, nodeB);
             statement.setString(3, fusedGeometry);
+            
             int executionValue = statement.executeUpdate();
             connection.commit();
             
@@ -62,4 +72,42 @@ public abstract class AbstractFusionTransformation {
             throw ex;
         }
     }
+    
+    protected int insertShiftedGeometry(final Connection connection, final String nodeA, final String nodeB, double deltaX, double deltaY, String geometryB) throws SQLException {
+        
+        //translate computes with srid 4326
+        final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_Translate(   ST_GeometryFromText(?, 4326),?,? ))"; 
+        //System.out.println("INSERT SHIFTED QUERY:  " + query);
+        //srid 3035
+        //final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_Translate(   ST_Transform(  ST_GeometryFromText(?, 4326),3035),?,? ))"; //not working
+
+        
+        //try removing ST_GeometryFromText from this Class and putting it to every Transformation separetely for the quries to get constucted right
+        //final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,?)"; 
+        
+        try (final PreparedStatement statement = connection.prepareStatement(query)) {            
+            statement.setString(1, nodeA);
+            statement.setString(2, nodeB);
+            statement.setString(3, geometryB);
+            statement.setDouble(4, deltaX);
+            statement.setDouble(5, deltaY);
+            
+            int executionValue = statement.executeUpdate();
+            connection.commit();
+            
+            return executionValue;
+        }
+        catch (SQLException ex) {
+            connection.rollback();
+            throw ex;
+        }
+    }    
+    
+    
+    
+    
+    
+    
+    
+    
 }

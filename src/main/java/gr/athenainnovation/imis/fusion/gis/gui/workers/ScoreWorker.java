@@ -17,18 +17,21 @@ public class ScoreWorker extends SwingWorker<Map<String, Double>, Void> {
     private final AbstractFusionTransformation rule;
     private final List<Link> links;
     private final DBConfig dbConfig;
+    private final Double threshold;
     
     /**
      * Construct new score worker with the given parameters.
      * @param rule rule to use for the fusion
      * @param links list of links to be fused
-     * @param dbConfig database configuration 
+     * @param dbConfig database configuration
+     * @param threshold threshold
      */
-    public ScoreWorker(final AbstractFusionTransformation rule, final List<Link> links, final DBConfig dbConfig) {
+    public ScoreWorker(final AbstractFusionTransformation rule, final List<Link> links, final DBConfig dbConfig, final Double threshold) {
         super();
         this.rule = rule;
         this.links = links;
         this.dbConfig = dbConfig;
+        this.threshold = threshold;
     }
     
     @Override
@@ -36,7 +39,7 @@ public class ScoreWorker extends SwingWorker<Map<String, Double>, Void> {
         final GeometryFuser geometryFuser = new GeometryFuser();
         try {
             geometryFuser.connect(dbConfig);
-            return geometryFuser.score(rule, links);
+            return geometryFuser.score(rule, links, threshold);
         }
         catch (SQLException ex) {
             throw new RuntimeException(ex);

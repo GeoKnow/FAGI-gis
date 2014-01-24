@@ -1,0 +1,5 @@
+view1.getVerticalScrollBar().setModel(vew2.getVerticalScrollBar().getModel()); 
+
+linkList.getVerticalScrollBar().setModel(scoreLinkList,getVerticalScrollBar().getModel());
+
+

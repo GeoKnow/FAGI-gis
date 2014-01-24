@@ -38,7 +38,7 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
         Importer importer = null;
         try {
             importer = new Importer(dbConfig, this);
-            importer.importMetadata(datasetIdent, sourceDataset);
+            //comment out for now importer.importMetadata(datasetIdent, sourceDataset);
             importer.importGeometries(datasetIdent, sourceDataset);
         }
         catch (SQLException ex) {
@@ -72,7 +72,7 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
     }
     
     private void publishProgress() {
-        int globalProgress = (int) ((metadataProgress + geometryProgress) / 2);
+        int globalProgress = (int) ((metadataProgress + geometryProgress) / 1); //divide with 2, when metadata are to be imported in postgis
 
         // We manually restrict values to a [0,100] range to prevent an exception being thrown in case of erroneous progress value.
         if(globalProgress < 0) {

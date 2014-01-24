@@ -6,7 +6,9 @@ import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.DBConfigListener;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.ErrorListener;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+//import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.FuseWorker;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.ScoreWorker;
 import gr.athenainnovation.imis.fusion.gis.transformations.AbstractFusionTransformation;
 import gr.athenainnovation.imis.fusion.gis.transformations.AvgTwoPointsTransformation;
@@ -16,14 +18,19 @@ import gr.athenainnovation.imis.fusion.gis.transformations.KeepMostPointsAndTran
 import gr.athenainnovation.imis.fusion.gis.transformations.KeepMostPointsTransformation;
 import gr.athenainnovation.imis.fusion.gis.transformations.KeepRightTransformation;
 import gr.athenainnovation.imis.fusion.gis.transformations.ScaleTransformation;
+import gr.athenainnovation.imis.fusion.gis.transformations.ShiftPolygonToAverageDistance;
+import gr.athenainnovation.imis.fusion.gis.transformations.ShiftPolygonToPoint;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.io.File;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
@@ -32,7 +39,10 @@ import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollBar;
+//import javax.swing.ListModel;
 import org.apache.log4j.Logger;
+
 
 /**
  * Handles application of fusion transformations.
@@ -43,6 +53,7 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     
     private final ErrorListener errorListener;
     private DBConfig dbConfig;
+    private GraphConfig graphConfig;
     private final Map<String, AbstractFusionTransformation> transformations;
     private final Map<String, Map<String, Double>> scoresForAllRules;
     private List<Link> links;
@@ -51,6 +62,14 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     private boolean linksSet = false;
     private boolean busy = false;
     
+    //added
+    private Double threshold; 
+    //private Dataset datasetA;
+    //private Dataset datasetB;
+    private String fusedGraph;
+    //private boolean checkboxIsSelected;
+
+    
     /**
      * Creates new form FuserPanel
      * @param errorListener error message listener
@@ -58,13 +77,18 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     public FuserPanel(final ErrorListener errorListener) {
         super();
         this.errorListener = errorListener;
-        initComponents();
-        
+        initComponents();        
+        //this.graphConfig = new GraphConfig();
         transformations = new HashMap<>();
         registerTransformations();
-        displayTransformations();
-        
+        displayTransformations();    
         scoresForAllRules = new HashMap<>();
+    }
+    
+    @Override
+    public void notifyNewGraphConfiguration(final GraphConfig graphConfig) {
+        this.graphConfig = graphConfig;
+
     }
     
     @Override
@@ -97,6 +121,8 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
         final boolean enabled = dbConfigSet && linksSet && !busy;
         fuseButton.setEnabled(enabled);
         scoreButton.setEnabled(enabled);
+        selectAllLinks.setEnabled(enabled);
+        thresholdField.setEnabled(enabled);
     }
     
     // Registers all implemented transformations
@@ -118,9 +144,17 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
         
         KeepBothTransformation keepBothTransformation = new KeepBothTransformation();
         transformations.put(keepBothTransformation.getID(), keepBothTransformation);
+               
+        //polygon test
+        ShiftPolygonToAverageDistance AverageOfPointAndPolygon = new ShiftPolygonToAverageDistance();
+        transformations.put(AverageOfPointAndPolygon.getID(), AverageOfPointAndPolygon);
         
+        ShiftPolygonToPoint ShiftPolygonToPoint = new ShiftPolygonToPoint();
+        transformations.put(ShiftPolygonToPoint.getID(), ShiftPolygonToPoint);
+                
         ScaleTransformation scaleTransformation = new ScaleTransformation();
         transformations.put(scaleTransformation.getID(), scaleTransformation);
+             
     }
     
     private void displayTransformations() {
@@ -130,25 +164,85 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     }
     
     private void displayLinks(final String transformation) {
-        setLinkListModel();        
+        setLinkListModel();  
         if(transformation != null && scoresForAllRules.get(transformation) != null) {
             linkList.setCellRenderer(new CustomLinkListRenderer(scoresForAllRules.get(transformation)));
+            
+            //if scoresForAllRules got values, set the scores of transformation in the list
+            setScoreLinkListModel(transformation);
+
         }
         else {
             linkList.setCellRenderer(new CustomLinkListRenderer());
+            setScoreLinkListModel(transformation);
         }
     }
     
-    private void displayLinks() {
+    private void displayLinks() {        
         setLinkListModel();
         linkList.setCellRenderer(new CustomLinkListRenderer());
     }
     
-    private void setLinkListModel() {
+    //adds the score of each link to the score list model for displaying
+    private void setScoreLinkListModel(final String transformation){
+        
         final DefaultListModel<String> model = new DefaultListModel<>();
-        for(Link link : links) {
-            model.addElement(link.getKey());
-        }
+            if (scoresForAllRules.get(transformation) != null){
+
+                Collection allScores = scoresForAllRules.get(transformation).values();
+                    //System.out.println("distinguish scoresForAllRules with get  transformation:  " + scoresForAllRules.get(transformation).values());
+                    //System.out.println("distinguish scoresForAllRule with links:  " + scoresForAllRules);
+
+                    //model.getElementAt(...); //get same index from linkList
+                    for (Object singleScore : allScores ){
+                        
+                        //before add, check and sync the elements
+                        //links.
+                        model.addElement("Score:  " + singleScore.toString());                       
+                        
+                    }                      
+                scoreLinkList.setModel(model);
+            }
+            else {
+                //if transformation has not been scored yet, clear the model
+                model.clear();
+                scoreLinkList.setModel(model);
+            }               
+        
+    }   
+    
+    //adds the links in the list model for display       
+    private void setLinkListModel() {
+        final DefaultListModel<String> model = new DefaultListModel<>(); 
+        
+            //clear the model to ensure the list cleared if the user changed the linkfile
+            //model.removeAllElements();
+            
+            model.clear();
+            //linkList.setModel(model);
+            
+            for(Link link : links) {                               
+                model.addElement(link.getKey()); 
+               //System.out.println("link from model:   " + link.getKey() +"\n\n" );
+               //System.out.println( "link from scoresForAllRules:  " + scoresForAllRules.
+            }        
+        
+             linkList.setModel(model);
+ 
+ 
+            //iteration to retrieve the right sequence of the links from scoresForAllRules for displaying.             
+            for (Entry<String, Map<String,Double>> entry: scoresForAllRules.entrySet()){
+
+                model.clear();
+                for(Entry<String, Double> entry1 : entry.getValue().entrySet()){
+                    //entry1.getKey();
+                    //System.out.println("entry1" + entry1);
+                    //System.out.println("entry1.getKey" + entry1.getKey()); 
+                    model.addElement(entry1.getKey());
+                }
+                //model.addElement(entry1.getKey()); 
+       
+            }
         linkList.setModel(model);
     }
 
@@ -173,6 +267,14 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
         linkList = new javax.swing.JList();
         transformationComboBox = new javax.swing.JComboBox();
         statusField = new javax.swing.JLabel();
+        thresholdField = new javax.swing.JTextField();
+        thresholdLabel = new javax.swing.JLabel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        scoreLinkList = new javax.swing.JList();
+        selectAllLinks = new javax.swing.JButton();
+        jPanel3 = new javax.swing.JPanel();
+        fusedGraphField = new javax.swing.JTextField();
+        fusedGraphCheckbox = new javax.swing.JCheckBox();
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("RDF links"));
 
@@ -200,7 +302,7 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
                 .addContainerGap()
                 .addComponent(jLabel4)
                 .addGap(18, 18, 18)
-                .addComponent(linksFileField, javax.swing.GroupLayout.DEFAULT_SIZE, 588, Short.MAX_VALUE)
+                .addComponent(linksFileField)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(linkFileChooserButton, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
@@ -216,7 +318,7 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
                     .addComponent(linkFileChooserButton)
                     .addComponent(jLabel4)
                     .addComponent(loadLinksButton))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(14, Short.MAX_VALUE))
         );
 
         jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder("Fuser"));
@@ -239,15 +341,40 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
             }
         });
 
+        JScrollBar sBar1 = jScrollPane1.getVerticalScrollBar();
+
+        linkList.setFixedCellHeight(20);
         jScrollPane1.setViewportView(linkList);
 
+        transformationComboBox.setToolTipText("");
         transformationComboBox.addItemListener(new java.awt.event.ItemListener() {
             public void itemStateChanged(java.awt.event.ItemEvent evt) {
                 transformationComboBoxItemStateChanged(evt);
             }
         });
+        transformationComboBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                transformationComboBoxActionPerformed(evt);
+            }
+        });
 
         statusField.setText("Idle...");
+
+        thresholdLabel.setText("Threshold (meters):");
+
+        JScrollBar sBar2 = jScrollPane2.getVerticalScrollBar();
+        sBar2.setModel(sBar1.getModel());
+
+        scoreLinkList.setFixedCellHeight(20);
+        jScrollPane2.setViewportView(scoreLinkList);
+
+        selectAllLinks.setText("Select All Corresponding Links");
+        selectAllLinks.setEnabled(false);
+        selectAllLinks.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                selectAllLinksActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -256,17 +383,29 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1)
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addComponent(jLabel1)
                         .addGap(18, 18, 18)
                         .addComponent(transformationComboBox, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(statusField, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGap(18, 18, 18)
-                        .addComponent(scoreButton, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(fuseButton, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                                .addComponent(statusField, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(thresholdLabel)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(thresholdField, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addGap(0, 0, Short.MAX_VALUE)
+                                .addComponent(selectAllLinks, javax.swing.GroupLayout.PREFERRED_SIZE, 264, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(scoreButton, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(fuseButton, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 184, javax.swing.GroupLayout.PREFERRED_SIZE))))
                 .addContainerGap())
         );
         jPanel2Layout.setVerticalGroup(
@@ -280,9 +419,47 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(fuseButton)
                     .addComponent(scoreButton)
-                    .addComponent(statusField))
-                .addGap(18, 18, 18)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 208, Short.MAX_VALUE)
+                    .addComponent(statusField)
+                    .addComponent(thresholdField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(thresholdLabel))
+                .addGap(24, 24, 24)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 141, Short.MAX_VALUE)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(selectAllLinks)
+                .addContainerGap())
+        );
+
+        jPanel3.setBorder(javax.swing.BorderFactory.createTitledBorder("Fused dataset graph"));
+
+        fusedGraphField.setText("http://localhost:8890/fused_dataset");
+
+        fusedGraphCheckbox.setText("Use this graph for fusion:");
+        fusedGraphCheckbox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fusedGraphCheckboxActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(fusedGraphCheckbox)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(fusedGraphField, javax.swing.GroupLayout.PREFERRED_SIZE, 504, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
+        );
+        jPanel3Layout.setVerticalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(fusedGraphField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(fusedGraphCheckbox))
                 .addContainerGap())
         );
 
@@ -294,18 +471,23 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jPanel2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
+                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
+
+        jPanel3.getAccessibleContext().setAccessibleName("fused graph");
     }// </editor-fold>//GEN-END:initComponents
 
     private void linkFileChooserButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_linkFileChooserButtonActionPerformed
@@ -325,8 +507,13 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     }//GEN-LAST:event_linkFileChooserButtonActionPerformed
 
     private void loadLinksButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadLinksButtonActionPerformed
-        try {
-            links = GeometryFuser.parseLinksFile(linksFileField.getText());
+        try { 
+            if (links != null){
+                links.clear();
+            }
+                
+            links = GeometryFuser.parseLinksFile(linksFileField.getText());            
+            
             displayLinks();
             linksAreSet(true);
         }
@@ -349,8 +536,9 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
                     tempTransformation.setScaleParams(scaleParamsPanel.isKeepLeftDatasetSet(), scaleParamsPanel.getScaleFactor());
                 }
             }
-            
-            final ScoreWorker scoreWorker = new ScoreWorker(transformation, links, dbConfig) {
+                                 
+            //new ScoreWorker, threshold passed as parameter
+            final ScoreWorker scoreWorker = new ScoreWorker(transformation, links, dbConfig, getThreshold()) {
                 @Override protected void done() {
                     try {
                         scoresForAllRules.put(transformation.getID(), get());
@@ -385,6 +573,7 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
                     LOG.info("Score worker has terminated.");
                 }
             };
+                        
             
             statusField.setText("Working...");
             setBusy(true);
@@ -395,7 +584,29 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
             errorListener.notifyError(ex.getMessage());
         }
     }//GEN-LAST:event_scoreButtonActionPerformed
-
+    
+    
+    private Double getThreshold(){
+        //get threshold
+            if(!thresholdField.getText().isEmpty()){
+                try{
+                threshold = Double.parseDouble(thresholdField.getText());
+                //System.out.println("threshold:  " + threshold);
+                
+                thresholdLabel.setText("Threshold set!");
+                
+                }
+                catch (NumberFormatException ex) {                 
+                    errorListener.notifyError("Threshold must be number!");
+                }
+            }
+            else{
+                threshold = -1.0; // value for no threshold!
+                thresholdLabel.setText("Threshold (meters):");
+            }            
+         return threshold;    
+    }
+    
     private void fuseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fuseButtonActionPerformed
         try {
             final AbstractFusionTransformation transformation = transformations.get((String) transformationComboBox.getSelectedItem());
@@ -423,7 +634,7 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
                 return;
             }
             
-            final FuseWorker fuseWorker = new FuseWorker(transformation, selectedLinks, dbConfig) {
+            final FuseWorker fuseWorker = new FuseWorker(transformation, selectedLinks, dbConfig, fusedGraph, fusedGraphCheckbox.isSelected(), graphConfig) {
                 @Override protected void done() {
                     // Call get despite return type being Void to prevent SwingWorker from swallowing exceptions
                     try {
@@ -465,7 +676,8 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
         }
         catch (RuntimeException ex) {
             errorListener.notifyError(ex.getMessage());
-        }
+        }                        
+        
     }//GEN-LAST:event_fuseButtonActionPerformed
 
     private void transformationComboBoxItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_transformationComboBoxItemStateChanged
@@ -473,19 +685,70 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
         displayLinks(transformation);
     }//GEN-LAST:event_transformationComboBoxItemStateChanged
 
+    private void transformationComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_transformationComboBoxActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_transformationComboBoxActionPerformed
+
+    private void selectAllLinksActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_selectAllLinksActionPerformed
+        // select the links that can be fused from linkList 
+        int linkListSize = linkList.getModel().getSize();
+        int[] indexArray = new int[linkListSize];       
+        
+        //System.out.println("before the FOR INDEX ARRAY at position 0  " + indexArray[0]);
+        for (int i = 0; i < linkListSize; i++) {            
+            Object item = linkList.getModel().getElementAt(i);            
+            //get color of element at i
+            Color color = linkList.getCellRenderer().getListCellRendererComponent(linkList, item, i, busy, busy).getForeground();
+            if (color.equals(Color.MAGENTA)){
+                indexArray [i] = i;
+            } 
+        }
+        //set selected elements. index array contains the indices of the colored elements 
+        linkList.setSelectedIndices(indexArray);
+        
+        //find elements to select by score. prefered comparison only in linkList so this stays out for now
+        /*
+        for (int i = 0; i < linkList.getModel().getSize(); i++) {
+            Object item = scoreLinkList.getModel().getElementAt(i);
+            System.out.println(" Score Item    = " + item);
+        }
+        */
+    }//GEN-LAST:event_selectAllLinksActionPerformed
+
+    private void fusedGraphCheckboxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fusedGraphCheckboxActionPerformed
+        if(fusedGraphCheckbox.isSelected()) {
+
+            fusedGraph = fusedGraphField.getText();
+            fusedGraphField.setEnabled(false);
+        }       
+        else
+        {
+            fusedGraph = fusedGraphField.getText();
+            fusedGraphField.setEnabled(true);
+        }
+    }//GEN-LAST:event_fusedGraphCheckboxActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton fuseButton;
+    private javax.swing.JCheckBox fusedGraphCheckbox;
+    private javax.swing.JTextField fusedGraphField;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JButton linkFileChooserButton;
     private javax.swing.JList linkList;
     private javax.swing.JTextField linksFileField;
     private javax.swing.JButton loadLinksButton;
     private javax.swing.JButton scoreButton;
+    private javax.swing.JList scoreLinkList;
+    private javax.swing.JButton selectAllLinks;
     private javax.swing.JLabel statusField;
+    private javax.swing.JTextField thresholdField;
+    private javax.swing.JLabel thresholdLabel;
     private javax.swing.JComboBox transformationComboBox;
     // End of variables declaration//GEN-END:variables
 }
@@ -508,14 +771,16 @@ class CustomLinkListRenderer extends DefaultListCellRenderer {
     public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
         final Component component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
         
-        if(scores != null && scores.get(value.toString()) != null && scores.get(value.toString()) >= 0.5) {
-            component.setForeground(Color.MAGENTA);
+        if(scores != null && scores.get(value.toString()) != null && scores.get(value.toString()) > 0.0) { 
+           
+            component.setForeground(Color.MAGENTA);                                                                 
+            
         }
         else {
             component.setForeground(Color.BLACK);
         }
         
         return component;
-    }
+    }    
     
 }

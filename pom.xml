@@ -48,6 +48,21 @@
             <type>pom</type>
             <version>2.10.1</version>
         </dependency>
+        <dependency>
+            <groupId>virtuoso.jena.driver</groupId>
+            <artifactId>virtjena</artifactId>
+            <version>2</version>
+        </dependency>
+        <dependency>
+            <groupId>virtuoso</groupId>
+            <artifactId>vjdbc41</artifactId>
+            <version>4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jdesktop</groupId>
+            <artifactId>beansbinding</artifactId>
+            <version>1.2.1</version>
+        </dependency>
     </dependencies>
 
     <build>

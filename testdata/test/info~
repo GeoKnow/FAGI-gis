@@ -1,0 +1,20 @@
+112344 POINTS
+<http://geoknow.eu/geodata#points_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://geoknow.eu/geodata#polygons> .
+<http://geoknow.eu/geodata#points_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/geosparql#Feature> .
+<http://geoknow.eu/geodata#points_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://geoknow.eu/geodata#wikimapia> .
+
+
+112344 POLYGONS
+<http://geoknow.eu/geodata#polygons_112344> <http://www.w3.org/2000/01/rdf-schema#label> "112344"@en .
+<http://geoknow.eu/geodata#polygons_112344> <http://geoknow.eu/geodata#name> "Begnis bakery"@en .
+<http://geoknow.eu/geodata#Geom_polygons_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/sf#POLYGON> .
+
+
+
+112344 FUSED METADATA
+<http://geoknow.eu/geodata#polygons_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://geoknow.eu/geodata#polygons> .
+<http://geoknow.eu/geodata#polygons_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/geosparql#Feature> .
+<http://geoknow.eu/geodata#polygons_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://geoknow.eu/geodata#wikimapia> .
+<http://geoknow.eu/geodata#polygons_112344> <http://www.w3.org/2000/01/rdf-schema#label> "112344"@en .
+<http://geoknow.eu/geodata#polygons_112344> <http://geoknow.eu/geodata#name> "Begnis bakery"@en .
+<http://geoknow.eu/geodata#Geom_polygons_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/sf#POLYGON> .

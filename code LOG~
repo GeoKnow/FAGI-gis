@@ -1,0 +1,103 @@
+GeometryFuser
+	added threshold parameter in score method
+	added threshold param in transformation.score inside for
+
+ScoreWorker class
+	added private final Double threshold;
+	
+	added param Double threshold in constructor	
+	added this.threshold = threshold; 
+	
+	//added threshold param in geometryFuser
+	return geometryFuser.score(rule, links, threshold);
+	
+
+
+AbstractFusionTransformation
+	method score: added Double threshold parameter 
+
+
+added parameter threshold in every score method of every transformation
+
+
+
+
+created VIRTUOSOIMPORTER CLASS
+created POSTGISRETRIEVER
+
+
+GEOMETRYFUSER
+
+fuse method
+
+        //delete old geometries from fused_geometries table. 
+        try{           
+            //delete all data in fused_geometries table. keep table for the new geometries
+           String deleteFusedGeometriesTable = "DELETE FROM fused_geometries";
+           PreparedStatement statement = connection.prepareStatement(deleteFusedGeometriesTable);
+           int executionValue = statement.executeUpdate();
+           System.out.println("DELETE FUSED ExecutionValue\n. Affected number of rows:  " + executionValue);           
+        }
+        catch (SQLException ex)
+        {
+          LOG.warn(ex.getMessage(), ex);  
+        }
+
+
+FUSERWORKER CLASS
+
+doInBackround
+//call new VirtuosoImporter to import data into the graph
+        VirtuosoImporter virtImp = new VirtuosoImporter(dbConfig);                
+        return null;
+
+
+
+DATABASEPANEL CLASS -> gui construction
+		
+private void setFieldsEnabled(final boolean enabled) 
+
+        //mine for virtuoso config
+        dbURLField.setEnabled(enabled);
+        usernameField.setEnabled(enabled);
+        passwordField.setEnabled(enabled);
+        //end virtuoso fields config
+
+private void setDBConfigButtonActionPerformed
+
+//added dbURLField.getText(), usernameField.getText(), passwordField.getText() as parameters
+             
+dbConfig = new DBConfig(dbNameField.getText(), dbUsernameField.getText(), dbPasswordField.getText(), dbURLField.getText(), usernameField.getText(), passwordField.getText()); //virtuoso fields added
+
+
+DBCONFIG CLASS
+
+//added dbURL, username, password
+
+private final String dbName, dbUsername, dbPassword, dbURL, username, password;
+
+//added to constructor
+        this.dbURL = checkNotNull(dbURL, "Virtuoso URL cannot be null");
+        this.username = checkNotNull(username, "Virtuoso username cannot be null");
+        this.password = checkNotNull(dbPassword, "Virtuoso password cannot be null.");
+
+//added three methods
+
+    public String getDBURL() {
+        return dbURL;
+    }
+    
+     /**
+     * @return virtuoso username
+     */
+    public String getUsername() {
+        return username;
+    }
+    
+     /**
+     * @return virtuoso password
+     */
+    public String getPassword() {
+        return password;
+    } 
+

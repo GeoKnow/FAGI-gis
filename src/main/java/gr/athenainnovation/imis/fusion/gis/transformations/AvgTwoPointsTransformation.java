@@ -34,13 +34,14 @@ public class AvgTwoPointsTransformation extends AbstractFusionTransformation {
                 final double avgY = (geometryA_Y + geometryB_Y) / 2;
                 
                 final String fusedGeometry = "POINT(" + avgX + " " + avgY + ")";
+                //System.out.println("FUSED GEOMETRY" + fusedGeometry);
                 insertFusedGeometry(connection, nodeA, nodeB, fusedGeometry);
             }
         }
     }
 
     @Override
-    public double score(Connection connection, String nodeA, String nodeB) throws SQLException {
+    public double score(Connection connection, String nodeA, String nodeB, Double threshold) throws SQLException {
         final String queryString = "SELECT GeometryType(a.geom), GeometryType(b.geom) FROM dataset_a_geometries a, dataset_b_geometries b "
                 + "WHERE a.subject=? AND b.subject=?";
         

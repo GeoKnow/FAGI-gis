@@ -1,0 +1,5 @@
+<http://www.test.net/test_point1> <http://www.w3.org/2002/07/owl#sameAs> <http://www.test.net/test_point2> .
+<http://www.test.net/test_point1> <http://www.w3.org/2002/07/owl#sameAs> <http://www.test.net/test_linestring1> .
+<http://www.test.net/test_point1> <http://www.w3.org/2002/07/owl#sameAs> <http://www.test.net/test_polygon> .
+<http://linkedgeodata.org/triplify/node1> <http://www.w3.org/2002/07/owl#sameAs> <http://linkedgeodata.org/triplify/node2> .
+<http://geoknow.eu/geodata#points_112344> <http://www.w3.org/2002/07/owl#sameAs> <http://geoknow.eu/geodata#points_112344> .

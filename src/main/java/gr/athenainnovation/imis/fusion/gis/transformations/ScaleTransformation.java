@@ -49,7 +49,7 @@ public class ScaleTransformation extends AbstractFusionTransformation {
     }
 
     @Override
-    public double score(Connection connection, String nodeA, String nodeB) throws SQLException {
+    public double score(Connection connection, String nodeA, String nodeB, Double threshold) throws SQLException {
         checkArgument(scaleParamsSet);
         
         final String queryString;

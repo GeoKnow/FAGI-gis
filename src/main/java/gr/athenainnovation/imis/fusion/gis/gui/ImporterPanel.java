@@ -7,9 +7,12 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.ImporterWorker;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
 import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.apache.log4j.Logger;
 
@@ -22,7 +25,16 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
     
     private final ErrorListener errorListener;
     private DBConfig dbConfig;
-
+    private GraphConfig graphConfig;
+    
+    //temp
+    private List<DBConfigListener> dbConfigListeners = new ArrayList<>();    
+    private String graphB;
+    private String graphA;
+    private Dataset datasetA;
+    private Dataset datasetB;
+    
+    
     /**
      * Creates new form ImporterPanel
      * @param errorListener error message listener
@@ -31,12 +43,26 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
         super();
         this.errorListener = errorListener;
         initComponents();
+        
+        //temp
+        //graphB = graphBField.getText();
+        //graphA = graphAField.getText(); 
+        setDatasetA(new Dataset(endpointAField.getText(), graphAField.getText(), subjectRegexAField.getText()));
+        setDatasetB(new Dataset(endpointAField.getText(), graphBField.getText(), subjectRegexBField.getText()));
     }
+    
     
     @Override
     public void notifyNewDBConfiguration(final DBConfig dbConfig) {
         this.dbConfig = dbConfig;
+
         importButton.setEnabled(true);
+    }
+    
+    @Override
+    public void notifyNewGraphConfiguration(final GraphConfig graphConfig) {
+        this.graphConfig = graphConfig;
+
     }
     
     @Override
@@ -79,12 +105,19 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
         datasetBProgressBar = new javax.swing.JProgressBar();
         datasetBStatusField = new javax.swing.JLabel();
         importButton = new javax.swing.JButton();
+        jPanel3 = new javax.swing.JPanel();
+        setGraphsButton = new javax.swing.JButton();
+        resetGraphsButton = new javax.swing.JButton();
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("Source dataset A"));
 
         jLabel1.setText("Endpoint:");
 
         jLabel2.setText("Graph");
+
+        graphAField.setText("http://localhost:8890/unister");
+
+        endpointAField.setText("http://localhost:8890/sparql");
 
         jLabel3.setText("Subject regex:");
 
@@ -108,7 +141,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(endpointAField)
                     .addComponent(subjectRegexAField)
-                    .addComponent(graphAField))
+                    .addComponent(graphAField, javax.swing.GroupLayout.DEFAULT_SIZE, 438, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
@@ -122,7 +155,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(graphAField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel2))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGap(52, 52, 52)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(subjectRegexAField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel3))
@@ -135,6 +168,10 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
 
         jLabel5.setText("Graph");
 
+        graphBField.setText("http://localhost:8890/wikimapia");
+
+        endpointBField.setText("http://localhost:8890/sparql");
+
         jLabel6.setText("Subject regex:");
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
@@ -145,15 +182,10 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel2Layout.createSequentialGroup()
-                            .addComponent(jLabel5)
-                            .addGap(76, 76, 76))
-                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                            .addComponent(jLabel6)
-                            .addGap(18, 18, 18)))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(jLabel4)
-                        .addGap(51, 51, 51)))
+                        .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addComponent(jLabel5))
+                    .addComponent(jLabel4))
+                .addGap(18, 18, 18)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(endpointBField)
                     .addComponent(subjectRegexBField, javax.swing.GroupLayout.DEFAULT_SIZE, 438, Short.MAX_VALUE)
@@ -171,7 +203,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(graphBField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel5))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGap(42, 42, 42)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(subjectRegexBField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel6))
@@ -206,7 +238,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                         .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(datasetAStatusField)
                             .addComponent(datasetBStatusField))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 137, Short.MAX_VALUE)
                         .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(datasetBProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, 270, Short.MAX_VALUE)
                             .addComponent(datasetAProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
@@ -230,6 +262,40 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
+        setGraphsButton.setText("Set");
+        setGraphsButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                setGraphsButtonActionPerformed(evt);
+            }
+        });
+
+        resetGraphsButton.setText("Reset");
+        resetGraphsButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                resetGraphsButtonActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(resetGraphsButton, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(setGraphsButton, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
+        );
+        jPanel3Layout.setVerticalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addGap(0, 13, Short.MAX_VALUE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(setGraphsButton)
+                    .addComponent(resetGraphsButton)))
+        );
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -239,7 +305,8 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -249,21 +316,29 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(16, Short.MAX_VALUE))
+                .addContainerGap(84, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
     private void importButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importButtonActionPerformed
         reset();
+        graphA = graphAField.getText(); 
+        graphB = graphBField.getText();
         
         try {
-            final Dataset sourceDatasetA = new Dataset(endpointAField.getText(), graphAField.getText(), subjectRegexAField.getText());
-            final Dataset sourceDatasetB = new Dataset(endpointBField.getText(), graphBField.getText(), subjectRegexBField.getText());
+            final Dataset sourceDatasetA = new Dataset(endpointAField.getText(), graphA, subjectRegexAField.getText());
+            final Dataset sourceDatasetB = new Dataset(endpointBField.getText(), graphB, subjectRegexBField.getText());                                    
+            //temp
+            setDatasetA(sourceDatasetA);
+            setDatasetB(sourceDatasetB);
             
             final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
             databaseInitialiser.initialise(dbConfig);
+            
             
             final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA) {
                 @Override
@@ -371,6 +446,78 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
             errorListener.notifyError(ex.getMessage());
         }
     }//GEN-LAST:event_importButtonActionPerformed
+
+    private void setGraphsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_setGraphsButtonActionPerformed
+        
+        graphConfig = new GraphConfig(graphAField.getText(),graphBField.getText(), endpointAField.getText(), endpointBField.getText());
+        publishGraphConfig(graphConfig);
+        
+        setDatasetA(new Dataset(endpointAField.getText(), graphAField.getText(), subjectRegexAField.getText()));
+        setDatasetB(new Dataset(endpointBField.getText(), graphBField.getText(), subjectRegexBField.getText()));
+        graphA = graphAField.getText(); 
+        graphB = graphBField.getText();
+        graphAField.setEnabled(false);
+        graphBField.setEnabled(false);
+        endpointAField.setEnabled(false);
+        endpointBField.setEnabled(false);
+        subjectRegexAField.setEnabled(false);
+        subjectRegexBField.setEnabled(false);
+    }//GEN-LAST:event_setGraphsButtonActionPerformed
+
+    public void registerListener(final DBConfigListener listener) {
+        dbConfigListeners.add(listener);
+    }
+    
+    private void publishGraphConfig(final GraphConfig graphConfig) {
+
+        for(DBConfigListener listener : dbConfigListeners) {
+            listener.notifyNewGraphConfiguration(graphConfig);
+        }
+ 
+    }
+    
+    private void resetGraphsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetGraphsButtonActionPerformed
+        graphA = graphAField.getText(); 
+        graphB = graphBField.getText();
+        graphAField.setEnabled(true);
+        graphBField.setEnabled(true);
+        endpointAField.setEnabled(true);
+        endpointBField.setEnabled(true);
+        subjectRegexAField.setEnabled(true);
+        subjectRegexBField.setEnabled(true);
+    }//GEN-LAST:event_resetGraphsButtonActionPerformed
+    
+    
+    
+    
+    public String getGraphA(){
+        
+        return graphA;
+    }
+    
+    public String getGraphB(){
+        
+        return graphB;
+    }
+    
+    
+    private void setDatasetA(Dataset dataset){
+        datasetA = dataset;
+    } 
+    
+    private void setDatasetB(Dataset dataset){
+        datasetB = dataset;
+    } 
+    
+    //temp
+    public Dataset getDatasetA(){
+        return datasetA;
+    } 
+    
+    //temp
+    public Dataset getDatasetB(){
+        return datasetB;
+    } 
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JProgressBar datasetAProgressBar;
@@ -380,7 +527,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
     private javax.swing.JTextField endpointAField;
     private javax.swing.JTextField endpointBField;
     private javax.swing.JTextField graphAField;
-    private javax.swing.JTextField graphBField;
+    public javax.swing.JTextField graphBField;
     private javax.swing.JButton importButton;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
@@ -390,7 +537,10 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
     private javax.swing.JLabel jLabel6;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
+    private javax.swing.JButton resetGraphsButton;
+    private javax.swing.JButton setGraphsButton;
     private javax.swing.JTextField subjectRegexAField;
     private javax.swing.JTextField subjectRegexBField;
     // End of variables declaration//GEN-END:variables

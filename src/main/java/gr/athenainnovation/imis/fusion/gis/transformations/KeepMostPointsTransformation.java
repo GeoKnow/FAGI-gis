@@ -43,7 +43,7 @@ public class KeepMostPointsTransformation extends AbstractFusionTransformation {
     }
 
     @Override
-    public double score(final Connection connection, final String nodeA, final String nodeB) throws SQLException {
+    public double score(final Connection connection, final String nodeA, final String nodeB, Double threshold) throws SQLException {
         return 1.0;
     }
 

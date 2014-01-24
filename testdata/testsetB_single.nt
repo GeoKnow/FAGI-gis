@@ -1,0 +1,22 @@
+<http://linkedgeodata.org/triplify/node162150121> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://linkedgeodata.org/ontology/node> .
+<http://linkedgeodata.org/triplify/node162150121> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/geosparql#Feature> .
+<http://linkedgeodata.org/triplify/node162150121> <http://purl.org/dc/elements/1.1/identifier> "162150121"^^<http://www.w3.org/2001/XMLSchema#long> .
+<http://linkedgeodata.org/triplify/node162150121> <http://linkedgeodata.org/ontology/version> "3" .
+<http://linkedgeodata.org/triplify/node162150121> <http://linkedgeodata.org/ontology/contributor> "66120" .
+<http://linkedgeodata.org/triplify/node162150121> <http://linkedgeodata.org/ontology/modificationDate> "2008-01-27T10:40:31.0"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://linkedgeodata.org/triplify/node162150121> <http://linkedgeodata.org/ontology/changeset> "705607" .
+_:BX2D1737316aX3A13fd28bf7e5X3AX2D7fff <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/geosparql#Geometry> .
+<http://linkedgeodata.org/triplify/node162150121> <http://www.opengis.net/ont/geosparql#defaultGeometry> _:BX2D1737316aX3A13fd28bf7e5X3AX2D7fff .
+_:BX2D1737316aX3A13fd28bf7e5X3AX2D7fff <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/gml#Point> .
+_:BX2D1737316aX3A13fd28bf7e5X3AX2D7fff <http://www.opengis.net/ont/geosparql#asGML> "<gml:Point srsName=\"EPSG:4326\"><gml:coordinates>20.8579419,39.610261000000001</gml:coordinates></gml:Point>"^^<http://www.opengis.net/ont/geosparql#gmlLiteral> .
+_:BX2D1737316aX3A13fd28bf7e5X3AX2D7ffe <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/geosparql#Geometry> .
+<http://linkedgeodata.org/triplify/node162150121> <http://www.opengis.net/ont/geosparql#hasGeometry> _:BX2D1737316aX3A13fd28bf7e5X3AX2D7ffe .
+_:BX2D1737316aX3A13fd28bf7e5X3AX2D7ffe <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/sf#Point> .
+_:BX2D1737316aX3A13fd28bf7e5X3AX2D7ffe <http://www.opengis.net/ont/geosparql#asWKT> "POINT(20.8579419 39.610261)"^^<http://www.opengis.net/ont/geosparql#wktLiteral> .
+<http://linkedgeodata.org/triplify/node162151542> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://linkedgeodata.org/ontology/node> .
+<http://linkedgeodata.org/triplify/node162151542> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/geosparql#Feature> .
+<http://linkedgeodata.org/triplify/node162151542> <http://purl.org/dc/elements/1.1/identifier> "162151542"^^<http://www.w3.org/2001/XMLSchema#long> .
+<http://linkedgeodata.org/triplify/node162151542> <http://linkedgeodata.org/ontology/version> "2" .
+<http://linkedgeodata.org/triplify/node162151542> <http://linkedgeodata.org/ontology/contributor> "66120" .
+<http://linkedgeodata.org/triplify/node162151542> <http://linkedgeodata.org/ontology/modificationDate> "2008-01-27T10:40:31.0"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://linkedgeodata.org/triplify/node162151542> <http://linkedgeodata.org/ontology/changeset> "705607" .

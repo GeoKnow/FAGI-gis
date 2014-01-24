@@ -83,7 +83,7 @@ public class PostGISImporter {
     }
     
     /**
-     * Loads an RDF statment to the appropriate dataset metadata table.
+     * Loads an RDF statement to the appropriate dataset metadata table.
      * @param dataset {@link PostGISImporter#DATASET_A} for dataset A or {@link PostGISImporter#DATASET_B} for dataset B
      * @param subject statement subject
      * @param predicate statement predicate
@@ -120,7 +120,6 @@ public class PostGISImporter {
             else {
                 insertMetadata.setString(5, "");
             }
-            
             insertMetadata.executeUpdate();
             connection.commit();
         }

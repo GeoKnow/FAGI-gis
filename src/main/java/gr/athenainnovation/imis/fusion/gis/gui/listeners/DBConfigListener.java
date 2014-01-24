@@ -1,6 +1,7 @@
 package gr.athenainnovation.imis.fusion.gis.gui.listeners;
 
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 
 /**
  * Listener for changes to the database configuration.
@@ -19,4 +20,7 @@ public interface DBConfigListener {
      * but rather wait to receive a new configuration via {@link DBConfigListener#notifyNewDBConfiguration(gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig) }.
      */
     void resetDBConfiguration();
+    
+    void notifyNewGraphConfiguration(final GraphConfig graphConfig);
+    
 }

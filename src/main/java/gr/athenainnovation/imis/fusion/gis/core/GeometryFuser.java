@@ -9,6 +9,7 @@ import gr.athenainnovation.imis.fusion.gis.transformations.AbstractFusionTransfo
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.PreparedStatement;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.log4j.Logger;
+
 
 /**
  * Provides methods for obtaining RDF links, scoring and then applying fusion transformations against them.
@@ -35,23 +37,41 @@ public class GeometryFuser {
      * @throws SQLException
      */
     public void fuse(final AbstractFusionTransformation transformation, final List<Link> links) throws SQLException {
+        
+        //delete old geometries from fused_geometries table. 
+        try{           
+            //delete all data in fused_geometries table. keep table for the new geometries
+           String deleteFusedGeometriesTable = "DELETE FROM fused_geometries";
+           PreparedStatement statement = connection.prepareStatement(deleteFusedGeometriesTable); 
+           statement.executeUpdate(); //jan 
+           //connection.commit();
+           
+        }
+        catch (SQLException ex)
+        {
+          connection.rollback();  
+          LOG.warn(ex.getMessage(), ex);
+        }
+        //end
+        
         for(Link link : links) {
             transformation.fuse(connection, link.getNodeA(), link.getNodeB());
-        }
+        }        
     }
     
     /**
      * Score given fusion transformation for each link in list.
      * @param transformation fusion transformation
      * @param links list of links
+     * @param threshold threshold
      * @return map with score results (value) for each link (key)
      * @throws SQLException
      */
-    public Map<String, Double> score(final AbstractFusionTransformation transformation, final List<Link> links) throws SQLException {
+    public Map<String, Double> score(final AbstractFusionTransformation transformation, final List<Link> links, Double threshold) throws SQLException {
         Map<String, Double> scores = new HashMap<>();
         
         for(Link link : links) {
-            scores.put(link.getKey(), transformation.score(connection, link.getNodeA(), link.getNodeB()));
+            scores.put(link.getKey(), transformation.score(connection, link.getNodeA(), link.getNodeB(),threshold));
         }
         
         return scores;
@@ -67,25 +87,24 @@ public class GeometryFuser {
         List<Link> output = new ArrayList<>();
         
         final Model model = RDFDataMgr.loadModel(linksFile);
-        
         final StmtIterator iter = model.listStatements();
         
         while(iter.hasNext()) {
             final Statement statement = iter.nextStatement();
             final String nodeA = statement.getSubject().getURI();
             final String nodeB;
-            final RDFNode object = statement.getObject();
+            final RDFNode object = statement.getObject();           
             if(object.isResource()) {
                 nodeB = object.asResource().getURI();
             }
             else {
                 throw new ParseException("Failed to parse link (object not a resource): " + statement.toString(), 0);
             }
-            
-            output.add(new Link(nodeA, nodeB));
+            Link l = new Link(nodeA, nodeB);
+            output.add(l);
         }
         
-        return output;
+        return output;       
     }
     
     /**

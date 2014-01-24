@@ -19,9 +19,10 @@ public class FusionGISGUI extends JFrame implements ErrorListener {
     private DatabasePanel databasePanel;
     private ImporterPanel importerPanel;
     private FuserPanel fuserPanel;
-    
+       
     private static final int SCROLL_INCREMENT = 20;
-    
+               
+            
     public FusionGISGUI() {
         initComponents();
     }
@@ -57,6 +58,7 @@ public class FusionGISGUI extends JFrame implements ErrorListener {
         JTabbedPane.addTab("Database", datasetPanelScrollPane);
         
         importerPanel = new ImporterPanel(this);
+        
         JScrollPane importerPanelScrollPane = new JScrollPane(importerPanel);
         importerPanelScrollPane.setBorder(new EmptyBorder(0, 0, 0, 0));
         importerPanelScrollPane.getVerticalScrollBar().setUnitIncrement(SCROLL_INCREMENT);
@@ -70,6 +72,8 @@ public class FusionGISGUI extends JFrame implements ErrorListener {
         
         databasePanel.registerListener(importerPanel);
         databasePanel.registerListener(fuserPanel);
+        importerPanel.registerListener(fuserPanel);
+        
         
         setPreferredSize(new Dimension(1024, 960));
         pack();
