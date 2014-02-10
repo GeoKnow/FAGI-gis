@@ -4,7 +4,6 @@ import static com.google.common.base.Preconditions.*;
 
 /**
  * Stores connection data for a database.
- * @author Thomas Maroulis
  */
 public class DBConfig {
     private final String dbName, dbUsername, dbPassword, dbURL, username, password;

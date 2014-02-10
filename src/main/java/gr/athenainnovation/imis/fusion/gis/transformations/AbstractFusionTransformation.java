@@ -6,7 +6,6 @@ import java.sql.SQLException;
 
 /**
  * Abstract class for the definition of fusion transformations.
- * @author Thomas Maroulis
  */
 public abstract class AbstractFusionTransformation {
     
@@ -42,21 +41,15 @@ public abstract class AbstractFusionTransformation {
      * @param connection connection to database
      * @param nodeA URI of first node
      * @param nodeB URI of second node
-     * @param fusedGeometry WKT serialisation of fused geometry
+     * @param fusedGeometry WKT serialization of fused geometry
      * @return the return value of the update execution
      * @throws SQLException
      */
     protected int insertFusedGeometry(final Connection connection, final String nodeA, final String nodeB, final String fusedGeometry) throws SQLException {
-        //System.out.println("fusedGeometry from insertFusedGeometry in Abstract    " + fusedGeometry);
          
         //4326 srid
         final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_GeometryFromText(?, 4326))"; 
-        
-        //3035 srid
-        //final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_GeometryFromText(?, 3035))";
-        //try removing ST_GeometryFromText from this Class and putting it to every Transformation separetely for the quries to get constucted right
-        //final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,?)"; 
-        
+
         try (final PreparedStatement statement = connection.prepareStatement(query)) {            
             statement.setString(1, nodeA);
             statement.setString(2, nodeB);
@@ -75,16 +68,9 @@ public abstract class AbstractFusionTransformation {
     
     protected int insertShiftedGeometry(final Connection connection, final String nodeA, final String nodeB, double deltaX, double deltaY, String geometryB) throws SQLException {
         
-        //translate computes with srid 4326
+        //translation computes with srid 4326
         final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_Translate(   ST_GeometryFromText(?, 4326),?,? ))"; 
-        //System.out.println("INSERT SHIFTED QUERY:  " + query);
-        //srid 3035
-        //final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_Translate(   ST_Transform(  ST_GeometryFromText(?, 4326),3035),?,? ))"; //not working
 
-        
-        //try removing ST_GeometryFromText from this Class and putting it to every Transformation separetely for the quries to get constucted right
-        //final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,?)"; 
-        
         try (final PreparedStatement statement = connection.prepareStatement(query)) {            
             statement.setString(1, nodeA);
             statement.setString(2, nodeB);
@@ -101,13 +87,5 @@ public abstract class AbstractFusionTransformation {
             connection.rollback();
             throw ex;
         }
-    }    
-    
-    
-    
-    
-    
-    
-    
-    
+    }      
 }

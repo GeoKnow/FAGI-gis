@@ -8,8 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
  /**
- * Shifts the polygon geometry to the point geometry, using as new centroid of the polygon the point geometry 
- * @author 
+ * Translates (shifts) the polygon to a new centroid. The new centroid is the coordinates of the POINT geometry
  */
 public class ShiftPolygonToPoint extends AbstractFusionTransformation {
     private static final String ID = "ShiftPolygonToPoint";  
@@ -19,11 +18,6 @@ public class ShiftPolygonToPoint extends AbstractFusionTransformation {
 
         final String queryString = "SELECT ST_X(a.geom), ST_Y(a.geom), ST_X(ST_Centroid(b.geom)), ST_Y(ST_Centroid(b.geom)), ST_AsText(b.geom) FROM dataset_a_geometries a, dataset_b_geometries b "
                 + "WHERE a.subject=? AND b.subject=?";
-        
-        //test for 3035
-        //final String queryString = "SELECT ST_X( ST_Transform((a.geom),3035)), ST_Y(ST_Transform((a.geom),3035)), ST_X(ST_Transform(ST_Centroid(b.geom),3035)), ST_Y(ST_Transform(ST_Centroid(b.geom),3035)), ST_AsText(b.geom) FROM dataset_a_geometries a, dataset_b_geometries b "
-         //       + "WHERE a.subject=? AND b.subject=?";
-        
         
         try (final PreparedStatement statement = connection.prepareStatement(queryString)) {
             statement.setString(1, nodeA);
@@ -54,12 +48,6 @@ public class ShiftPolygonToPoint extends AbstractFusionTransformation {
         final String queryString = "SELECT GeometryType(a.geom), GeometryType(b.geom), ST_Distance(ST_Transform(a.geom, 3035), ST_Centroid(ST_Transform(b.geom,3035))) FROM dataset_a_geometries a, dataset_b_geometries b "
                 + "WHERE a.subject=? AND b.subject=?";
                 
-        
-        //SELECT a, b geometries, distance from point a to b centroid from postgis db
-        //final String queryString = "SELECT GeometryType(a.geom), GeometryType(b.geom), ST_Distance(a.geom, ST_Centroid(b.geom)) FROM dataset_a_geometries a, dataset_b_geometries b "
-              //  + "WHERE a.subject=? AND b.subject=?";        
-         
-        
         try (final PreparedStatement statement = connection.prepareStatement(queryString)) {
             statement.setString(1, nodeA);
             statement.setString(2, nodeB);
@@ -87,12 +75,10 @@ public class ShiftPolygonToPoint extends AbstractFusionTransformation {
                 {
                   //score computing formula  
                   score = sqrt((abs(threshold) - distance)/threshold);
-                  //System.out.println("score:   " + score);
                   return score;
                 }                                    
                 
             }           
-            //no resultset
             return 0.0;
         }
     }

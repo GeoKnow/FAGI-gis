@@ -10,7 +10,7 @@ import java.sql.Statement;
 import org.apache.log4j.Logger;
 
 /**
- * Handles construction and initialisation of a new PostGIS database.
+ * Handles construction and initialization of a new PostGIS database.
  * @author Thomas Maroulis
  */
 public class DatabaseInitialiser {
@@ -31,8 +31,7 @@ public class DatabaseInitialiser {
         try (final Connection connection = connect(dbConfig.getDBName(), dbConfig.getDBUsername(), dbConfig.getDBPassword())) {
             executeIntialisationScripts(connection);
         }
-    }
-    
+    }    
     
     // Create a new database
     private void createDB(final DBConfig dbConfig) throws SQLException {

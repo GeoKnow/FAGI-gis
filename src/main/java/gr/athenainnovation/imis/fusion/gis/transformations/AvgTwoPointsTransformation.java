@@ -34,7 +34,6 @@ public class AvgTwoPointsTransformation extends AbstractFusionTransformation {
                 final double avgY = (geometryA_Y + geometryB_Y) / 2;
                 
                 final String fusedGeometry = "POINT(" + avgX + " " + avgY + ")";
-                //System.out.println("FUSED GEOMETRY" + fusedGeometry);
                 insertFusedGeometry(connection, nodeA, nodeB, fusedGeometry);
             }
         }

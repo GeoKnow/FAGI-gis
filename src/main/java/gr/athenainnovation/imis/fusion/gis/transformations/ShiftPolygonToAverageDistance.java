@@ -8,7 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
  /**
- * Shifts the polygon to a new centroid, computed by the average distance of the original centroid and the point geometry
+ * Translates (shifts) the polygon to a new centroid, computed by the average distance of the original centroid and the point geometry
  *  
  */
 public class ShiftPolygonToAverageDistance extends AbstractFusionTransformation {
@@ -35,13 +35,6 @@ public class ShiftPolygonToAverageDistance extends AbstractFusionTransformation 
                 final double avgX = (geometryA_X - geometryB_X) / 2;
                 final double avgY = (geometryA_Y - geometryB_Y) / 2;
                 
-                
-                //commented out to try ST_GeometryFromText here  instead of AbstractFusionTransformation
-                //final String fusedGeometry = "POINT(" + avgX + " " + avgY + ")";
-                
-                //try ST_GeometryFromText here  instead of AbstractFusionTransformation
-                //final String fusedGeometry = "ST_GeometryFromText(POINT(" + avgX + " " + avgY + "), 4326)";
-                //System.out.println("FUSED GEOMETRY" + fusedGeometry);
                 insertShiftedGeometry(connection, nodeA, nodeB, avgX, avgY, geometryB);
             }
         }
@@ -50,15 +43,10 @@ public class ShiftPolygonToAverageDistance extends AbstractFusionTransformation 
     @Override
     public double score(Connection connection, String nodeA, String nodeB, Double threshold) throws SQLException {        
         double score;
-        //commented out: transforms 4326 to another srid
+        //we transform the srid to 3035 in order to get distance in meters
         final String queryString = "SELECT GeometryType(a.geom), GeometryType(b.geom), ST_Distance(ST_Transform(a.geom, 3035), ST_Centroid(ST_Transform(b.geom,3035))) FROM dataset_a_geometries a, dataset_b_geometries b "
                 + "WHERE a.subject=? AND b.subject=?";
         
-        
-        //SELECT a, b geometries, distance from point a to b centroid from postgis db
-        //final String queryString = "SELECT GeometryType(a.geom), GeometryType(b.geom), ST_Distance(a.geom, ST_Centroid(b.geom)) FROM dataset_a_geometries a, dataset_b_geometries b "
-            //    + "WHERE a.subject=? AND b.subject=?";        
-         
         
         try (final PreparedStatement statement = connection.prepareStatement(queryString)) {
             statement.setString(1, nodeA);
@@ -72,10 +60,9 @@ public class ShiftPolygonToAverageDistance extends AbstractFusionTransformation 
                 final String geometryBType = resultSet.getString(2);
                 
                 //get distance between geometries
-                final double distance = resultSet.getDouble(3);
+                final double distance = resultSet.getDouble(3);               
                 
-                
-                //must be POINT and POLYGON, threshold < distance and threshold !=-1. -1 is default value for no threshold from the user.  
+                //must be POINT and POLYGON, threshold < distance and threshold !=-1. -1 is the default value if there is no threshold specified from the user.  
                 if(!"POINT".equals(geometryAType.toUpperCase()) || !"POLYGON".equals(geometryBType.toUpperCase()) || (threshold < distance && threshold != -1)) {
                     //geometries don' t match, return 0 score
                     return 0.0;
@@ -92,7 +79,6 @@ public class ShiftPolygonToAverageDistance extends AbstractFusionTransformation 
                 }                                    
                 
             }           
-            //never got into the while loop
             return 0.0;
         }
     }

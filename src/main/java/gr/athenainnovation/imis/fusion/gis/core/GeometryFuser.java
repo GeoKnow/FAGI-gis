@@ -52,7 +52,6 @@ public class GeometryFuser {
           connection.rollback();  
           LOG.warn(ex.getMessage(), ex);
         }
-        //end
         
         for(Link link : links) {
             transformation.fuse(connection, link.getNodeA(), link.getNodeB());

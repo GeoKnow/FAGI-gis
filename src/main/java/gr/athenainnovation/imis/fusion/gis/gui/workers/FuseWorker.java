@@ -9,8 +9,7 @@ import java.util.List;
 import javax.swing.SwingWorker;
 
 /**
- * This worker handles application of a transformation against a set of links.
- * @author Thomas Maroulis
+ * This worker handles application of a transformation against a set of links and initiates the import in virtuoso.
  */
 
 public class FuseWorker extends SwingWorker<Void, Void> {
@@ -38,7 +37,6 @@ public class FuseWorker extends SwingWorker<Void, Void> {
         this.checkboxIsSelected = checkboxIsSelected;
         this.fusedGraph = fusedGraph;
         this.graphConfig = graphConfig;
-        //String transformationID = transformation.getID();
     }
     
     @Override
@@ -48,7 +46,6 @@ public class FuseWorker extends SwingWorker<Void, Void> {
             geometryFuser.connect(dbConfig);
             geometryFuser.fuse(transformation, links);
 
-            //return null;
         }
         catch (SQLException ex) {
             throw new RuntimeException(ex);
@@ -69,7 +66,7 @@ public class FuseWorker extends SwingWorker<Void, Void> {
                 throw new RuntimeException(e);
             }
             finally {
-                //virtImp.clean();
+                virtImp.clean();
             }
         }
         else {
@@ -85,10 +82,8 @@ public class FuseWorker extends SwingWorker<Void, Void> {
                 virtImp.clean();
             }          
             
-        }
-        
+        }        
         return null;
-
     }  
     
 }

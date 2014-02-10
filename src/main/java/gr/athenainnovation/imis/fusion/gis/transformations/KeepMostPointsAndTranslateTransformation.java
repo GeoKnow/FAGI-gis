@@ -71,22 +71,13 @@ public class KeepMostPointsAndTranslateTransformation extends AbstractFusionTran
         }
     }
 
-    /*@Override
-    public double score(final Connection connection, final String nodeA, final String nodeB, Double threshold) throws SQLException {
-        return 1.0;
-    }*/
-        @Override
+
+    @Override
     public double score(Connection connection, String nodeA, String nodeB, Double threshold) throws SQLException {        
         double score;
         //transform from 4326 to other srid (3035) 
         final String queryString = "SELECT GeometryType(a.geom), GeometryType(b.geom), ST_Distance(ST_Transform(a.geom, 3035), ST_Centroid(ST_Transform(b.geom,3035))) FROM dataset_a_geometries a, dataset_b_geometries b "
-                + "WHERE a.subject=? AND b.subject=?";
-                
-        
-        //SELECT a, b geometries, distance from point a to b centroid from postgis db
-        //final String queryString = "SELECT GeometryType(a.geom), GeometryType(b.geom), ST_Distance(a.geom, ST_Centroid(b.geom)) FROM dataset_a_geometries a, dataset_b_geometries b "
-              //  + "WHERE a.subject=? AND b.subject=?";        
-         
+                + "WHERE a.subject=? AND b.subject=?";               
         
         try (final PreparedStatement statement = connection.prepareStatement(queryString)) {
             statement.setString(1, nodeA);
@@ -103,7 +94,7 @@ public class KeepMostPointsAndTranslateTransformation extends AbstractFusionTran
                 final double distance = resultSet.getDouble(3);
                 
                 
-                //must be POINT and POLYGON, threshold < distance and threshold !=-1. -1 is default value for no threshold from the user.  
+                //must be POINT and POLYGON, threshold < distance and threshold !=-1. -1 is the default value if there is no threshold specified from the user.  
                 if(!"POINT".equals(geometryAType.toUpperCase()) || !"POLYGON".equals(geometryBType.toUpperCase()) || (threshold < distance && threshold != -1)) {
                     //geometries don' t match or threshold < distance, return 0 score
                     return 0.0;
@@ -120,7 +111,6 @@ public class KeepMostPointsAndTranslateTransformation extends AbstractFusionTran
                 }                                    
                 
             }           
-            //never got into the while loop
             return 0.0;
         }
     }

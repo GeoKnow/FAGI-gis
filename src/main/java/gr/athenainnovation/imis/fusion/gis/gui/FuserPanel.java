@@ -6,7 +6,6 @@ import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.DBConfigListener;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.ErrorListener;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
-//import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.FuseWorker;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.ScoreWorker;
@@ -40,13 +39,11 @@ import javax.swing.JFileChooser;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollBar;
-//import javax.swing.ListModel;
 import org.apache.log4j.Logger;
 
 
 /**
  * Handles application of fusion transformations.
- * @author Thomas Maroulis
  */
 public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     private static final Logger LOG = Logger.getLogger(FuserPanel.class);
@@ -61,13 +58,9 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     private boolean dbConfigSet = false;
     private boolean linksSet = false;
     private boolean busy = false;
-    
-    //added
     private Double threshold; 
-    //private Dataset datasetA;
-    //private Dataset datasetB;
     private String fusedGraph;
-    //private boolean checkboxIsSelected;
+
 
     
     /**
@@ -78,7 +71,6 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
         super();
         this.errorListener = errorListener;
         initComponents();        
-        //this.graphConfig = new GraphConfig();
         transformations = new HashMap<>();
         registerTransformations();
         displayTransformations();    
@@ -190,14 +182,9 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
             if (scoresForAllRules.get(transformation) != null){
 
                 Collection allScores = scoresForAllRules.get(transformation).values();
-                    //System.out.println("distinguish scoresForAllRules with get  transformation:  " + scoresForAllRules.get(transformation).values());
-                    //System.out.println("distinguish scoresForAllRule with links:  " + scoresForAllRules);
 
-                    //model.getElementAt(...); //get same index from linkList
-                    for (Object singleScore : allScores ){
-                        
+                    for (Object singleScore : allScores ){                       
                         //before add, check and sync the elements
-                        //links.
                         model.addElement("Score:  " + singleScore.toString());                       
                         
                     }                      
@@ -215,32 +202,22 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     private void setLinkListModel() {
         final DefaultListModel<String> model = new DefaultListModel<>(); 
         
-            //clear the model to ensure the list cleared if the user changed the linkfile
-            //model.removeAllElements();
-            
+            //clear the model to ensure the list cleared if the user changed the linkfile           
             model.clear();
-            //linkList.setModel(model);
             
             for(Link link : links) {                               
                 model.addElement(link.getKey()); 
-               //System.out.println("link from model:   " + link.getKey() +"\n\n" );
-               //System.out.println( "link from scoresForAllRules:  " + scoresForAllRules.
             }        
         
              linkList.setModel(model);
  
- 
-            //iteration to retrieve the right sequence of the links from scoresForAllRules for displaying.             
+            //iteration to retrieve the right sequence of the links from scoresForAllRules, for displaying.             
             for (Entry<String, Map<String,Double>> entry: scoresForAllRules.entrySet()){
 
                 model.clear();
                 for(Entry<String, Double> entry1 : entry.getValue().entrySet()){
-                    //entry1.getKey();
-                    //System.out.println("entry1" + entry1);
-                    //System.out.println("entry1.getKey" + entry1.getKey()); 
                     model.addElement(entry1.getKey());
                 }
-                //model.addElement(entry1.getKey()); 
        
             }
         linkList.setModel(model);
@@ -587,12 +564,10 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     
     
     private Double getThreshold(){
-        //get threshold
+        //we set a default value of "-1" if the user didn' t choose a threshold, for scoring purposes.
             if(!thresholdField.getText().isEmpty()){
                 try{
-                threshold = Double.parseDouble(thresholdField.getText());
-                //System.out.println("threshold:  " + threshold);
-                
+                threshold = Double.parseDouble(thresholdField.getText());               
                 thresholdLabel.setText("Threshold set!");
                 
                 }
@@ -693,8 +668,7 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
         // select the links that can be fused from linkList 
         int linkListSize = linkList.getModel().getSize();
         int[] indexArray = new int[linkListSize];       
-        
-        //System.out.println("before the FOR INDEX ARRAY at position 0  " + indexArray[0]);
+
         for (int i = 0; i < linkListSize; i++) {            
             Object item = linkList.getModel().getElementAt(i);            
             //get color of element at i

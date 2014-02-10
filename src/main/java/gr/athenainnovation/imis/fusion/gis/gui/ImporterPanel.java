@@ -18,7 +18,6 @@ import org.apache.log4j.Logger;
 
 /**
  * Handles importing of RDF graph into a PostGIS db.
- * @author Thomas Maroulis
  */
 public class ImporterPanel extends javax.swing.JPanel implements DBConfigListener {
     private static final Logger LOG = Logger.getLogger(ImporterPanel.class);
@@ -26,8 +25,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
     private final ErrorListener errorListener;
     private DBConfig dbConfig;
     private GraphConfig graphConfig;
-    
-    //temp
+
     private List<DBConfigListener> dbConfigListeners = new ArrayList<>();    
     private String graphB;
     private String graphA;
@@ -44,9 +42,6 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
         this.errorListener = errorListener;
         initComponents();
         
-        //temp
-        //graphB = graphBField.getText();
-        //graphA = graphAField.getText(); 
         setDatasetA(new Dataset(endpointAField.getText(), graphAField.getText(), subjectRegexAField.getText()));
         setDatasetB(new Dataset(endpointAField.getText(), graphBField.getText(), subjectRegexBField.getText()));
     }
@@ -115,9 +110,14 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
 
         jLabel2.setText("Graph");
 
-        graphAField.setText("http://localhost:8890/unister");
+        graphAField.setText("http://localhost:8890/A");
 
         endpointAField.setText("http://localhost:8890/sparql");
+        endpointAField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                endpointAFieldActionPerformed(evt);
+            }
+        });
 
         jLabel3.setText("Subject regex:");
 
@@ -168,7 +168,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
 
         jLabel5.setText("Graph");
 
-        graphBField.setText("http://localhost:8890/wikimapia");
+        graphBField.setText("http://localhost:8890/B");
 
         endpointBField.setText("http://localhost:8890/sparql");
 
@@ -320,7 +320,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(84, Short.MAX_VALUE))
+                .addContainerGap(90, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -486,9 +486,11 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
         subjectRegexAField.setEnabled(true);
         subjectRegexBField.setEnabled(true);
     }//GEN-LAST:event_resetGraphsButtonActionPerformed
-    
-    
-    
+
+    private void endpointAFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_endpointAFieldActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_endpointAFieldActionPerformed
+
     
     public String getGraphA(){
         

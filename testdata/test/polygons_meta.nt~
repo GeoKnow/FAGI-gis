@@ -1,5 +1,0 @@
-<http://geoknow.eu/geodata#polygons_112344> <http://www.w3.org/2000/01/rdf-schema#label> "112344"@en .
-<http://geoknow.eu/geodata#polygons_112344> <http://www.opengis.net/ont/geosparql#hasGeometry> <http://geoknow.eu/geodata#Geom_polygons_112344> .
-<http://geoknow.eu/geodata#polygons_112344> <http://geoknow.eu/geodata#name> "Begnis bakery"@en .
-<http://geoknow.eu/geodata#Geom_polygons_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/sf#POLYGON> .
-<http://geoknow.eu/geodata#Geom_polygons_112344> <http://www.opengis.net/ont/geosparql#asWKT> "POLYGON ((19.51269964629397 0.0025728516478271, 19.512699645284265 0.0025728503508066, 19.512699644082833 0.0025728493207665, 19.512699643362513 0.0025728504653548, 19.512699645621137 0.002572851990572, 19.51269964629397 0.0025728516478271))"^^<http://www.opengis.net/ont/geosparql#wktLiteral> .

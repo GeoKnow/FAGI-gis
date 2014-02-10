@@ -38,7 +38,8 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
         Importer importer = null;
         try {
             importer = new Importer(dbConfig, this);
-            //comment out for now importer.importMetadata(datasetIdent, sourceDataset);
+            //importer.importMetadata(datasetIdent, sourceDataset); //we decided not to import the metadata in the DB. 
+                                                                    //metadata will get imported straight from the virtuoso graph.
             importer.importGeometries(datasetIdent, sourceDataset);
         }
         catch (SQLException ex) {

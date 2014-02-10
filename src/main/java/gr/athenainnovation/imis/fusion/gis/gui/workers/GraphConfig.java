@@ -3,7 +3,7 @@ package gr.athenainnovation.imis.fusion.gis.gui.workers;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- *Keeps info about graph names and endpoints given
+ * Keeps info about graph names and given endpoints.
  */
 public class GraphConfig {
     private final String graphA, graphB, endpointA, endpointB;

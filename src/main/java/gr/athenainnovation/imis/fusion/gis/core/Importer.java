@@ -21,8 +21,8 @@ import org.apache.log4j.Logger;
 /**
  * Provides the infrastructure for the export of metadata and geometric triples from a dataset with a given SPARQL endpoint and 
  * their loading into a PostGIS db using an instance of {@link PostGISImporter}.
- * @author Thomas Maroulis
  */
+
 public class Importer {
     private static final Logger LOG = Logger.getLogger(Importer.class);
     
@@ -74,7 +74,6 @@ public class Importer {
         try {
             postGISImporter.loadInfo(datasetIdent, sourceEndpoint, sourceGraph);
             
-            //System.out.println("\nqueryString from Importer\n" + queryString);
             final Query query = QueryFactory.create(queryString);
             queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph);
             
@@ -138,29 +137,21 @@ public class Importer {
         final String subjectRegex = sourceDataset.getSubjectRegex();
         checkIfValidRegexArgument(subjectRegex);
                          
-        //check the serialisation of the dataset with a count query. If it doesn t find WKT the serialisation is wgs84        
+        //check the serialisation of the dataset with a count query. If it doesn t find WKT the serialisation, the serialisation is wgs84        
         
         //check which is the dataset to define triples format
-
-         //test wgs84
+        //wgs84
         final String restrictionForWgs = "?s ?p1 ?o1 . ?s ?p2 ?o2 FILTER(regex(?s, \"" + subjectRegex + "\", \"i\")) " + "FILTER(regex(?p1, \"" + LAT_REGEX + "\", \"i\"))" +
                 "FILTER(regex(?p2, \"" + LONG_REGEX + "\", \"i\"))";
         
         final String queryString1 = "SELECT ?s ?o1 ?o2 WHERE { " + restrictionForWgs + " }";
-        int countWgs = checkForSerialisation(sourceEndpoint, sourceGraph, restrictionForWgs);
-        //System.out.println("countWgs SUCCESS   " + countWgs);
-        //execute wgs84
-        //double wgs = objectNode.asLiteral().getDouble();
-        //test wgs84  //construct POINT long lat
-        
+        int countWgs = checkForSerialisation(sourceEndpoint, sourceGraph, restrictionForWgs);       
          
         final String restriction = "?s ?p1 _:a . _:a ?p2 ?g FILTER(regex(?s, \"" + subjectRegex + "\", \"i\")) " + "FILTER(regex(?p1, \"" + HAS_GEOMETRY_REGEX + "\", \"i\"))" +
                 "FILTER(regex(?p2, \"" + AS_WKT_REGEX + "\", \"i\"))";
         int countWKT = checkForSerialisation(sourceEndpoint, sourceGraph, restriction);
         final String queryString = "SELECT ?s ?g WHERE { " + restriction + " }";
 
-        
-        //final int totalCount = queryExpectedResultSetSize(sourceEndpoint, sourceGraph, restriction);
         int currentCount = 1;
         
         QueryExecution queryExecution = null;
@@ -188,16 +179,13 @@ public class Importer {
                         
                         //construct wkt serialization
                         String geometry = "POINT ("+ longitude + " " + latitude +")";
-                        //System.out.println("wgs84 from importer  " + geometry);
                         postGISImporter.loadGeometry(datasetIdent, subject, geometry);
                     }
                     else {
                         LOG.warn("Resource found where geometry serialisation literal expected.");
                     }
 
-                    callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));
-                    
-                    
+                    callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));                                       
                 }
             }
             catch (SQLException | RuntimeException ex) {
@@ -209,10 +197,7 @@ public class Importer {
                     queryExecution.close();
                 }
             }
-        }
-                       
-        
-        
+        }                                   
         else{ //if geosparql geometry exists
             try {
                 final Query query = QueryFactory.create(queryString);
@@ -247,9 +232,7 @@ public class Importer {
                     queryExecution.close();
                 }
             }
-        }
-    
-
+        }    
     }
     
     /**

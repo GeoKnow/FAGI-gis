@@ -1,8 +1,0 @@
-<http://geoknow.eu/geodata#points_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://geoknow.eu/geodata#points> .
-<http://geoknow.eu/geodata#points_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/geosparql#Feature> .
-<http://geoknow.eu/geodata#points_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://geoknow.eu/geodata#wikimapia> .
-<http://geoknow.eu/geodata#points_112344> <http://www.w3.org/2000/01/rdf-schema#label> "112344"@en .
-<http://geoknow.eu/geodata#points_112344> <http://www.opengis.net/ont/geosparql#hasGeometry> <http://geoknow.eu/geodata#Geom_points_112344> .
-<http://geoknow.eu/geodata#points_112344> <http://geoknow.eu/geodata#name> "Begnis bakery"@en .
-<http://geoknow.eu/geodata#Geom_points_112344> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/ont/sf#POINT> .
-<http://geoknow.eu/geodata#Geom_points_112344> <http://www.opengis.net/ont/geosparql#asWKT> "POINT (19.51273664482824 0.0025728506556692)"^^<http://www.opengis.net/ont/geosparql#wktLiteral> .

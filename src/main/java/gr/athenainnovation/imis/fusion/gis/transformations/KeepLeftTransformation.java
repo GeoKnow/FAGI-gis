@@ -23,7 +23,6 @@ public class KeepLeftTransformation extends AbstractFusionTransformation {
             while(resultSet.next()) {
                 final String geometry = resultSet.getString(1);
 
-                //System.out.println("Fused geometry: nodeA nodeB geometry =  " + nodeA + nodeB + geometry);
                 insertFusedGeometry(connection, nodeA, nodeB, geometry);
             }
         }

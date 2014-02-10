@@ -23,9 +23,7 @@ public class KeepRightTransformation extends AbstractFusionTransformation {
             
             while(resultSet.next()) {
                 final String geometry = resultSet.getString(1);
-                //System.out.println("KeepRightTransformation: nodeA nodeB geometry" + nodeA + nodeB + geometry);
                 insertFusedGeometry(connection, nodeA, nodeB, geometry);
-                //here will go something like insertToVirtuoso. maybe.
             }
         }
     }
