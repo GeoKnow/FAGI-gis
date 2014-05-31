@@ -16,7 +16,6 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoUpdateFactory;
 import virtuoso.jena.driver.VirtuosoUpdateRequest;
-//for postGIS
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
