@@ -7,6 +7,8 @@ import gr.athenainnovation.imis.fusion.gis.gui.listeners.DBConfigListener;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.ErrorListener;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.FuseWorker;
+import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
+import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.ScoreWorker;
 import gr.athenainnovation.imis.fusion.gis.transformations.AbstractFusionTransformation;
@@ -19,7 +21,6 @@ import gr.athenainnovation.imis.fusion.gis.transformations.KeepRightTransformati
 import gr.athenainnovation.imis.fusion.gis.transformations.ScaleTransformation;
 import gr.athenainnovation.imis.fusion.gis.transformations.ShiftPolygonToAverageDistance;
 import gr.athenainnovation.imis.fusion.gis.transformations.ShiftPolygonToPoint;
-
 import java.awt.Color;
 import java.awt.Component;
 import java.io.File;
@@ -51,8 +52,8 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     private final ErrorListener errorListener;
     private DBConfig dbConfig;
     private GraphConfig graphConfig;
-    private final Map<String, AbstractFusionTransformation> transformations;
-    private final Map<String, Map<String, Double>> scoresForAllRules;
+    public static Map<String, AbstractFusionTransformation> transformations;
+    public static Map<String, Map<String, Double>> scoresForAllRules;
     private List<Link> links;
     
     private boolean dbConfigSet = false;
@@ -104,7 +105,7 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
         setFieldsEnabled();
     }
     
-    private void setBusy(final boolean busy) {
+    public void setBusy(final boolean busy) {
         this.busy = busy;
         setFieldsEnabled();
     }
@@ -118,7 +119,12 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
     }
     
     // Registers all implemented transformations
-    private void registerTransformations() {
+    public static void registerTransformations() {
+        if (transformations == null ) 
+            transformations = new HashMap<>();
+        if (scoresForAllRules == null)
+            scoresForAllRules = new HashMap<>();
+        
         KeepLeftTransformation keepLeftTransformation = new KeepLeftTransformation();
         transformations.put(keepLeftTransformation.getID(), keepLeftTransformation);
         
@@ -337,6 +343,8 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
 
         statusField.setText("Idle...");
 
+        thresholdField.setText("50");
+
         thresholdLabel.setText("Threshold (meters):");
 
         JScrollBar sBar2 = jScrollPane2.getVerticalScrollBar();
@@ -547,7 +555,7 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
                         setBusy(false);
                     }
                     
-                    LOG.info("Score worker has terminated.");
+                    LOG.info(ANSI_YELLOW+"Score worker has terminated."+ANSI_RESET);
                 }
             };
                         
@@ -609,41 +617,7 @@ public class FuserPanel extends javax.swing.JPanel implements DBConfigListener {
                 return;
             }
             
-            final FuseWorker fuseWorker = new FuseWorker(transformation, selectedLinks, dbConfig, fusedGraph, fusedGraphCheckbox.isSelected(), graphConfig) {
-                @Override protected void done() {
-                    // Call get despite return type being Void to prevent SwingWorker from swallowing exceptions
-                    try {
-                        get();
-                        statusField.setText("Done (fusing) with transformation: " + transformation.getID());
-                    }
-                    catch (RuntimeException ex) {
-                        if(ex.getCause() == null) {
-                            LOG.warn(ex.getMessage(), ex);
-                            errorListener.notifyError(ex.getMessage());
-                        }
-                        else {
-                            LOG.warn(ex.getCause().getMessage(), ex.getCause());
-                            errorListener.notifyError(ex.getCause().getMessage());
-                        }
-                        statusField.setText("Worker terminated abnormally.");
-                    }
-                    catch (InterruptedException ex) {
-                        LOG.warn(ex.getMessage(), ex);
-                        errorListener.notifyError(ex.getMessage());
-                        statusField.setText("Worker terminated abnormally.");
-                    }
-                    catch (ExecutionException ex) {
-                        LOG.warn(ex.getCause().getMessage(), ex.getCause());
-                        errorListener.notifyError(ex.getMessage());
-                        statusField.setText("Worker terminated abnormally.");
-                    }
-                    finally {
-                        setBusy(false);
-                    }
-                    
-                    LOG.info("Fuse worker has terminated.");
-                }
-            };
+            final FuseWorker fuseWorker = new FuseWorker(transformation, selectedLinks, dbConfig, fusedGraph, fusedGraphCheckbox.isSelected(), graphConfig, this, statusField, errorListener);
             
             statusField.setText("Working...");
             setBusy(true);

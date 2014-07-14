@@ -3,8 +3,17 @@ package gr.athenainnovation.imis.fusion.gis.gui;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.DBConfigListener;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.ErrorListener;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles setting of database configuration parameters.
@@ -21,6 +30,7 @@ public class DatabasePanel extends javax.swing.JPanel {
      */
     public DatabasePanel(final ErrorListener errorListener) {
         super();
+        //System.out.println(File.pathSeparator+" "+System.getProperty("java.io.tmpdir"));
         this.errorListener = errorListener;
         initComponents();
     }
@@ -93,7 +103,7 @@ public class DatabasePanel extends javax.swing.JPanel {
             }
         });
 
-        dbPasswordField.setText("postgres");
+        dbPasswordField.setText("1111");
 
         jLabel1.setText("DB name:");
 
@@ -234,7 +244,7 @@ public class DatabasePanel extends javax.swing.JPanel {
         final DBConfig dbConfig;
         try {
             //virtuoso fields added as parameters
-            dbConfig = new DBConfig(dbNameField.getText(), dbUsernameField.getText(), dbPasswordField.getText(), dbURLField.getText(), usernameField.getText(), passwordField.getText()); 
+            dbConfig = new DBConfig(dbNameField.getText(), dbUsernameField.getText(), dbPasswordField.getText(), dbURLField.getText(), usernameField.getText(), passwordField.getText(), "/Users/nickvitsas/NetBeansProjects/FAGI-gis-master/"); 
         }
         catch (RuntimeException ex) {
             errorListener.notifyError(ex.getMessage());

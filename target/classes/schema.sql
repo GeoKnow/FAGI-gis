@@ -76,3 +76,9 @@ CREATE TABLE fused_geometries (
 SELECT AddGeometryColumn('fused_geometries', 'geom', 4326, 'GEOMETRY', 2);
 CREATE INDEX idx_fused_geometries_geom ON fused_geometries USING gist (geom);
 
+--Create a table to hold links
+CREATE TABLE links (
+	nodeA text NOT NULL,
+	nodeB text NOT NULL
+);
+

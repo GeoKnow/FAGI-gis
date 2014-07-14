@@ -8,6 +8,9 @@ import java.sql.SQLException;
  * Abstract class for the definition of fusion transformations.
  */
 public abstract class AbstractFusionTransformation {
+    public static final int WGS84_SRID = 4326;
+    
+    public abstract void fuseAll(final Connection connection) throws SQLException;
     
     /**
      * Fuse geometries of given nodes.
@@ -45,10 +48,11 @@ public abstract class AbstractFusionTransformation {
      * @return the return value of the update execution
      * @throws SQLException
      */
+    
     protected int insertFusedGeometry(final Connection connection, final String nodeA, final String nodeB, final String fusedGeometry) throws SQLException {
          
         //4326 srid
-        final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_GeometryFromText(?, 4326))"; 
+        final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_GeometryFromText(?,"+WGS84_SRID+"))"; 
 
         try (final PreparedStatement statement = connection.prepareStatement(query)) {            
             statement.setString(1, nodeA);
@@ -69,8 +73,8 @@ public abstract class AbstractFusionTransformation {
     protected int insertShiftedGeometry(final Connection connection, final String nodeA, final String nodeB, double deltaX, double deltaY, String geometryB) throws SQLException {
         
         //translation computes with srid 4326
-        final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_Translate(   ST_GeometryFromText(?, 4326),?,? ))"; 
-
+        final String query = "INSERT INTO fused_geometries (subject_A, subject_B, geom) VALUES (?,?,ST_Translate(   ST_GeometryFromText(?,"+WGS84_SRID+"),?,? ))"; 
+        //System.out.println(geometryB);
         try (final PreparedStatement statement = connection.prepareStatement(query)) {            
             statement.setString(1, nodeA);
             statement.setString(2, nodeB);

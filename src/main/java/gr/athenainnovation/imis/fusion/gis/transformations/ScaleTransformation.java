@@ -104,4 +104,32 @@ public class ScaleTransformation extends AbstractFusionTransformation {
     public boolean areScaleParamsSet() {
         return scaleParamsSet;
     }
+
+    @Override
+    public void fuseAll(Connection connection) throws SQLException {
+        final String queryString;
+        final String node;
+        
+        if(keepGeometryA) {
+            queryString = "INSERT INTO fused_geometries (subject_A, subject_B, geom)\n" +
+                                    "SELECT links.nodea, links.nodeb, ST_scale(dataset_a_geometries.geom,?,?)\n" +
+                                    "FROM links INNER JOIN dataset_a_geometries \n" +
+                                    "ON (links.nodea = dataset_a_geometries.subject)";
+            
+        }
+        else {
+            queryString = "INSERT INTO fused_geometries (subject_A, subject_B, geom)\n" +
+                                    "SELECT links.nodea, links.nodeb, ST_scale(dataset_b_geometries.geom,?,?)\n" +
+                                    "FROM links INNER JOIN dataset_b_geometries \n" +
+                                    "ON (links.nodeb = dataset_b_geometries.subject)";
+            
+        }
+        
+        try (final PreparedStatement stmt = connection.prepareStatement(queryString)) {
+            stmt.setDouble(1, scaleFactor);
+            stmt.setDouble(2, scaleFactor);
+            
+            stmt.executeUpdate();
+        }
+    }
 }

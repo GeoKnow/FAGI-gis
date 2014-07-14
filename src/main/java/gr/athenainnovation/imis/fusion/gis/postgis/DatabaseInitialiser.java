@@ -1,12 +1,15 @@
 package gr.athenainnovation.imis.fusion.gis.postgis;
 
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
+import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.logging.Level;
 import org.apache.log4j.Logger;
 
 /**
@@ -42,8 +45,8 @@ public class DatabaseInitialiser {
         Connection db = null;
         Statement stmt = null;
         String sql;
-        
         try {
+                Class.forName("org.postgresql.Driver");
                 db = DriverManager.getConnection(DB_URL, dbUsername, dbPassword);
                 stmt = db.createStatement();
                 
@@ -53,9 +56,11 @@ public class DatabaseInitialiser {
                 sql = "CREATE DATABASE " + dbName;
                 stmt.executeUpdate(sql);
                 
-                LOG.info("Database creation complete");
+                LOG.info(ANSI_YELLOW+"Database creation complete"+ANSI_RESET);
         }
-        finally {
+        catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(DatabaseInitialiser.class.getName()).log(Level.SEVERE, null, ex);
+        }        finally {
             if(stmt != null) {
                 stmt.close();
             }
@@ -71,7 +76,7 @@ public class DatabaseInitialiser {
         final String url = DB_URL.concat(dbName);
         final Connection dbConn = DriverManager.getConnection(url, dbUsername, dbPassword);
         dbConn.setAutoCommit(false);
-        LOG.info("Connection to db established.");
+        LOG.info(ANSI_YELLOW+"Connection to db established."+ANSI_RESET);
         return dbConn;
     }
     
@@ -94,6 +99,6 @@ public class DatabaseInitialiser {
             scriptRunner.runScript(new InputStreamReader(dbSchemaStream));
         }
         
-        LOG.info("Database initialised");
+        LOG.info(ANSI_YELLOW+"Database initialised"+ANSI_RESET);
     }
 }

@@ -9,6 +9,7 @@ import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
+import gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.ImporterWorker;
@@ -16,6 +17,7 @@ import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import static gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter.DATASET_A;
 import static gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter.DATASET_B;
 import java.sql.SQLException;
+import java.util.logging.Level;
 import org.apache.log4j.Logger;
 
 /**
@@ -35,6 +37,29 @@ public class Importer {
     private static final String LONG_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#long";
     private static final String LAT_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#lat";
     
+    private float elapsedTime = 0f;
+    private int importedTripletsCount = 0;
+    
+    public float getElapsedTime() {
+        return elapsedTime;
+    }
+
+    public void setElapsedTime(float elapTime) {
+        this.elapsedTime = elapTime;
+    }
+
+    public int getImportedTripletsCount() {
+        return importedTripletsCount;
+    }
+
+    public void setImportedTripletsCount(int impTriplets) {
+        this.importedTripletsCount = impTriplets;
+    }
+    
+    public void addImportedTriplets(int addTriplets) {
+        this.importedTripletsCount += addTriplets;
+    }
+    
     /**
      * Constructs a new instance of the importer with the given {@link PostGISImporter}.
      * @param dBConfig database configuration
@@ -44,6 +69,11 @@ public class Importer {
      */
     public Importer(final DBConfig dBConfig, final ImporterWorker callback) throws SQLException {
         this.callback = callback;
+        this.postGISImporter = new PostGISImporter(dBConfig);
+    }
+    
+    public Importer(final DBConfig dBConfig) throws SQLException {
+        this.callback = null;
         this.postGISImporter = new PostGISImporter(dBConfig);
     }
     
@@ -152,10 +182,10 @@ public class Importer {
         int countWKT = checkForSerialisation(sourceEndpoint, sourceGraph, restriction);
         final String queryString = "SELECT ?s ?g WHERE { " + restriction + " }";
 
+        //System.out.println("Count WKT " + countWKT+" Count WGS "+countWgs);
         int currentCount = 1;
         
         QueryExecution queryExecution = null;
-        
         if (!(countWKT > 0)){ //if geosparql geometry doesn' t exist        
             
             try {
@@ -163,7 +193,7 @@ public class Importer {
                 queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph);
 
                 final ResultSet resultSet = queryExecution.execSelect();
-
+                long startTime =  System.nanoTime();
                 while(resultSet.hasNext()) {
                     
                     
@@ -184,9 +214,13 @@ public class Importer {
                     else {
                         LOG.warn("Resource found where geometry serialisation literal expected.");
                     }
-
-                    callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));                                       
+                    
+                    if (callback != null )
+                        callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));                                       
                 }
+                postGISImporter.finishUpdates();
+                long endTime =  System.nanoTime();
+                setElapsedTime((endTime-startTime)/1000000000f);
             }
             catch (SQLException | RuntimeException ex) {
                 LOG.error(ex.getMessage(), ex);
@@ -202,9 +236,9 @@ public class Importer {
             try {
                 final Query query = QueryFactory.create(queryString);
                 queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph);
-                
+                //System.out.println("Kai edw mwre "+sourceGraph);
                 final ResultSet resultSet = queryExecution.execSelect();
-                
+                long startTime =  System.nanoTime();
                 while(resultSet.hasNext()) {
                     final QuerySolution querySolution = resultSet.next();
                     
@@ -219,12 +253,22 @@ public class Importer {
                     else {
                         LOG.warn("Resource found where geometry serialisation literal expected.");
                     }
-                    
-                    callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWKT)));
+                    if (callback != null )
+                        callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWKT)));
                 }
+                postGISImporter.finishUpdates();
+                //System.out.println("Count : "+currentCount);
+                long endTime =  System.nanoTime();
+                setElapsedTime((endTime-startTime)/1000000000f);
             }
             catch (SQLException | RuntimeException ex) {
                 LOG.error(ex.getMessage(), ex);
+                java.util.logging.Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+            SQLException exception = (SQLException) ex;
+            while(exception.getNextException() != null) {
+                java.util.logging.Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, exception.getNextException());
+                exception = exception.getNextException();
+            }
                 throw new RuntimeException(ex);
             }
             finally {
@@ -233,6 +277,7 @@ public class Importer {
                 }
             }
         }    
+        addImportedTriplets(countWKT + countWgs);
     }
     
     /**

@@ -1,22 +1,51 @@
 package gr.athenainnovation.imis.fusion.gis.gui.workers;
 
 import gr.athenainnovation.imis.fusion.gis.core.Importer;
+import gr.athenainnovation.imis.fusion.gis.gui.ImporterPanel;
+import gr.athenainnovation.imis.fusion.gis.gui.listeners.ErrorListener;
+import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
+import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
 import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import java.sql.SQLException;
+import java.util.concurrent.ExecutionException;
 import javax.swing.SwingWorker;
+import org.apache.log4j.Logger;
 
 /**
  * Exports triples from a dataset using its SPARQL endpoint and then imports them into a PostGIS database.
  * @author Thomas Maroulis
  */
 public class ImporterWorker extends SwingWorker<Void, Void> {    
+    private static final Logger LOG = Logger.getLogger(ImporterPanel.class);
+    private final ErrorListener errorListener;
+    
     private final int datasetIdent;
     private final Dataset sourceDataset;
     private final DBConfig dbConfig;
+    private final javax.swing.JLabel statusText;
     
     private int metadataProgress = 0;
     private int geometryProgress = 0;
     
+    private float elapsedTime = 0f; 
+    private int importedTripletsCount = 0;
+    
+    public int getImportedTripletsCount() {
+        return importedTripletsCount;
+    }
+
+    public void setImportedTripletsCount(int impTriplets) {
+        this.importedTripletsCount = impTriplets;
+    }
+    
+    public float getElapsedTime() {
+        return elapsedTime;
+    }
+
+    public void setElapsedTime(float elapTime) {
+        this.elapsedTime = elapTime;
+    }
+
     /**
      * Constructs a new instance of {@link ImporterWorker} that will export triples from a sourceDataset and import them in the indicated DB.
      * Triples will be loaded in the tables of the database that are indicated by the parameter datasetIdent.
@@ -25,12 +54,15 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
      * @param sourceDataset source dataset from which to extract triples
      * @throws RuntimeException in case of an unrecoverable error. The cause of the error will be encapsulated by the thrown RuntimeException
      */
-    public ImporterWorker(final DBConfig dbConfig, final int datasetIdent, final Dataset sourceDataset) {
+    public ImporterWorker(final DBConfig dbConfig, final int datasetIdent, final Dataset sourceDataset, javax.swing.JLabel textField, final ErrorListener errListener) {
         super();
         
         this.dbConfig = dbConfig;
         this.datasetIdent = datasetIdent;
         this.sourceDataset = sourceDataset;
+        
+        this.statusText = textField;
+        this.errorListener = errListener;
     }
     
     @Override
@@ -41,6 +73,8 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
             //importer.importMetadata(datasetIdent, sourceDataset); //we decided not to import the metadata in the DB. 
                                                                     //metadata will get imported straight from the virtuoso graph.
             importer.importGeometries(datasetIdent, sourceDataset);
+            setElapsedTime(importer.getElapsedTime());
+            setImportedTripletsCount(importer.getImportedTripletsCount());          
         }
         catch (SQLException ex) {
             throw new RuntimeException(ex);
@@ -54,6 +88,42 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
         return null;
     }
     
+    @Override
+    protected void done() {
+    // Call get despite return type being Void to prevent SwingWorker from swallowing exceptions
+        try {
+            get();
+            if(statusText != null)
+                statusText.setText("Imported "+getImportedTripletsCount()+" triplets in "+getElapsedTime()+" secs!");
+            else
+                LOG.info(ANSI_YELLOW+"Imported "+getImportedTripletsCount()+" triplets in "+getElapsedTime()+" secs!"+ANSI_RESET);
+        }
+        catch (RuntimeException ex) {
+            if(ex.getCause() == null) {
+                LOG.warn(ex.getMessage(), ex);
+                errorListener.notifyError(ex.getMessage());
+            }
+            else {
+                LOG.warn(ex.getCause().getMessage(), ex.getCause());
+                errorListener.notifyError(ex.getCause().getMessage());
+            }
+            statusText.setText("Worker terminated abnormally.");
+        }
+        catch (InterruptedException ex) {
+            LOG.warn(ex.getMessage());
+            errorListener.notifyError(ex.getMessage());
+            statusText.setText("Worker terminated abnormally.");
+        }
+        catch (ExecutionException ex) {
+            LOG.warn(ex.getCause().getMessage());
+            errorListener.notifyError(ex.getCause().getMessage());
+            statusText.setText("Worker terminated abnormally.");
+        }
+        finally {
+            LOG.info(ANSI_YELLOW+"Dataset A import worker has terminated."+ANSI_RESET);
+        }
+    }
+
     /**
      * Notify worker of progress of metadata triples import.
      * @param progress progress of metadata triples import. Value must be in range [0..100]

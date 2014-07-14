@@ -67,4 +67,33 @@ public class AvgTwoPointsTransformation extends AbstractFusionTransformation {
     public String getID() {
         return ID;
     }
+
+    @Override
+    public void fuseAll(Connection connection) {
+        /*final String queryString = "INSERT INTO fused_geometries (subject_A, subject_B, geom) "
+                + "SELECT links.nodea, links.nodeb, dataset_a_geometries.geom "
+                + "FROM links INNER JOIN dataset_a_geometries "
+                + "ON (links.nodea = dataset_a_geometries.subject)\n";
+        
+        try (
+            final PreparedStatement statement = connection.(queryString)) {
+            statement.setString(1, nodeA);
+            statement.setString(2, nodeB);
+            
+            final ResultSet resultSet = statement.executeQuery();
+            
+            while(resultSet.next()) {
+                final double geometryA_X = resultSet.getDouble(1);
+                final double geometryA_Y = resultSet.getDouble(2);
+                final double geometryB_X = resultSet.getDouble(3);
+                final double geometryB_Y = resultSet.getDouble(4);
+                
+                final double avgX = (geometryA_X + geometryB_X) / 2;
+                final double avgY = (geometryA_Y + geometryB_Y) / 2;
+                
+                final String fusedGeometry = "POINT(" + avgX + " " + avgY + ")";
+                insertFusedGeometry(connection, nodeA, nodeB, fusedGeometry);
+            }
+        }*/
+    }
 }

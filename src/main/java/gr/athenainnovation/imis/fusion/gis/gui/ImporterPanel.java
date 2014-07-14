@@ -110,7 +110,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
 
         jLabel2.setText("Graph");
 
-        graphAField.setText("http://localhost:8890/A");
+        graphAField.setText("http://localhost:8890/DAV/uni");
 
         endpointAField.setText("http://localhost:8890/sparql");
         endpointAField.addActionListener(new java.awt.event.ActionListener() {
@@ -168,7 +168,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
 
         jLabel5.setText("Graph");
 
-        graphBField.setText("http://localhost:8890/B");
+        graphBField.setText("http://localhost:8890/DAV/wiki");
 
         endpointBField.setText("http://localhost:8890/sparql");
 
@@ -340,40 +340,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
             databaseInitialiser.initialise(dbConfig);
             
             
-            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA) {
-                @Override
-                protected void done() {
-                    // Call get despite return type being Void to prevent SwingWorker from swallowing exceptions
-                    try {
-                        get();
-                        datasetAStatusField.setText("Dataset import done!");
-                    }
-                    catch (RuntimeException ex) {
-                        if(ex.getCause() == null) {
-                            LOG.warn(ex.getMessage(), ex);
-                            errorListener.notifyError(ex.getMessage());
-                        }
-                        else {
-                            LOG.warn(ex.getCause().getMessage(), ex.getCause());
-                            errorListener.notifyError(ex.getCause().getMessage());
-                        }
-                        datasetAStatusField.setText("Worker terminated abnormally.");
-                    }
-                    catch (InterruptedException ex) {
-                        LOG.warn(ex.getMessage());
-                        errorListener.notifyError(ex.getMessage());
-                        datasetAStatusField.setText("Worker terminated abnormally.");
-                    }
-                    catch (ExecutionException ex) {
-                        LOG.warn(ex.getCause().getMessage());
-                        errorListener.notifyError(ex.getCause().getMessage());
-                        datasetAStatusField.setText("Worker terminated abnormally.");
-                    }
-                    finally {
-                        LOG.info("Dataset A import worker has terminated.");
-                    }
-                }
-            };
+            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
             
             datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override public void propertyChange(PropertyChangeEvent evt) {
@@ -383,40 +350,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 }
             });
             
-            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_B, sourceDatasetB) {
-                @Override
-                protected void done() {
-                    // Call get despite return type being Void to prevent SwingWorker from swallowing exceptions
-                    try {
-                        get();
-                        datasetBStatusField.setText("Dataset import done!");
-                    }
-                    catch (RuntimeException ex) {
-                        if(ex.getCause() == null) {
-                            LOG.warn(ex.getMessage(), ex);
-                            errorListener.notifyError(ex.getMessage());
-                        }
-                        else {
-                            LOG.warn(ex.getCause().getMessage(), ex.getCause());
-                            errorListener.notifyError(ex.getCause().getMessage());
-                        }
-                        datasetBStatusField.setText("Worker terminated abnormally.");
-                    }
-                    catch (InterruptedException ex) {
-                        LOG.warn(ex.getMessage());
-                        errorListener.notifyError(ex.getMessage());
-                        datasetAStatusField.setText("Worker terminated abnormally.");
-                    }
-                    catch (ExecutionException ex) {
-                        LOG.warn(ex.getCause().getMessage());
-                        errorListener.notifyError(ex.getCause().getMessage());
-                        datasetAStatusField.setText("Worker terminated abnormally.");
-                    }
-                    finally {
-                        LOG.info("Dataset B import worker has terminated.");
-                    }
-                }
-            };
+            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_B, sourceDatasetB, datasetBStatusField, errorListener);
             
             datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override public void propertyChange(PropertyChangeEvent evt) {

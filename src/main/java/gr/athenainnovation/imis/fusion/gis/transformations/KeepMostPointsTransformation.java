@@ -51,5 +51,28 @@ public class KeepMostPointsTransformation extends AbstractFusionTransformation {
     public String getID() {
         return ID;
     }
-    
+
+    @Override
+    public void fuseAll(Connection connection) throws SQLException {
+        final String insertMostPoints = 
+"INSERT INTO fused_geometries (subject_A, subject_B, geom)\n" +
+"SELECT links.nodea, links.nodeb, CASE WHEN points_a >= points_b \n" +
+"					THEN a_g\n" +
+"					ELSE b_g\n" +
+"				      END AS geom\n" +
+"FROM links \n" +
+"INNER JOIN (SELECT dataset_a_geometries.subject AS a_s, \n" +
+"		   dataset_b_geometries.subject AS b_s,\n" +
+"		   dataset_a_geometries.geom AS a_g, \n" +
+"		   dataset_b_geometries.geom AS b_g,\n" +
+"		   ST_NPoints(dataset_a_geometries.geom) AS points_a,\n" +
+"		   ST_NPoints(dataset_b_geometries.geom) AS points_b\n" +
+"		FROM dataset_a_geometries, dataset_b_geometries) AS geoms \n" +
+"		ON(links.nodea = geoms.a_s AND links.nodeb = geoms.b_s)";
+        
+        try (final PreparedStatement stmt = connection.prepareStatement(insertMostPoints)) {
+            
+            stmt.executeUpdate();
+        }
+    }
 }

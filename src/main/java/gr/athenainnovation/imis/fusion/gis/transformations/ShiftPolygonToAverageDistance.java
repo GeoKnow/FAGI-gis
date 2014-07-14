@@ -87,4 +87,27 @@ public class ShiftPolygonToAverageDistance extends AbstractFusionTransformation 
     public String getID() {
         return ID;
     }
+
+    @Override
+    public void fuseAll(Connection connection) throws SQLException {
+        final String insertShiftToAvgPoint = 
+"INSERT INTO fused_geometries (subject_A, subject_B, geom) \n" +
+"SELECT links.nodea, links.nodeb, ST_Translate(b_g, (a_x-b_x)/2,(a_y-b_y)/2)\n" +
+"FROM links \n" +
+"INNER JOIN \n" +
+"(SELECT dataset_a_geometries.subject AS a_s,\n" +
+"	dataset_b_geometries.subject AS b_s,\n" +
+"	dataset_a_geometries.geom AS a_g,\n" +
+"	dataset_b_geometries.geom AS b_g,\n" +
+"	ST_X(dataset_a_geometries.geom) AS a_x,\n" +
+"	ST_Y(dataset_a_geometries.geom) AS a_y,\n" +
+"	ST_X(ST_Centroid(dataset_b_geometries.geom)) AS b_x,\n" +
+"	ST_Y(ST_Centroid(dataset_b_geometries.geom)) AS b_y\n" +
+"FROM dataset_a_geometries, dataset_b_geometries) AS geoms ON(links.nodea = geoms.a_s AND links.nodeb = geoms.b_s)";
+        
+        try (final PreparedStatement stmt = connection.prepareStatement(insertShiftToAvgPoint)) {
+            
+            stmt.executeUpdate();
+        }
+    }
 }    

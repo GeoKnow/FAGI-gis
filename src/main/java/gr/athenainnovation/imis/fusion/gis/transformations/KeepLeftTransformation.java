@@ -22,7 +22,7 @@ public class KeepLeftTransformation extends AbstractFusionTransformation {
             
             while(resultSet.next()) {
                 final String geometry = resultSet.getString(1);
-
+                //System.out.println("Geo: "+geometry);
                 insertFusedGeometry(connection, nodeA, nodeB, geometry);
             }
         }
@@ -36,6 +36,19 @@ public class KeepLeftTransformation extends AbstractFusionTransformation {
     @Override
     public String getID() {
         return ID;
+    }
+    
+    @Override
+    public void fuseAll(Connection connection) throws SQLException {
+        final String queryString = "INSERT INTO fused_geometries (subject_A, subject_B, geom) "
+                + "SELECT links.nodea, links.nodeb, dataset_a_geometries.geom "
+                + "FROM links INNER JOIN dataset_a_geometries "
+                + "ON (links.nodea = dataset_a_geometries.subject)";
+        
+        try (final PreparedStatement stmt = connection.prepareStatement(queryString)) {
+            
+            stmt.executeUpdate();
+        }
     }
     
 }

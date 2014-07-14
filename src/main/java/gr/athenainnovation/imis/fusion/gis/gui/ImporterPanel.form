@@ -122,7 +122,7 @@
         </Component>
         <Component class="javax.swing.JTextField" name="graphAField">
           <Properties>
-            <Property name="text" type="java.lang.String" value="http://localhost:8890/A"/>
+            <Property name="text" type="java.lang.String" value="http://localhost:8890/DAV/uni"/>
           </Properties>
         </Component>
         <Component class="javax.swing.JTextField" name="endpointAField">
@@ -209,7 +209,7 @@
         </Component>
         <Component class="javax.swing.JTextField" name="graphBField">
           <Properties>
-            <Property name="text" type="java.lang.String" value="http://localhost:8890/B"/>
+            <Property name="text" type="java.lang.String" value="http://localhost:8890/DAV/wiki"/>
           </Properties>
           <AuxValues>
             <AuxValue name="JavaCodeGenerator_VariableModifier" type="java.lang.Integer" value="1"/>

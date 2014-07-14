@@ -38,4 +38,17 @@ public class KeepRightTransformation extends AbstractFusionTransformation {
         return ID;
     }
     
+    @Override
+    public void fuseAll(Connection connection) throws SQLException {
+        final String queryString = "INSERT INTO fused_geometries (subject_A, subject_B, geom) "
+                + "SELECT links.nodea, links.nodeb, dataset_b_geometries.geom "
+                + "FROM links INNER JOIN dataset_b_geometries "
+                + "ON (links.nodeb = dataset_b_geometries.subject)";
+        
+        try (final PreparedStatement stmt = connection.prepareStatement(queryString)) {
+            
+            stmt.executeUpdate();
+        }
+    }
+    
 }

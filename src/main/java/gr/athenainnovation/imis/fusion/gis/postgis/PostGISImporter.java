@@ -2,11 +2,15 @@ package gr.athenainnovation.imis.fusion.gis.postgis;
 
 import com.google.common.base.Optional;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
+import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import org.apache.log4j.Logger;
+
+//http://localhost:8890/conductor/
 
 /**
  * The class provides methods for importing RDF triples to the PostGIS DB.
@@ -150,8 +154,9 @@ public class PostGISImporter {
             insertGeometry.setString(1, subject);
             insertGeometry.setString(2, geometry);
             
-            insertGeometry.executeUpdate();
-            connection.commit();
+            //insertGeometry.executeUpdate();
+            insertGeometry.addBatch();
+            //connection.commit();
         }
         catch (SQLException ex) {
             connection.rollback();
@@ -159,6 +164,11 @@ public class PostGISImporter {
         }
     }
     
+    public void finishUpdates() throws SQLException {
+        insertGeometryA.executeBatch();
+        insertGeometryB.executeBatch();
+        connection.commit();
+    }
     /**
      * Releases all database resources and terminates connection to it.
      * @throws SQLException 
@@ -181,7 +191,7 @@ public class PostGISImporter {
             connection.close();
         }
         
-        LOG.info("Database connection closed.");
+        LOG.info(ANSI_YELLOW+"Database connection closed."+ANSI_RESET);
     }
     
     // Establish connection to database
@@ -189,7 +199,7 @@ public class PostGISImporter {
         final String url = DB_URL.concat(dbName);
         final Connection dbConn = DriverManager.getConnection(url, dbUsername, dbPassword);
         dbConn.setAutoCommit(false);
-        LOG.info("Connection to db established.");
+        LOG.info(ANSI_YELLOW+"Connection to db established."+ANSI_RESET);
         return dbConn;
     }
     

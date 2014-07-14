@@ -43,5 +43,25 @@ public class KeepBothTransformation extends AbstractFusionTransformation {
     public String getID() {
         return ID;
     }
-    
+
+    @Override
+    public void fuseAll(Connection connection) throws SQLException {
+        final String insertGeomsFromA = "INSERT INTO fused_geometries (subject_A, subject_B, geom) \n" +
+                                        "SELECT links.nodea, links.nodeb, a.geom \n" +
+                                        "FROM links INNER JOIN dataset_a_geometries AS a\n" +
+                                        "ON (links.nodea = a.subject)";
+        
+        final String insertGeomsFromB = "INSERT INTO fused_geometries (subject_A, subject_B, geom) \n" +
+                                        "SELECT links.nodea, links.nodeb, b.geom \n" +
+                                        "FROM links INNER JOIN dataset_b_geometries AS b\n" +
+                                        "ON (links.nodeb = b.subject)";
+        
+        try (final PreparedStatement stmtInsertFromA = connection.prepareStatement(insertGeomsFromA)) {
+            stmtInsertFromA.executeUpdate();
+        }  
+        
+        try (final PreparedStatement stmtInsertFromB = connection.prepareStatement(insertGeomsFromB)) {
+            stmtInsertFromB.executeUpdate();
+        }
+    }
 }

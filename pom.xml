@@ -74,7 +74,9 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
-                    <mainClass>gr.athenainnovation.imis.fusion.gis.gui.FusionGISGUI</mainClass>
+                    <!--<mainClass>gr.athenainnovation.imis.fusion.gis.gui.FusionGISGUI</mainClass>-->
+                    <mainClass>gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI</mainClass>
+                    <debug>false</debug>
                 </configuration>
             </plugin>
 
@@ -86,9 +88,9 @@
                     <archive>
                         <index>true</index>
                         <manifest>
-                            <classpathPrefix>lib/</classpathPrefix>
+                            <classpathPrefix>../lib/FAGI/lib/</classpathPrefix>
                             <addClasspath>true</addClasspath>
-                            <mainClass>gr.athenainnovation.imis.fusion.gis.gui.FusionGISGUI</mainClass>
+                            <mainClass>gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
