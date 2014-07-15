@@ -58,6 +58,7 @@ sb_Endpoint = ${sb_endpoint}
 loc_endpoint = ${lc_endpoint}
 
 ## Fusion Configuration Properties
+## Threshold is not used because all links are fused
 ## Available transformations are
 ## Average two points
 ## Keep both
