@@ -58,15 +58,6 @@ sb_Endpoint = ${sb_endpoint}
 loc_endpoint = ${lc_endpoint}
 
 ## Fusion Configuration Properties
-## Available transformations are
-## Average two points
-## Keep both
-## Keep left
-## Keep most points and translate
-## Keep most points
-## Keep right
-## Scale (needs extra params)
-## ShiftPolygonToAverageDistance
 #fuse_Transformation = Keep left
 #fuse_Threshold = 50
 fuse_Transformation = ${fuse_trans}
