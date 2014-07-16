@@ -101,8 +101,11 @@ public class FusionGISCLI {
             if ( isValid ) {
                 System.out.println("-- Executing following Configuration");
                 LOG.info(st);
+            } else {
+                return;
             }
             if (st.isImported()) {
+                //System.out.println("ssasasasasasa");
                 final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
                 databaseInitialiser.initialise(st.getDbConf());
             

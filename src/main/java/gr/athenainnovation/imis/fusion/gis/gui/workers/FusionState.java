@@ -153,7 +153,7 @@ public class FusionState {
                 dbConf.setDbPassword(value);
                 break;
             case "pg_Import":
-                setImported(Boolean.getBoolean(value));
+                setImported(Boolean.parseBoolean(value));
                 break;
             case "vi_URL":
                 dbConf.setDbURL(value);

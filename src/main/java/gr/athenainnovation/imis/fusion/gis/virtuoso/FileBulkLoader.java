@@ -118,7 +118,7 @@ public class FileBulkLoader implements TripleHandler {
         if (o.isURI()) {
             triple = "<"+s+"> <"+p+"> <"+o+"> .";
         } else {
-            triple = "<"+s+"> <"+p+"> \""+o.getLiteralLexicalForm()+"\" .";
+            triple = "<"+s+"> <"+p+"> \""+o.getLiteralLexicalForm().replaceAll("\"", "").replaceAll("\n", "").replaceAll("\\\\", "")+"\" .";
         }
         out.println(triple);
     }
@@ -204,10 +204,10 @@ public class FileBulkLoader implements TripleHandler {
         String delWgsQuery;
         if (gConf.getEndpointLoc().equals(gConf.getEndpointA())) {
             delGeomQuery = "DELETE FROM <"+fusedGraph+"> { \n"
-                + "?s <http://www.opengis.net/ont/geosparql#hasGeometry> ?a . ?a <http://www.opengis.net/ont/geosparql#asWKT> ?o2 } \n"
+                + "?s <http://www.opengis.net/ont/geosparql#hasGeometry> ?a . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?o2} \n"
                 + "WHERE { \n"
                 + "GRAPH <http://localhost:8890/DAV/del_geom> { ?s <del> ?o } .\n"
-                + "?s <http://www.opengis.net/ont/geosparql#hasGeometry> ?a . ?a <http://www.opengis.net/ont/geosparql#asWKT> ?o2 }";
+                + "?s <http://www.opengis.net/ont/geosparql#hasGeometry> ?a . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?o2 }";
             delWgsQuery = "DELETE FROM <"+fusedGraph+"> { \n"
                 + "?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 .\n?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 } \n"
                 + "WHERE { \n"
@@ -218,12 +218,12 @@ public class FileBulkLoader implements TripleHandler {
             delGeomQuery = "DELETE FROM <"+fusedGraph+"> { \n"
                 + "?s <http://www.opengis.net/ont/geosparql#hasGeometry> ?a . ?a <http://www.opengis.net/ont/geosparql#asWKT> ?o2 } \n"
                 + "WHERE { \n"
-                + "SERVICE <"+gConf.getEndpointLoc()+"> { GRAPH <http://localhost:8890/DAV/del_geom> { ?s <del> _:a } } .\n"
+                + "SERVICE <"+gConf.getEndpointLoc()+"> { GRAPH <http://localhost:8890/DAV/del_geom> { ?s <del> ?o } } .\n"
                 + "?s <http://www.opengis.net/ont/geosparql#hasGeometry> ?a . ?a <http://www.opengis.net/ont/geosparql#asWKT> ?o2 }";
             delWgsQuery = "DELETE FROM <"+fusedGraph+"> { \n"
                 + "?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 .\n?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 } \n"
                 + "WHERE { \n"
-                + "SERVICE <"+gConf.getEndpointLoc()+"> { GRAPH <http://localhost:8890/DAV/del_wgs> { ?s <del> _:a } } .\n"
+                + "SERVICE <"+gConf.getEndpointLoc()+"> { GRAPH <http://localhost:8890/DAV/del_wgs> { ?s <del> ?s } } .\n"
                 + "?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . \n"
                 + "?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }";
         }
@@ -254,9 +254,11 @@ public class FileBulkLoader implements TripleHandler {
     }
     
     private String formGeometryTriplets(String subject, String fusedGeometry) {
-        Node s1 = NodeFactory.createAnon();
+        /*Node s1 = NodeFactory.createAnon();
         return "<"+subject+">"+" <"+HAS_GEOMETRY+"> <"+s1.getBlankNodeLabel()+"> .\n"
-                  + "<" + s1.getBlankNodeLabel()+"> <" + WKT + "> \"" + fusedGeometry + "\"^^<http://www.opengis.net/ont/geosparql#wktLiteral> .";      
+                  + "<" + s1.getBlankNodeLabel()+"> <" + WKT + "> \"" + fusedGeometry + "\"^^<http://www.opengis.net/ont/geosparql#wktLiteral> .";      */
+        return "<"+subject+">"+" <"+HAS_GEOMETRY+"> <"+subject+"_geom"+"> .\n"
+                  + "<" + subject+"_geom"+"> <" + WKT + "> \"" + fusedGeometry + "\"^^<http://www.opengis.net/ont/geosparql#wktLiteral> ."; 
     }
     
     private String formDeleteWgs84query(String subject){

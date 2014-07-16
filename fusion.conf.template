@@ -19,8 +19,6 @@ virtuosoAllowedDir = ${virt_allowed_dir}
 outputGraph = ${out_graph}
 
 ## PostGIS Configuration Properties
-## Import param is for whether data should be imported to PostGIS
-## in case they have not been preloaded
 #pg_DatabaseName = postgis1
 #pg_User = postgres
 #pg_Password = 1111
@@ -58,16 +56,6 @@ sb_Endpoint = ${sb_endpoint}
 loc_endpoint = ${lc_endpoint}
 
 ## Fusion Configuration Properties
-## Threshold is not used because all links are fused
-## Available transformations are
-## Average two points
-## Keep both
-## Keep left
-## Keep most points and translate
-## Keep most points
-## Keep right
-## Scale (needs extra params)
-## ShiftPolygonToAverageDistance
 #fuse_Transformation = Keep left
 #fuse_Threshold = 50
 fuse_Transformation = ${fuse_trans}

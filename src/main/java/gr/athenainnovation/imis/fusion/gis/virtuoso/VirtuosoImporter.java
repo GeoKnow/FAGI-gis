@@ -148,7 +148,8 @@ public final class VirtuosoImporter {
                     
                     trh.deleteAllWgs84(subject);
                     trh.deleteAllGeom(subject);
-                    trh.addGeomTriple(subject, fusedGeometry);                      
+                    trh.addGeomTriple(subject, fusedGeometry);     
+                    //System.out.println(subject + " " + fusedGeometry);
                 }
                 else {
                     if (rs.isFirst()){
@@ -684,7 +685,7 @@ public final class VirtuosoImporter {
         if ( lst.size() > 0 ) {
 
             for(String sub : lst) {
-                String triple = "<"+sub+"> <del> <a> .";
+                String triple = "<"+sub+"> <del> <"+sub+"_geom> .";
         
                 out.println(triple);
             }
