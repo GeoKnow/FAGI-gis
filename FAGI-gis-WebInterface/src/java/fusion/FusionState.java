@@ -1,18 +1,15 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package fusion;
 
-import com.google.common.collect.Lists;
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  *
  * @author nick
  */
-public class FusionState {
+public class FusionState implements Serializable{
     public List<String> objsA;
     public List<String> predsA;
     public List<String> preds;
@@ -21,11 +18,11 @@ public class FusionState {
     public List<String> actions;
     
     FusionState() {
-        preds = Lists.newArrayList();
-        predsA = Lists.newArrayList();
-        predsB = Lists.newArrayList();
-        objsA = Lists.newArrayList();
-        objsB = Lists.newArrayList();
-        actions = Lists.newArrayList();
+        preds = new ArrayList<>();
+        predsA = new ArrayList<>();
+        predsB = new ArrayList<>();
+        objsA = new ArrayList<>();
+        objsB = new ArrayList<>();
+        actions = new ArrayList<>();
     }
 }
