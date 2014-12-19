@@ -2,7 +2,7 @@
 ___
 
 ###Building Instructions
-* **Command line: **
+* *Command line: *
 
 1. Download or checkout the FAGI-gis repo at a path of your choice:
 ```bash
