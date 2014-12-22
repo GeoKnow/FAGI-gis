@@ -4,15 +4,15 @@ ___
 * **Command line:**
   1. Download or checkout the FAGI-gis repo at a path of your choice:  
   `git clone https://github.com/GeoKnow/FAGI-gis targetDir`
-  2. Install in local maven repo the following two jars (not provided by maven repository).
-  * Download:
+  2. Install in local maven repo the following two jars (not provided by maven repository).  
+    * Download:
   [Virtuoso Jena 2.10.x Provider JAR file ](http://opldownload.s3.amazonaws.com/uda/virtuoso/rdfproviders/jena/210/virt_jena2.jar)
   and
-  [Virtuoso JDBC 4 Driver JAR file](http://virtuoso.openlinksw.com/dataspace/doc/dav/wiki/Main/VOSDownload/virtjdbc4.jar).
-  * Run:  
+  [Virtuoso JDBC 4 Driver JAR file](http://virtuoso.openlinksw.com/dataspace/doc/dav/wiki/Main/VOSDownload/virtjdbc4.jar).  
+    * Run:  
 `mvn install:install-file -Dfile=/path/to/virt_jena2.jar -DgroupId=virtuoso.jena.driver -DartifactId=virtjena -Dversion=2 -Dpackaging=jar`
-  * Run:  
-`mvn install:install-file -Dfile=/path/to/virtjdbc4.jar -DgroupId=virtuoso -DartifactId=vjdbc41 -Dversion=4.1 -Dpackaging=jar`
+      * Run:  
+`mvn install:install-file -Dfile=/path/to/virtjdbc4.jar -DgroupId=virtuoso -DartifactId=vjdbc41 -Dversion=4.1 -Dpackaging=jar`  
   3. Go to /path/to/targetDir/FAGI-gis-CLI and build the project by running:  
 `mvn package`
 
@@ -25,7 +25,7 @@ Browse and choose FAGI-gis-CLI and click OK.
     * Download the two jars from the links provided above.
     * Click on the dependencies of the project, find the two missing jars, right click on them and then click *"Manually install artifact"*.
     * Browse to the location of the jars and click OK.  
-  4. Click Build Project  
+  4. Click *"Build Project"*.
   
 ##How to Run
 
@@ -35,7 +35,7 @@ Browse and choose FAGI-gis-CLI and click OK.
 `java -jar FAGI-gis-CLI -c /path/to/fusion.conf`
 * **Netbeans:**
   1. After you have built the Project, provide the appropriate information in the *fusion.conf* file. 
-  2. Right click on the Project and click *Properties* 
+  2. Right click on the Project and click *Properties*. 
   3. Go to *"Run"* tab and at the *Arguments* field add "-c /path/to/fusion.conf" and click OK.
   4. Click *"Run"*.
   
