@@ -1,3 +1,0 @@
-usr/share/fagi-gis/fagi-gis.jar:
- Main-Class: <Main Class>
- Debian-Java-Home: /usr/lib/jvm/default-java
