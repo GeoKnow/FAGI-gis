@@ -178,6 +178,12 @@ $(".dropdown-menu").mouseover(function(){
 });
 
 
+var streetLayer = new OpenLayers.Layer.Google(
+                "Google Streets", // the default
+               {'sphericalMercator': true,
+                  'numZoomLevels': 32,
+               'maxExtent': new OpenLayers.Bounds(-20037508.34,-20037508.34,20037508.34,20037508.34)
+              });
 var myBaseLayer = new OpenLayers.Layer.Google("Google Satellite",
               {'sphericalMercator': true,
                   'numZoomLevels': 32,
@@ -243,6 +249,7 @@ var myBaseLayer2 = new OpenLayers.Layer.Google("Google Streets",
                   'numZoomLevels': 32,
                'maxExtent': new OpenLayers.Bounds(-20037508.34,-20037508.34,20037508.34,20037508.34)
               });
+map.addLayer(myBaseLayer2);
 map.addLayer(myBaseLayer);
 
     map.events.register("mousemove", map, function (e) {            
@@ -322,7 +329,11 @@ map.addLayer(myBaseLayer);
     //map.addLayer(wms3);
     //alert('tom');
     wkt = new OpenLayers.Format.WKT();
-    map.addLayer(new OpenLayers.Layer.OSM());
+    map.addLayer(new OpenLayers.Layer.OSM("Open Street Map (OSM)",
+            {'sphericalMercator': true,
+                  'numZoomLevels': 32,
+               'maxExtent': new OpenLayers.Bounds(-20037508.34,-20037508.34,20037508.34,20037508.34)
+              }));
     //create a style object
     
     // allow testing of specific renderers via "?renderer=Canvas", etc
@@ -422,11 +433,11 @@ map.addLayer(myBaseLayer);
         var polygonFeatureW = wkt.read("POLYGON((24 41, 24 43, 26 43, 26 41, 24 41))");
         //var polygonFeature = wkt.read("POINT(-25.8203125 2.4609375)");
         polygonFeature.geometry.transform(WGS84, map.getProjectionObject());
-        vectorsA.addFeatures([polygonFeature]);
+        //vectorsA.addFeatures([polygonFeature]);
         //alert("OL");
         var polygonFeature2 = wkt.read("POLYGON((20.7240456428877 37.9908366236946,20.7241422428877 37.9906675236946,20.7238686428877 37.9905829236946,20.7238364428877 37.9908197236946,20.7240456428877 37.9908366236946))");
         polygonFeatureW.geometry.transform(WGS84, map.getProjectionObject());
-        vectorsB.addFeatures([polygonFeatureW]);
+        //vectorsB.addFeatures([polygonFeatureW]);
         
         var start_point = polygonFeature.geometry.getCentroid(true);
         var end_point = polygonFeatureW.geometry.getCentroid(true);
@@ -436,7 +447,7 @@ map.addLayer(myBaseLayer);
         links.push(linkFeature);
         polygonFeature.attributes = {'links': links};
         polygonFeatureW.attributes = {'links': links};
-        vectorsLinks.addFeatures([linkFeature]);
+        //vectorsLinks.addFeatures([linkFeature]);
         /*window.setInterval(function() {rotateFeature(
                                polygonFeature, 360 / 20, polygonFeature.geometry.getCentroid(true));}, 100);*/
     map.zoomToMaxExtent();
@@ -547,13 +558,13 @@ function rotateFeature(feature, angle, origin) {
         
 // Keep track of the selected features 
 function addSelected(feature) {
-    alert('Select');
+    //alert('Select');
     selectedFeatures.push(feature);
 }
 
 // Clear the list of selected features 
 function clearSelected(feature) {
-    alert('Delete');
+    //alert('Delete');
     selectedFeatures = [];
 }
 /*
@@ -642,7 +653,7 @@ function doDragA(feature, pixel) {
             vectorsLinks.addFeatures([linkFeature]);
             //alert('nick');
             var res = map.getResolution();
-            selectedGeomA.geometry.move(pixel.x, pixel.y);
+            //selectedGeomA.geometry.move(pixel.x, pixel.y);
             vectorsA.drawFeature(selectedGeomA);
             vectorsLinks.drawFeature(linkFeature);
             //alert('nick');
@@ -707,7 +718,7 @@ function doDragB(feature, pixel) {
 function endDragB(feature, pixel) {
     if ( selectedGeomB != null ) {
         selectedGeomB.geometry.transform(map.getProjectionObject(), WGS84);
-        alert('End drag '+wkt.write(selectedGeomB));
+        //alert('End drag '+wkt.write(selectedGeomB));
         //alert('End drag '+wkt.write(selectedGeomB.linls[0]));
         selectedGeomB.geometry.transform(WGS84, map.getProjectionObject());
         //selectedGeomB.state = OpenLayers.State.UPDATE;
@@ -806,7 +817,7 @@ function onFeatureSelect(event) {
     document.getElementById("transformSelect").style.display = 'inline';
     document.getElementById("transformSelect").style.left = mouse.x+'px';
     document.getElementById("transformSelect").style.top = mouse.y+'px';
-    alert('nick');
+    //alert('nick');
     var inside = " <div class=\"checkboxes\">\n"+
             "<label> Apply Transformations </label>"+
             "<form id=\"transForm\" action=\"\">"+
@@ -1209,6 +1220,9 @@ function performFusion() {
     //alert(current_feature == null);
     var geomCells = tblRows[1].getElementsByTagName("td");
     var geomFuse = new Object();
+    current_feature.attributes.la.geometry.transform(map.getProjectionObject(), WGS84);
+    current_feature.attributes.lb.geometry.transform(map.getProjectionObject(), WGS84);
+       
     geomFuse.valA = wkt.write(current_feature.attributes.la);
         geomFuse.pre = geomCells[1].innerHTML;
         //alert('after pre');
@@ -1224,6 +1238,12 @@ function performFusion() {
         if (tmpGeomAction.length == 1) {
             geomFuse.action = tmpGeomAction[0].value;
         }
+        
+        //alert("GEOM A : "+geomFuse.valA);
+        //alert("GEOM B : " + geomFuse.valB);
+        current_feature.attributes.la.geometry.transform(WGS84, map.getProjectionObject());
+        current_feature.attributes.lb.geometry.transform(WGS84, map.getProjectionObject());
+        
         //alert(tmpGeomAction[0].value);
         sendJSON[sendJSON.length] = geomFuse;
     for (var i=2; i < tblRows.length; i++) {
@@ -1341,7 +1361,7 @@ function previewLinkedGeom ( resp ) {
         }
         vectorsLinks.removeFeatures([current_feature]);
     } else {
-        
+        //alert('reached');
         linkFeature.geometry.transform(WGS84, map.getProjectionObject());
         linkFeature.attributes = {'a': current_feature.attributes.a, 'la': current_feature.attributes.la, 'lb': current_feature.attributes.lb};
         linkFeature.style = {
@@ -1355,6 +1375,7 @@ function previewLinkedGeom ( resp ) {
             title: current_feature.attributes.a };
             //alert('done feature '+linkFeature);
         linkFeature.prev_fused = true;       
+        //alert('reached 2');
         vectorsLinks.removeFeatures([current_feature]);
         vectorsLinks.addFeatures([linkFeature]);
     }

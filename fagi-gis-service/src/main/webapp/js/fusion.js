@@ -81,7 +81,7 @@ var formData = new FormData();
         // code to run if the request succeeds;
         // the response is passed to the function
         success: function( responseText ) {
-            alert("TIMMY");
+            //alert("TIMMY");
         },
         // code to run if the request fails; the raw request and
         // status codes are passed to the function
@@ -309,7 +309,7 @@ $('#removeLinkSchema').click(function(){
 $('#buttonL').click(function(){
     var formData = new FormData(document.getElementById("linksDiv"));
     //alert($('#swapButton').is(":checked"));
-    alert('hey');
+    //alert('hey');
             $.ajax({
                 url: 'LinksServlet',  //Server script to process data
                 type: 'POST',
@@ -461,13 +461,24 @@ function schemaMatch () {
                 for (var i = 0; i < tokens.length; i++) {
                     
                 }*/
-                var trunc_pos = index.lastIndexOf("#");
-                var trunc = index;
-                if (trunc_pos < 0)
-                    trunc_pos = index.lastIndexOf("/");
-                if (trunc_pos >= 0)
-                    trunc = index.substring(trunc_pos+1);
-                opt.innerHTML = trunc;
+                var tokens = index.split(",");
+                var result_str = "";
+                //alert(tokens);
+                for (var i = 0; i < tokens.length; i++) {
+                    var trunc_pos = tokens[i].lastIndexOf("#");
+                    var trunc = tokens[i];
+                    if (trunc_pos < 0)
+                        trunc_pos = tokens[i].lastIndexOf("/");
+                    if (trunc_pos >= 0)
+                        trunc = tokens[i].substring(trunc_pos+1);
+                    
+                    result_str += trunc;
+                    if (i != ( tokens.length - 1 ) ) {
+                        result_str+=","
+                    }
+                }
+                //alert(result_str);
+                opt.innerHTML = result_str;
                 opt.long_name = index;
                 opt.onclick = propSelectedA;
                 opt.prev_selected = false;
@@ -483,13 +494,23 @@ function schemaMatch () {
                 var opt = document.createElement("li");
                 var optlbl = document.createElement("label");
                 optlbl.innerHTML = "";
-                var trunc_pos = index.lastIndexOf("#");
-                var trunc = index;
-                if (trunc_pos < 0)
-                    trunc_pos = index.lastIndexOf("/");
-                if (trunc_pos >= 0)
-                    trunc = index.substring(trunc_pos+1);
-                opt.innerHTML = trunc;
+                var tokens = index.split(",");
+                var result_str = "";
+                for (var i = 0; i < tokens.length; i++) {
+                    var trunc_pos = tokens[i].lastIndexOf("#");
+                    var trunc = tokens[i];
+                    if (trunc_pos < 0)
+                        trunc_pos = tokens[i].lastIndexOf("/");
+                    if (trunc_pos >= 0)
+                        trunc = tokens[i].substring(trunc_pos+1);
+                    
+                    result_str += trunc;
+                    if (i != ( tokens.length - 1 ) ) {
+                        result_str+=","
+                    }
+                }
+                
+                opt.innerHTML = result_str;
                 opt.long_name = index;
                 opt.onclick = propSelectedB;
                 opt.prev_selected = false;
@@ -561,7 +582,7 @@ function linkPropSelectedA() {
         
         /* to be removed for m to n */
         if(linkLastSelectedFromA !== null) {
-            alert(linkLastSelectedFromA.long_name);
+            //alert(linkLastSelectedFromA.long_name);
             var elems = linkMatchesJSON.m.foundA[linkLastSelectedFromA.long_name];
             
             var list = document.getElementById("linkSchemasB");
@@ -624,7 +645,7 @@ function linkPropSelectedA() {
             });
             }
         });
-        //alert('edw');
+        alert('edw');
         linkLastSelectedFromA = this;
         this.prev_selected = true;
     }
@@ -717,12 +738,12 @@ function propSelectedA() {
     //alert(this.prev_selected);
     if (this.prev_selected === true) {
         var elems = mappins.foundA[this.long_name];
-        alert(elems);
+        //alert(elems);
         var list = document.getElementById("schemasB");
         var listItems = list.getElementsByTagName("li");
         $.each(elems, function(index, element) {
             $.each(listItems, function(index1, element1) {
-                alert("enter");
+                //alert("enter");
                 if (element1.long_name == element.rep) {
                     
                     element1.match_count--;
@@ -734,12 +755,12 @@ function propSelectedA() {
                 }
             });
         });
-        alert("as");
+        //alert("as");
         if (this.match_count > 0) 
             this.style.backgroundColor = "yellow";
         else
             this.style.backgroundColor = this.backColor;
-        alert("as");
+        //alert("as");
         lastSelectedFromA = null;
         this.prev_selected = false;
     } else {
@@ -1146,7 +1167,7 @@ function setDatasets ()
             $('#datasetNameB').html($('#idDatasetB').val());
             $('#legendSetA').html($('#idDatasetA').val());
             $('#legendSetB').html($('#idDatasetB').val());
-            scanGeometries();
+            //scanGeometries();
         },
         // code to run if the request fails; the raw request and
         // status codes are passed to the function

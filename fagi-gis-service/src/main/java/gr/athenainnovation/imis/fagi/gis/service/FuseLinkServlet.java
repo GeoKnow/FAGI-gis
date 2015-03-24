@@ -330,29 +330,34 @@ public class FuseLinkServlet extends HttpServlet {
                 }
                 
                 if ( trans instanceof KeepRightTransformation) {
-                    String q = formInsertQuery(tGraph, domSub, selectedFusions[0].valB);
+                    String q = formInsertGeomQuery(tGraph, domSub, selectedFusions[0].valB);
+                    System.out.println("Query Right "+q);
                     VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q, vSet);
                     vur.exec();
                     
+                    ret.geom = selectedFusions[0].valB;
                     break;
                 }
                 
                 if ( trans instanceof KeepLeftTransformation) {
-                    String q = formInsertQuery(tGraph, domSub, selectedFusions[0].valA);
+                    String q = formInsertGeomQuery(tGraph, domSub, selectedFusions[0].valA);
                     VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q, vSet);
                     vur.exec();
                     
+                    ret.geom = selectedFusions[0].valA;
                     break;
                 }
                 
                 if ( trans instanceof KeepBothTransformation) {
-                    String qA = formInsertQuery(tGraph, domSub, selectedFusions[0].valA);
-                    String qB = formInsertQuery(tGraph, domSub, selectedFusions[0].valB);
+                    String qA = formInsertGeomQuery(tGraph, domSub, selectedFusions[0].valA);
+                    String qB = formInsertGeomQuery(tGraph, domSub, selectedFusions[0].valB);
                     VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(qA, vSet);
                     vur.exec();
                     vur = VirtuosoUpdateFactory.create(qB, vSet);
                     vur.exec();
                     
+                    ret.geom = selectedFusions[0].valA;
+                    ret.geom = selectedFusions[0].valB;
                     break;
                 }
                 
@@ -360,12 +365,30 @@ public class FuseLinkServlet extends HttpServlet {
                 
                 trans.fuse(dbConn, nodeA, nodeB);
                 
+                VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
+                virtImp.setTransformationID(trans.getID());
+            
+                virtImp.importGeometriesToVirtuoso((String)sess.getAttribute("t_graph"));
+            
+                virtImp.trh.finish();
+            
+                String queryGeoms = "SELECT links.nodea as la, links.nodeb as lb, ST_asText(b.geom) as g\n" +
+                                 "FROM links INNER JOIN fused_geometries AS b\n" +
+                                 "ON (b.subject_a = ?)";
+            
+                stmt = dbConn.prepareStatement(queryGeoms);
+                stmt.setString(1, nodeA);
+                rs = stmt.executeQuery();
+            
+                if(rs.next()) {
+                    ret.geom = rs.getString(3);
+                    System.out.println("Returning geom : "+ret.geom);
+                }
+                System.out.println(queryGeoms);
+            
                 break;
             }
-            VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
-            virtImp.setTransformationID(trans.getID());
             
-            virtImp.importGeometriesToVirtuoso((String)sess.getAttribute("t_graph"));
             
             for(int i = 1; i < selectedFusions.length; i++) {
                 handleMetadataFusion(selectedFusions[i].action, i);
@@ -386,21 +409,7 @@ public class FuseLinkServlet extends HttpServlet {
                 System.out.println("List : "+ fs.get((i%4)-1).predsB); */     
             }
 
-            virtImp.trh.finish();
-            
-            String queryGeoms = "SELECT links.nodea as la, links.nodeb as lb, ST_asText(b.geom) as g\n" +
-                                 "FROM links INNER JOIN fused_geometries AS b\n" +
-                                 "ON (b.subject_a = ?)";
-            
-            stmt = dbConn.prepareStatement(queryGeoms);
-            stmt.setString(1, nodeA);
-            rs = stmt.executeQuery();
-            
-            if(rs.next()) {
-                ret.geom = rs.getString(3);
-                System.out.println("Returning geom : "+ret.geom);
-            }
-            System.out.println(queryGeoms);
+            System.out.println("JSON Geometry "+mapper.writeValueAsString(ret));
             /* TODO output your page here. You may use following sample code. */
             out.println(mapper.writeValueAsString(ret));
         } finally {
@@ -466,21 +475,40 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
     
-    private void metadataConcatenation(int idx) throws SQLException {
-        FusionState fst = fs.get((idx));
-        
+    private void metadataConcatenation(int idx) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         StringBuilder concat_str = new StringBuilder();
-        for (String s : fst.predsA) {
-            String[] pres = StringUtils.split(s, ",");
+        String domOnto = "";
+        if ( grConf.isDominantA() ) 
+            domOnto = (String)sess.getAttribute("domA");
+        else 
+            domOnto = (String)sess.getAttribute("domB");
+        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        name = StringUtils.replace(name, "&gt;", ">");
+        longName = StringUtils.replace(longName, "&gt;", ">");
+        String[] newPredTokes = name.split("=>");
+        String newPred = "";
+        if ( newPredTokes.length == 2 ) {
+            newPred = newPredTokes[1];
+        } else {
+            newPred = newPredTokes[0];
+        }
+        String[] predicates = longName.split("=>");
+        String leftPre = predicates[0];
+        String rightPre = predicates[1];
+        String[] leftPreTokens = leftPre.split(",");
+        String[] rightPreTokens = rightPre.split(",");
+        
+        //for (String s : fst.predsA) {
             String prev_s = "<"+nodeA+">";
             
             StringBuilder q = new StringBuilder();
             q.append("sparql SELECT * ");
             prev_s = "<"+nodeA+">";
             q.append(" WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> {");
-            for (int i = 0; i < pres.length; i++) {
-                q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
+            for (int i = 0; i < leftPreTokens.length; i++) {
+                q.append(prev_s+" <"+leftPreTokens[i]+"> ?o"+i+" . ");
                 prev_s = "?o"+i;
             }
             q.append("} }");
@@ -491,12 +519,13 @@ public class FuseLinkServlet extends HttpServlet {
             stmt = virt_conn.prepareStatement(q.toString());
             ResultSet rs = stmt.executeQuery();
             
+            
             while(rs.next()) {
                 //for (int i = 0; i < pres.length; i++) {
-                    String o = rs.getString(pres.length);
-                    String simplified = StringUtils.substringAfter(pres[pres.length-1], "#");
+                    String o = rs.getString(leftPreTokens.length);
+                    String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length-1], "#");
                     if (simplified.equals("") ) {
-                        simplified = StringUtils.substring(pres[pres.length-1], StringUtils.lastIndexOf(pres[pres.length-1], "/")+1);
+                        simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length-1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length-1], "/")+1);
                     }
                     //concat_str.append(simplified+":"+o+" ");
                     concat_str.append(o+" ");
@@ -504,42 +533,60 @@ public class FuseLinkServlet extends HttpServlet {
             }
             
             //System.out.println(q.toString());
-        }
+        //}
         
-        for (String s : fst.predsB) {
-            String[] pres = StringUtils.split(s, ",");
-            String prev_s = "<"+nodeA+">";
+        //for (String s : fst.predsB) {
+            prev_s = "<"+nodeA+">";
             
-            StringBuilder q = new StringBuilder();
+            q = new StringBuilder();
             q.append("sparql SELECT * ");
             prev_s = "<"+nodeA+">";
             q.append(" WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
-            for (int i = 0; i < pres.length; i++) {
-                q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
+            for (int i = 0; i < rightPreTokens.length; i++) {
+                q.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
                 prev_s = "?o"+i;
             }
             q.append("} }");
             System.out.println(q.toString());
             
+            rs.close();
+            stmt.close();
             
-            PreparedStatement stmt;
             stmt = virt_conn.prepareStatement(q.toString());
-            ResultSet rs = stmt.executeQuery();
+            rs = stmt.executeQuery();
             
             while(rs.next()) {
                 //for (int i = 0; i < pres.length; i++) {
-                    String o = rs.getString(pres.length);
-                    String simplified = StringUtils.substringAfter(pres[pres.length-1], "#");
+                    String o = rs.getString(rightPreTokens.length);
+                    String simplified = StringUtils.substringAfter(rightPreTokens[rightPreTokens.length-1], "#");
                     if (simplified.equals("") ) {
-                        simplified = StringUtils.substring(pres[pres.length-1], StringUtils.lastIndexOf(pres[pres.length-1], "/")+1);
+                        simplified = StringUtils.substring(rightPreTokens[rightPreTokens.length-1], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length-1], "/")+1);
                     }
                     concat_str.append(o+" ");
                 //}
             }
             
-            //System.out.println(q.toString());
-        }
+            System.out.println("Concat query B "+q.toString());
+        //}
+            
+        concat_str.setLength(concat_str.length()-1);
         
+        q = new StringBuilder();
+        q.append("INSERT { GRAPH <"+tGraph+"> { ");
+        prev_s = "<"+nodeA+">";
+        q.append(prev_s+" <"+domOnto+newPred+"> \""+concat_str+"\"");
+        /*q.append("} } WHERE {\n GRAPH <"+tGraph+"metadataA> {");
+        prev_s = "<"+nodeA+">";
+        for (int i = 0; i < rightPreTokens.length; i++) {
+            q.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
+            prev_s = "?o"+i;
+        }*/
+        q.append("} }");
+        System.out.println("Insert query "+q.toString());
+        VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
+        vur.exec();
+        
+        /*
         System.out.println("Object "+concat_str.toString());
         System.out.println("Pred "+fst.preds.get(0));
         String newPred = fst.preds.get(0);
@@ -554,244 +601,321 @@ public class FuseLinkServlet extends HttpServlet {
         }
         
         concat_str.setLength(concat_str.length()-1);
-        /*int lastIdx = StringUtils.lastIndexOf(fs.get((idx)).predsA.get(0), ",");
-        String pred = fs.get((idx)).predsA.get(0).substring(0, lastIdx);
-        String[] pres = StringUtils.split(pred, ",");*/
-        StringBuilder q = new StringBuilder();
-        q.append("INSERT { GRAPH <"+tGraph+"> { ");
-        String prev_s = "<"+nodeA+">";
-        /*for (int i = 0; i < pres.length-1; i++) {
-            q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-            prev_s = "?o"+i;
-        }*/
-        q.append(prev_s+" <"+concatePred+"> \""+concat_str+"\"");
-        /*q.append("} } WHERE {\n GRAPH <"+tGraph+"metadataA> {");
-        prev_s = "<"+nodeA+">";
-        /*for (int i = 0; i < pres.length; i++) {
-            q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-            prev_s = "?o"+i;
-        }*/
-        q.append("} }");
-        System.out.println(q.toString());
-        VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
-        vur.exec();
-        
-        //System.out.println(q.toString());
-    }
-
-    private void metadataKeepFlatLeft(int idx) throws SQLException {
-        Connection virt_conn = vSet.getConnection();
-        StringBuilder concat_str = new StringBuilder();
-        for (String s : fs.get((idx)).predsA) {
-            String[] pres = StringUtils.split(s, ",");
-            StringBuilder q = new StringBuilder();
-            q.append("sparql SELECT * ");
-            String prev_s = "<"+nodeA+">";
-            q.append(" WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> {");
-            if (pres.length == 1) {
-                StringBuilder sq = new StringBuilder();
-                sq.append("INSERT { GRAPH <"+tGraph+"> { ");
-                sq.append(prev_s+" <"+pres[0]+"> ?o"+0+" . } ");
-                sq.append(" } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> { "+prev_s+" <"+pres[0]+"> ?o"+0+" . } }");
-                
-                //System.out.println(sq.toString());
-                
-                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(sq.toString(), vSet);
-                vur.exec();
-                
-                return;
-            }
-            for (int i = 0; i < pres.length; i++) {
-                q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-                prev_s = "?o"+i;
-            }
-            q.append("} }");
-            //System.out.println(q.toString());
-            
-            PreparedStatement stmt;
-            stmt = virt_conn.prepareStatement(q.toString());
-            ResultSet rs = stmt.executeQuery();
-            
-            while(rs.next()) {
-                StringBuilder insq = new StringBuilder();
-                insq.append("INSERT { GRAPH <"+tGraph+"> { ");
-                prev_s = "<"+nodeA+">";
-                for (int i = 0; i < pres.length-2; i++) {
-                    insq.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-                    prev_s = "?o"+i;
-                }
-                String o = rs.getString(pres.length);
-                String simplified = StringUtils.substringAfter(pres[pres.length-1], "#");
-                if (simplified.equals("") ) {
-                    simplified = StringUtils.substring(pres[pres.length-1], StringUtils.lastIndexOf(pres[pres.length-1], "/")+1);
-                }
-                String o2 = rs.getString(pres.length-1);
-                insq.append(prev_s+" <"+o2+"_"+simplified+"> \""+o+"\"");
-                insq.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> {");
-                prev_s = "<"+nodeA+">";
-                for (int i = 0; i < pres.length; i++) {
-                    insq.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-                    prev_s = "?o"+i;
-                }
-                
-                insq.append("} }");
-                //System.out.println(insq.toString());
-                
-                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
-                vur.exec();
-            }
-            
-            //System.out.println(q.toString());
-        }
-    }
-    
-    private void metadataKeepFlatRight(int idx) throws SQLException {
-        Connection virt_conn = vSet.getConnection();
-        StringBuilder concat_str = new StringBuilder();
-        for (String s : fs.get((idx)).predsB) {
-            String[] pres = StringUtils.split(s, ",");
-            StringBuilder q = new StringBuilder();
-            q.append("sparql SELECT * ");
-            String prev_s = "<"+nodeA+">";
-            q.append(" WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
-            if (pres.length == 1) {
-                StringBuilder sq = new StringBuilder();
-                sq.append("INSERT { GRAPH <"+tGraph+"> { ");
-                sq.append(prev_s+" <"+pres[0]+"> ?o"+0+" . } ");
-                sq.append(" } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> { "+prev_s+" <"+pres[0]+"> ?o"+0+" . } }");
-                
-                //System.out.println(sq.toString());
-                
-                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(sq.toString(), vSet);
-                vur.exec();
-                
-                return;
-            }
-            for (int i = 0; i < pres.length; i++) {
-                q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-                prev_s = "?o"+i;
-            }
-            q.append("} }");
-            //System.out.println(q.toString());
-            
-            PreparedStatement stmt;
-            stmt = virt_conn.prepareStatement(q.toString());
-            ResultSet rs = stmt.executeQuery();
-            
-            while(rs.next()) {
-                StringBuilder insq = new StringBuilder();
-                insq.append("INSERT { GRAPH <"+tGraph+"> { ");
-                prev_s = "<"+nodeA+">";
-                for (int i = 0; i < pres.length-2; i++) {
-                    insq.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-                    prev_s = "?o"+i;
-                }
-                String o = rs.getString(pres.length);
-                String simplified = StringUtils.substringAfter(pres[pres.length-1], "#");
-                if (simplified.equals("") ) {
-                    simplified = StringUtils.substring(pres[pres.length-1], StringUtils.lastIndexOf(pres[pres.length-1], "/")+1);
-                }
-                String o2 = rs.getString(pres.length-1);
-                insq.append(prev_s+" <"+o2+"_"+simplified+"> \""+o+"\"");
-                insq.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
-                prev_s = "<"+nodeA+">";
-                for (int i = 0; i < pres.length; i++) {
-                    insq.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-                    prev_s = "?o"+i;
-                }
-                
-                insq.append("} }");
-                //System.out.println(insq.toString());
-                
-                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
-                vur.exec();
-            }
-            
-            //System.out.println(q.toString());
-        }
-    }
-    
-    private void metadataKeepConcatLeft(int idx) throws SQLException {
-        Connection virt_conn = vSet.getConnection();
-        StringBuilder concat_str = new StringBuilder();
-        for (String s : fs.get((idx)).predsA) {
-            String[] pres = StringUtils.split(s, ",");
-            String prev_s = "<"+nodeA+">";
-            if (pres.length == 1) {
-                StringBuilder sq = new StringBuilder();
-                sq.append("INSERT { GRAPH <"+tGraph+"> { ");
-                sq.append(prev_s+" <"+pres[0]+"> ?o"+0+" . } ");
-                sq.append(" } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> { "+prev_s+" <"+pres[0]+"> ?o"+0+" . } }");
-                
-                //System.out.println(sq.toString());
-                
-                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(sq.toString(), vSet);
-                vur.exec();
-                
-                return;
-            }
-            StringBuilder q = new StringBuilder();
-            q.append("sparql SELECT * ");
-            prev_s = "<"+nodeA+">";
-            q.append(" WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> {");
-            for (int i = 0; i < pres.length; i++) {
-                q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-                prev_s = "?o"+i;
-            }
-            q.append("} }");
-            //System.out.println(q.toString());
-            
-            PreparedStatement stmt;
-            stmt = virt_conn.prepareStatement(q.toString());
-            ResultSet rs = stmt.executeQuery();
-            
-            while(rs.next()) {
-                //for (int i = 0; i < pres.length; i++) {
-                    String o = rs.getString(pres.length);
-                    String simplified = StringUtils.substringAfter(pres[pres.length-1], "#");
-                    if (simplified.equals("") ) {
-                        simplified = StringUtils.substring(pres[pres.length-1], StringUtils.lastIndexOf(pres[pres.length-1], "/")+1);
-                    }
-                    //concat_str.append(simplified+":"+o+" ");
-                    concat_str.append(o+" ");
-                //}
-            }
-            
-            //System.out.println(q.toString());
-        }
-        concat_str.setLength(concat_str.length()-1);
         int lastIdx = StringUtils.lastIndexOf(fs.get((idx)).predsA.get(0), ",");
         String pred = fs.get((idx)).predsA.get(0).substring(0, lastIdx);
-        String[] pres = StringUtils.split(pred, ",");
-        StringBuilder q = new StringBuilder();
+        String[] pres = StringUtils.split(pred, ",");*/
+        /*StringBuilder q = new StringBuilder();
         q.append("INSERT { GRAPH <"+tGraph+"> { ");
         String prev_s = "<"+nodeA+">";
         for (int i = 0; i < pres.length-1; i++) {
             q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
             prev_s = "?o"+i;
-        }
-        q.append(prev_s+" ?o"+(pres.length-1)+" \""+concat_str+"\"");
-        q.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> {");
+        }*/
+        /*q.append(prev_s+" <"+concatePred+"> \""+concat_str+"\"");
+        /*q.append("} } WHERE {\n GRAPH <"+tGraph+"metadataA> {");
         prev_s = "<"+nodeA+">";
         for (int i = 0; i < pres.length; i++) {
             q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
             prev_s = "?o"+i;
-        }
-        q.append("} }");
-        //System.out.println(q.toString());
+        }*/
+        /*q.append("} }");
+        System.out.println(q.toString());
         VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
         vur.exec();
+        */
+        //System.out.println(q.toString());
+    }
+
+    private void metadataKeepFlatLeft(int idx) throws SQLException, UnsupportedEncodingException {
+        Connection virt_conn = vSet.getConnection();
+        StringBuilder concat_str = new StringBuilder();
+        String domOnto = "";
+        if ( grConf.isDominantA() ) 
+            domOnto = (String)sess.getAttribute("domA");
+        else 
+            domOnto = (String)sess.getAttribute("domB");
+        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        name = StringUtils.replace(name, "&gt;", ">");
+        longName = StringUtils.replace(longName, "&gt;", ">");
+        String[] newPredTokes = name.split("=>");
+        String newPred = "";
+        if ( newPredTokes.length == 2 ) {
+            newPred = newPredTokes[1];
+        } else {
+            newPred = newPredTokes[0];
+        }
+        String[] predicates = longName.split("=>");
+        String leftPre = predicates[0];
+        String rightPre = predicates[1];
+        String[] leftPreTokens = leftPre.split(",");
+        String[] rightPreTokens = rightPre.split(",");
         
-        //System.out.println(concat_str);
+        StringBuilder q = new StringBuilder();
+        q.append("sparql SELECT ?o"+(leftPreTokens.length-1));
+        String prev_s = "<"+nodeA+">";
+        q.append(" WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+        for (int i = 0; i < leftPreTokens.length; i++) {
+            q.append(prev_s+" <"+leftPreTokens[i]+"> ?o"+i+" . ");
+            prev_s = "?o"+i;
+        }
+        q.append("} }");
+        System.out.println(q.toString());
+        PreparedStatement stmt;
+        stmt = virt_conn.prepareStatement(q.toString());
+        ResultSet rs = stmt.executeQuery();
+        
+        while(rs.next()) {
+            StringBuilder insq = new StringBuilder();
+            insq.append("INSERT { GRAPH <"+tGraph+"> { ");
+                      
+            prev_s = "<"+nodeA+">";
+            for (int i = 0; i < leftPreTokens.length-2; i++) {
+                insq.append(prev_s+" <"+leftPreTokens[i]+"> ?o"+i+" . ");
+                prev_s = "?o"+i;
+            }
+            String o = rs.getString(1);
+            String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length-1], "#");
+            if (simplified.equals("") ) {
+                simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length-1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length-1], "/")+1);
+            }
+            String simplifiedPred = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length-2], "#");
+            if (simplifiedPred.equals("") ) {
+                simplifiedPred = StringUtils.substring(leftPreTokens[leftPreTokens.length-2], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length-1], "/")+1);
+            }
+                insq.append(prev_s+" <"+domOnto+"_"+simplifiedPred+"_"+simplified+"> \""+o+"\"");
+                insq.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+                prev_s = "<"+nodeA+">";
+                for (int i = 0; i < leftPreTokens.length; i++) {
+                    insq.append(prev_s+" <"+leftPreTokens[i]+"> ?o"+i+" . ");
+                    prev_s = "?o"+i;
+                }
+                
+                insq.append("} }");
+                System.out.println("Insert Query "+insq.toString());
+                
+                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
+                vur.exec();
+        }
+    }
+    
+    private void metadataKeepFlatRight(int idx) throws SQLException, UnsupportedEncodingException {
+        Connection virt_conn = vSet.getConnection();
+        StringBuilder concat_str = new StringBuilder();
+        String domOnto = "";
+        if ( grConf.isDominantA() ) 
+            domOnto = (String)sess.getAttribute("domA");
+        else 
+            domOnto = (String)sess.getAttribute("domB");
+        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        name = StringUtils.replace(name, "&gt;", ">");
+        longName = StringUtils.replace(longName, "&gt;", ">");
+        String[] newPredTokes = name.split("=>");
+        String newPred = "";
+        if ( newPredTokes.length == 2 ) {
+            newPred = newPredTokes[1];
+        } else {
+            newPred = newPredTokes[0];
+        }
+        String[] predicates = longName.split("=>");
+        String leftPre = predicates[0];
+        String rightPre = predicates[1];
+        String[] leftPreTokens = leftPre.split(",");
+        String[] rightPreTokens = rightPre.split(",");
+        
+        StringBuilder q = new StringBuilder();
+        q.append("sparql SELECT ?o"+(rightPreTokens.length-1));
+        String prev_s = "<"+nodeA+">";
+        q.append(" WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+        for (int i = 0; i < rightPreTokens.length; i++) {
+            q.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
+            prev_s = "?o"+i;
+        }
+        q.append("} }");
+        System.out.println(q.toString());
+        PreparedStatement stmt;
+        stmt = virt_conn.prepareStatement(q.toString());
+        ResultSet rs = stmt.executeQuery();
+        
+        while(rs.next()) {
+            StringBuilder insq = new StringBuilder();
+            insq.append("INSERT { GRAPH <"+tGraph+"> { ");
+                      
+            prev_s = "<"+nodeA+">";
+            for (int i = 0; i < rightPreTokens.length-2; i++) {
+                insq.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
+                prev_s = "?o"+i;
+            }
+            String o = rs.getString(1);
+            String simplified = StringUtils.substringAfter(rightPreTokens[rightPreTokens.length-1], "#");
+            if (simplified.equals("") ) {
+                simplified = StringUtils.substring(rightPreTokens[rightPreTokens.length-1], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length-1], "/")+1);
+            }
+            String simplifiedPred = StringUtils.substringAfter(rightPreTokens[rightPreTokens.length-2], "#");
+            if (simplifiedPred.equals("") ) {
+                simplifiedPred = StringUtils.substring(rightPreTokens[rightPreTokens.length-2], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length-1], "/")+1);
+            }
+                insq.append(prev_s+" <"+domOnto+"_"+simplifiedPred+"_"+simplified+"> \""+o+"\"");
+                insq.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+                prev_s = "<"+nodeA+">";
+                for (int i = 0; i < rightPreTokens.length; i++) {
+                    insq.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
+                    prev_s = "?o"+i;
+                }
+                
+                insq.append("} }");
+                System.out.println("Insert Query "+insq.toString());
+                
+                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
+                vur.exec();
+        }
+    }
+    
+    private void metadataKeepConcatLeft(int idx) throws SQLException, UnsupportedEncodingException {
+        Connection virt_conn = vSet.getConnection();
+        StringBuilder concat_str = new StringBuilder();
+        String domOnto = "";
+        if ( grConf.isDominantA() ) 
+            domOnto = (String)sess.getAttribute("domA");
+        else 
+            domOnto = (String)sess.getAttribute("domB");
+        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        name = StringUtils.replace(name, "&gt;", ">");
+        longName = StringUtils.replace(longName, "&gt;", ">");
+        String[] newPredTokes = name.split("=>");
+        String newPred = "";
+        if ( newPredTokes.length == 2 ) {
+            newPred = newPredTokes[1];
+        } else {
+            newPred = newPredTokes[0];
+        }
+        String[] predicates = longName.split("=>");
+        String leftPre = predicates[0];
+        String rightPre = predicates[1];
+        String[] leftPreTokens = leftPre.split(",");
+        String[] rightPreTokens = rightPre.split(",");
+        
+        StringBuilder q = new StringBuilder();
+        q.append("sparql SELECT ?o"+(leftPreTokens.length-1));
+        String prev_s = "<"+nodeA+">";
+        q.append(" WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+        for (int i = 0; i < leftPreTokens.length; i++) {
+            q.append(prev_s+" <"+leftPreTokens[i]+"> ?o"+i+" . ");
+            prev_s = "?o"+i;
+        }
+        q.append("} }");
+        System.out.println(q.toString());
+        PreparedStatement stmt;
+        stmt = virt_conn.prepareStatement(q.toString());
+        ResultSet rs = stmt.executeQuery();
+        
+        while(rs.next()) {
+            //for (int i = 0; i < pres.length; i++) {
+            String o = rs.getString(1);
+            String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length-1], "#");
+            if (simplified.equals("") ) {
+                simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length-1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length-1], "/")+1);
+            }
+            concat_str.append(simplified+":"+o+" ");
+        }
+        
+        concat_str.setLength(concat_str.length()-1);
+        q = new StringBuilder();
+        q.append("INSERT { GRAPH <"+tGraph+"> { ");
+        prev_s = "<"+nodeA+">";
+        for (int i = 0; i < leftPreTokens.length-1; i++) {
+            q.append(prev_s+" <"+leftPreTokens[i]+"> ?o"+i+" . ");
+            prev_s = "?o"+i;
+        }
+        q.append(prev_s+" <"+domOnto+newPred+"> \""+concat_str+"\"");
+        q.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+        prev_s = "<"+nodeA+">";
+        for (int i = 0; i < leftPreTokens.length; i++) {
+            q.append(prev_s+" <"+leftPreTokens[i]+"> ?o"+i+" . ");
+            prev_s = "?o"+i;
+        }
+        q.append("} }");
+        System.out.println("Last query "+q.toString());
+        VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
+        vur.exec();
     }
     
     private void metadataKeepConcatBoth(int idx) {
         
     }
     
-    private void metadataKeepConcatRight(int idx) throws SQLException {
+    private void metadataKeepConcatRight(int idx) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         StringBuilder concat_str = new StringBuilder();
+        String domOnto = "";
+        if ( grConf.isDominantA() ) 
+            domOnto = (String)sess.getAttribute("domA");
+        else 
+            domOnto = (String)sess.getAttribute("domB");
+        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        name = StringUtils.replace(name, "&gt;", ">");
+        longName = StringUtils.replace(longName, "&gt;", ">");
+        String[] newPredTokes = name.split("=>");
+        String newPred = "";
+        if ( newPredTokes.length == 2 ) {
+            newPred = newPredTokes[1];
+        } else {
+            newPred = newPredTokes[0];
+        }
+        String[] predicates = longName.split("=>");
+        String leftPre = predicates[0];
+        String rightPre = predicates[1];
+        String[] leftPreTokens = leftPre.split(",");
+        String[] rightPreTokens = rightPre.split(",");
+        
+        StringBuilder q = new StringBuilder();
+        q.append("sparql SELECT ?o"+(rightPreTokens.length-1));
+        String prev_s = "<"+nodeA+">";
+        q.append(" WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+        for (int i = 0; i < rightPreTokens.length; i++) {
+            q.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
+            prev_s = "?o"+i;
+        }
+        q.append("} }");
+        System.out.println(q.toString());
+        PreparedStatement stmt;
+        stmt = virt_conn.prepareStatement(q.toString());
+        ResultSet rs = stmt.executeQuery();
+        
+        while(rs.next()) {
+            //for (int i = 0; i < pres.length; i++) {
+            String o = rs.getString(1);
+            String simplified = StringUtils.substringAfter(rightPreTokens[rightPreTokens.length-1], "#");
+            if (simplified.equals("") ) {
+                simplified = StringUtils.substring(rightPreTokens[rightPreTokens.length-1], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length-1], "/")+1);
+            }
+            concat_str.append(simplified+":"+o+" ");
+        }
+        
+        concat_str.setLength(concat_str.length()-1);
+        q = new StringBuilder();
+        q.append("INSERT { GRAPH <"+tGraph+"> { ");
+        prev_s = "<"+nodeA+">";
+        for (int i = 0; i < rightPreTokens.length-1; i++) {
+            q.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
+            prev_s = "?o"+i;
+        }
+        q.append(prev_s+" <"+domOnto+newPred+"> \""+concat_str+"\"");
+        q.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+        prev_s = "<"+nodeA+">";
+        for (int i = 0; i < rightPreTokens.length; i++) {
+            q.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
+            prev_s = "?o"+i;
+        }
+        q.append("} }");
+        System.out.println("Last query "+q.toString());
+        VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
+        vur.exec();
+        
+        /*
         for (String s : fs.get((idx)).predsB) {
             String[] pres = StringUtils.split(s, ",");
             String prev_s = "<"+nodeA+">";
@@ -859,32 +983,10 @@ public class FuseLinkServlet extends HttpServlet {
         VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
         vur.exec();
         
-        //System.out.println(concat_str);
+        //System.out.println(concat_str); */
     }
         
     private void metadataKeepLeft(int idx) throws UnsupportedEncodingException {
-        //<"+nodeA+"> ?p ?o } } WHERE {\n"
-                    //"GRAPH <http://localhost:8890/fused_datasetmetadataA> { <"+nodeA+"> ?p ?o } }";*/
-        /*for (String s : fs.get((idx)).predsA) {
-            String[] pres = StringUtils.split(s, ",");
-            StringBuilder q = new StringBuilder();
-            q.append("INSERT { GRAPH <"+tGraph+"> { ");
-            String prev_s = "<"+nodeA+">";
-            for (int i = 0; i < pres.length; i++) {
-                q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-                prev_s = "?o"+i;
-            }
-            prev_s = "<"+nodeA+">";
-            q.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> {");
-            for (int i = 0; i < pres.length; i++) {
-                q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
-                prev_s = "?o"+i;
-            }
-            q.append("} }");
-            System.out.println(q.toString());
-            VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
-            vur.exec();
-        }*/
         String domOnto = "";
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
@@ -1027,6 +1129,10 @@ public class FuseLinkServlet extends HttpServlet {
     }
     private String formInsertQuery(String tGraph, String subject, String fusedGeometry) { 
         return "INSERT INTO <" + tGraph + "> { <" + subject + "> <" + HAS_GEOMETRY + "> _:a . _:a <" + WKT + "> \"" + fusedGeometry + "\"^^<http://www.opengis.net/ont/geosparql#wktLiteral> }";
+    }
+    
+    private String formInsertGeomQuery(String tGraph, String subject, String fusedGeometry) { 
+        return "INSERT INTO <" + tGraph + "> { <" + subject + "> <" + HAS_GEOMETRY + "> <" + subject + "_geom> . <" + subject +"_geom> <" + WKT + "> \"" + fusedGeometry + "\"^^<http://www.openlinksw.com/schemas/virtrdf#Geometry> }";
     }
     
     private String formInsertQuery(String tGraph, String subject, String predicate, String object){

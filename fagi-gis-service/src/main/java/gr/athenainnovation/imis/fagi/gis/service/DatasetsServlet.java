@@ -60,7 +60,11 @@ public class DatasetsServlet extends HttpServlet {
         System.out.println("Dominant A "+request.getParameter("d_dom"));
         
         if ( request.getParameter("d_dom") != null ) {
-            if ( request.getParameter("d_dom").equalsIgnoreCase("true") ) {
+             //System.out.println("Entered");
+             String param = request.getParameter("d_dom").toString().trim(); 
+             //System.out.println("Entered "+param);
+            if ( param.equalsIgnoreCase("true") ) {
+                //System.out.println("Entered");
                 graphConf.setDominantA(true);
             }
         } else {

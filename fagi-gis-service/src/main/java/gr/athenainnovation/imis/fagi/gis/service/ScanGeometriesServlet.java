@@ -8,6 +8,16 @@ package gr.athenainnovation.imis.fagi.gis.service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import static com.hp.hpl.jena.enhanced.BuiltinPersonalities.model;
+import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryExecution;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
+import com.hp.hpl.jena.query.QueryFactory;
+import com.hp.hpl.jena.query.QuerySolution;
+import com.hp.hpl.jena.rdf.model.Literal;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.shared.JenaException;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
@@ -30,7 +40,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.atlas.web.auth.HttpAuthenticator;
+import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import virtuoso.jena.driver.VirtGraph;
+import virtuoso.jena.driver.VirtuosoQueryExecution;
+import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
 
 /**
  *
@@ -111,10 +125,11 @@ public class ScanGeometriesServlet extends HttpServlet {
             String tGraph = (String)sess.getAttribute("t_graph");
             String geoQ = "SPARQL SELECT  ?os ?g\n" +
                           "WHERE\n" +
-                          "  { GRAPH <"+tGraph+">  { ?os ?p1 _:b0 .\n" +
-                          "        _:b0 <"+AS_WKT_REGEX+"> ?g\n" +
+                          "  { GRAPH <"+tGraph+">  { ?os ?p1 ?b . ?b ?p2 ?g\n" +
+                          "        \n" +
                           "      }\n" +
                           "  }";
+            System.out.println("Geom Q "+geoQ);
             
             DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
             VirtGraph vSet = null;
@@ -129,12 +144,38 @@ public class ScanGeometriesServlet extends HttpServlet {
             
                 return;
             }
-            
+            //System.out.println("Get SPARQL prefix "+vSet..getSparqlPrefix());
+            /*
+           VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create (geoQ, vSet);
+        
+                com.hp.hpl.jena.query.ResultSet results = vqe.execSelect();
+                System.out.println("CALLED "+results.hasNext());
+    for ( ; results.hasNext() ; )
+    {
+      QuerySolution soln = results.nextSolution() ;
+      RDFNode x = soln.get("count(?os)") ;       // Get a result variable by name.
+      System.out.println(x.asNode().toString());
+    }
+  */
+                /*Query query = QueryFactory.create(geoQ);
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                QueryExecution queryExecution = QueryExecutionFactory.sparqlService("http://localhost:8890/sparql", query, authenticator);
+                com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
+                long startTime =  System.nanoTime();
+                System.out.println("Geometry "+resultSet.hasNext());
+                //while(resultSet.hasNext()) {
+                //    System.out.println("kati einai kai auto");
+                //}
+                query = QueryFactory.create(geoQ);
+                authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                queryExecution = QueryExecutionFactory.create(query, ModelFactory.createModelForGraph(vSet));
+                resultSet = queryExecution.execSelect();
+                System.out.println("Geometry "+resultSet.hasNext());*/
             Connection virt_conn = vSet.getConnection();
             PreparedStatement fetchFusedGeoms;
             fetchFusedGeoms = virt_conn.prepareStatement(geoQ.toString());
             ResultSet rs = fetchFusedGeoms.executeQuery();
-            
+            //System.out.println("CALLED "+rs.());
             while ( rs.next() ) {
                 JSONFusedGeometry geom = new JSONFusedGeometry();
                 String g = rs.getString(2);

@@ -154,15 +154,15 @@ Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value
               <!-- Linux IMIS
               Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/osm"/>-->
               <!-- Windows IMIS -->
-              Dataset A: <input type="text" name="da_name" id="idDatasetA" class="centered" value="http://localhost/DAV/uni"/>
+              Dataset A: <input type="text" name="da_name" id="idDatasetA" class="centered" value="http://localhost/DAV/osm"/> -->
               <!-- Mac OS X 
-              Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm"/>-->
+              Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm"/> -->
 <datalist id="datalist1"></datalist>
               SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="http://localhost:8890/sparql"/>
               <!-- Linux IMIS
               Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/wik"/> -->
               <!-- Windows IMIS -->
-              Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost/DAV/wik"/>
+              Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost/DAV/wik"/> -->
               <!-- Mac OS X 
             Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik"/> -->
             SPARQL Endpoint B: <input type="text" name="db_end" class="centered" value="http://localhost:8890/sparql"/>
@@ -172,7 +172,7 @@ Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value
             <!-- Linux IMIS 
             Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/nick/Projects/FAGI-gis-master/"/>-->
             <!-- Windows IMIS -->
-            Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="C:\Users\nick\Downloads\virtuoso-opensource\database"/>
+            Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="C:\Users\nick\Downloads\virtuoso-opensource\database"/>-->
             <!-- Mac OS X 
             Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/Users/nickvitsas/Downloads"/> -->
             <table>
