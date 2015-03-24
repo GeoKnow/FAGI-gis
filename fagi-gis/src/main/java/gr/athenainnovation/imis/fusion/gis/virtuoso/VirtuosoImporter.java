@@ -183,8 +183,18 @@ public final class VirtuosoImporter {
         FileWriter writer = new FileWriter(file);
 */
         //trh = new FileBulkLoader(fusedGraph, dbConfig, graphConfig, set);
+        
         try {
-            Scanner scn = new Scanner(new File("/home/nick/Projects/schema-match.properties"));
+            Scanner scn = null;
+            if ( SystemUtils.IS_OS_MAC_OSX ) {
+                scn = new Scanner(new File("/home/nick/Projects/fagi-gis.ini"));
+            }
+            if ( SystemUtils.IS_OS_LINUX ) {
+                scn = new Scanner(new File("/home/nick/Projects/fagi-gis.ini"));
+            }
+            if ( SystemUtils.IS_OS_WINDOWS ) {
+                scn = new Scanner(new File("/home/nick/Projects/fagi-gis.ini"));
+            }
             while( scn.hasNext() ) {
                 String prop = scn.next();
                 String[] vals = prop.split(":");

@@ -339,7 +339,7 @@ public class BulkLoader implements TripleHandler {
                         queryStr.append(" ");
                         queryStr.appendIri( WKT );
                         queryStr.append(" ");
-                        queryStr.appendLiteral(geoms.get(i).g + "^^<http://www.opengis.net/ont/geosparql#wktLiteral>");
+                        queryStr.appendLiteral(geoms.get(i).g + "^^<http://www.openlinksw.com/schemas/virtrdf#Geometry>");
                         queryStr.append(" . ");
                     }
                     queryStr.append("} }");
