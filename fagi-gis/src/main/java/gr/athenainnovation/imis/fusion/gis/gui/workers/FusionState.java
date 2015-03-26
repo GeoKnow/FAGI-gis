@@ -11,7 +11,7 @@ import static gr.athenainnovation.imis.fusion.gis.gui.FuserPanel.registerTransfo
  * @author nick
  */
 public class FusionState {
-    
+    /*
     public static final String ANSI_RESET = "\u001B[0m";
     public static final String ANSI_BLACK = "\u001B[30m";
     public static final String ANSI_RED = "\u001B[31m";
@@ -21,7 +21,17 @@ public class FusionState {
     public static final String ANSI_PURPLE = "\u001B[35m";
     public static final String ANSI_CYAN = "\u001B[36m";
     public static final String ANSI_WHITE = "\u001B[37m";
-
+    */
+    public static final String ANSI_RESET = "";
+    public static final String ANSI_BLACK = "";
+    public static final String ANSI_RED = "";
+    public static final String ANSI_GREEN = "";
+    public static final String ANSI_YELLOW = "";
+    public static final String ANSI_BLUE = "";
+    public static final String ANSI_PURPLE = "";
+    public static final String ANSI_CYAN = "";
+    public static final String ANSI_WHITE = "";
+    
     private DBConfig dbConf;
     private GraphConfig graphConf;
     private String linksFile;

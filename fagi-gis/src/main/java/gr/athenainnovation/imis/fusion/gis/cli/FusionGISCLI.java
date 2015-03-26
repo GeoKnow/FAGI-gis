@@ -149,8 +149,7 @@ public class FusionGISCLI {
         if (args.length != 2) {
             System.out.println(args.length);
             for(String a : args)
-                System.out.println(a);
-            System.out.println(ANSI_YELLOW+"Usage: FAGI -c configFile"+ANSI_RESET);
+                System.out.println(ANSI_YELLOW+"Usage: FAGI -c configFile"+ANSI_RESET);
             return;
         }
         if (args[0].equals("-c")) {

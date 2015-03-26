@@ -7,7 +7,7 @@ Standards-Version: 3.9.2
 Homepage: <homepage>
 Distribution: ldstack-nightly
 Package: fagi-gis
-Version: 1.1+rev0
+Version: 1.1+rev239
 Architecture: all
 Depends: wordnet, openjdk-7-jdk | default-jdk
 Description: GeoData fusion

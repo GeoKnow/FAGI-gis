@@ -4,7 +4,7 @@
 
     <groupId>gr.athena-innovation.imis</groupId>
     <artifactId>fagi-gis-service</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1-rev239</version>
     <packaging>war</packaging>
 
     <name>fagi-gis-service</name>
@@ -18,7 +18,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>fagi-gis</artifactId>
-            <version>1.1+rev0</version>
+            <version>1.1+rev239</version>
         </dependency>
         <dependency>
             <groupId>javax</groupId>
@@ -29,6 +29,7 @@
     </dependencies>
 
     <build>
+        <finalName>fagi-gis-service</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -51,6 +52,7 @@
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                     <outputDirectory>util</outputDirectory>
+                    
                 </configuration>
             </plugin>
             <plugin>
@@ -63,8 +65,10 @@
                         <goals>
                             <goal>copy</goal>
                         </goals>
+                        
                         <configuration>
                             <outputDirectory>${endorsed.dir}</outputDirectory>
+                            
                             <silent>true</silent>
                             <artifactItems>
                                 <artifactItem>
