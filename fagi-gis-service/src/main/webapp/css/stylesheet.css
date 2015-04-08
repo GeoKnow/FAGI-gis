@@ -96,6 +96,30 @@ cursor: pointer;
 float: left;
 }
 
+.toolbox {
+    z-index: 3;
+}
+
+#dialog label {
+    color: black;
+}
+
+#dialog option {
+    color: black;
+}
+
+#buttonFilterLinksA input{
+    color: black;
+}
+
+#dialog tr {
+    color: black;
+}
+
+linksList label {
+    color: black;
+}
+
 .panel-heading a:after {
     font-family:'Glyphicons Halflings';
     content:"\e114";
@@ -187,6 +211,10 @@ display: table-cell;
 .dropdown-menu a:link, .dropdown-menu a:visited {
     font-weight: bold;
     color: white;
+}
+
+linkFusionTable td, #linkFusionTable tr {
+    //color: white;
 }
 
 a:link, a:visited {
@@ -484,6 +512,16 @@ footer {
     font-size: 14px;
 }
 
+.ui-menu {
+    background-color: darkblue;
+    color:white;
+    -webkit-transition: opacity 0.7s;
+    -moz-transition: opacity 0.7s;
+    -ms-transition: opacity 0.7s;
+    -o-transition: opacity 0.7s;
+    transition: opacity 0.7s;
+}
+
 .tooltip {
   top:-10px;
   background-color: darkblue;
@@ -497,15 +535,22 @@ footer {
   -ms-transition: opacity 0.5s;
   -o-transition: opacity 0.5s;
   transition: opacity 0.5s;
-  -webkit-border-radius: 10px;
-  -moz-border-radius: 10px;
-  -ms-border-radius: 10px;
-  -o-border-radius: 10px;
-  border-radius: 210px;
-  	box-shadow: 5px 5px 5px #888888;
-   position:absolute;
+  -webkit-border-radius: 15px;
+  -moz-border-radius: 15px;
+  -ms-border-radius: 15px;
+  -o-border-radius: 15px;
+  border-radius: 15px;
+  box-shadow: 5px 5px 5px #888888;
+  position:absolute;
   display: none;
+  padding: 10px;
+  border-color: black;
+  border-style: solid;
+    border-width: 3px;
+  //width: 300px;
 }
+
+#format { margin-top: 2em; }
 
 .highlight {
     background: red;

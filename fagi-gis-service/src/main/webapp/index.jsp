@@ -167,11 +167,11 @@ Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value
             Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik"/> -->
             SPARQL Endpoint B: <input type="text" name="db_end" class="centered" value="http://localhost:8890/sparql"/>
             Target Graph: <input type="text" id="ider" name="t_graph" class="centered" value="http://localhost:8890/fused_dataset"/>
-            SPARQL Endpoint Target: <input type="text" id="ider" name="t_end" class="centered" value="http://localhost:8890/sparql"/>-->
+            SPARQL Endpoint Target: <input type="text" id="ider" name="t_end" class="centered" value="http://localhost:8890/sparql"/>
             <!--Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/fagi/Desktop/"/>-->
-            <!-- Linux IMIS 
-            Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/nick/Projects/FAGI-gis-master/"/>-->
-            <!-- Windows IMIS -->
+            <!-- Linux IMIS -->
+            Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/nick/Projects/FAGI-gis-master/"/>
+            <!-- Windows IMIS 
             Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="C:\Users\nick\Downloads\virtuoso-opensource\database"/>-->
             <!-- Mac OS X 
             Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/Users/nickvitsas/Downloads"/> -->

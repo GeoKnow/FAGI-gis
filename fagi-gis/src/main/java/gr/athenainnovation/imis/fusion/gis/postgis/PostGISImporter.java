@@ -151,7 +151,7 @@ public class PostGISImporter {
             else {
                 insertGeometry = insertGeometryB;
             }
-            System.out.println(subject+ " with geom "+geometry);
+            //System.out.println(subject+ " with geom "+geometry);
             insertGeometry.setString(1, subject);
             insertGeometry.setString(2, geometry);
             
@@ -169,7 +169,7 @@ public class PostGISImporter {
         insertGeometryA.executeBatch();
         insertGeometryB.executeBatch();
         connection.commit();
-        System.out.println("geom commited 1");
+        //System.out.println("geom commited 1");
     }
     /**
      * Releases all database resources and terminates connection to it.

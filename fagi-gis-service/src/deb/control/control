@@ -1,0 +1,14 @@
+Source: fagi-gis-service
+Section: misc
+Priority: optional
+Maintainer: Nick Vitsas <nickvitsas@imis.athena-innovation.gr>
+Build-Depends: debhelper (>= 8), default-jdk, javahelper (>= 0.40ubuntu1.1) 
+Standards-Version: 3.9.2
+Homepage: <homepage>
+Distribution: ldstack-nightly
+Package: fagi-gis-service
+Version: 1.1+rev239
+Architecture: all
+Depends: wordnet, tomcat7, openjdk-7-jdk | default-jdk
+Description: GeoData fusion
+ A tool for fusing geodata

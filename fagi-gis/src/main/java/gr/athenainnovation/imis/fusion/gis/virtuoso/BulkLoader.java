@@ -213,7 +213,7 @@ public class BulkLoader implements TripleHandler {
             int addIdx = 0;
             int cSize = 1;
             int sizeUp = 1;
-            System.out.println("Sise "+geoms.size());
+            //System.out.println("Sise "+geoms.size());
             while (updating) {
                 try {
                     ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
@@ -276,7 +276,7 @@ public class BulkLoader implements TripleHandler {
                         queryStr.append(" . ");
                     }
                     queryStr.append("}");
-                    System.out.println("Print "+queryStr.toString());
+                    //System.out.println("Print "+queryStr.toString());
 
                     UpdateRequest q = queryStr.asUpdate();
                     HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
@@ -294,7 +294,7 @@ public class BulkLoader implements TripleHandler {
                         updating = false;
                 } catch (org.apache.jena.atlas.web.HttpException ex) {
                     System.out.println("Failed at "+addIdx+" Size "+cSize);
-                    System.out.println("Crazy Stuff");
+                    //System.out.println("Crazy Stuff");
                     System.out.println(ex.getLocalizedMessage());
                     ex.printStackTrace();
                     ex.printStackTrace(System.out);
@@ -343,7 +343,7 @@ public class BulkLoader implements TripleHandler {
                         queryStr.append(" . ");
                     }
                     queryStr.append("} }");
-                    System.out.println("Print "+queryStr.toString());
+                    //System.out.println("Print "+queryStr.toString());
                     
                     UpdateRequest q = queryStr.asUpdate();
                     HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());

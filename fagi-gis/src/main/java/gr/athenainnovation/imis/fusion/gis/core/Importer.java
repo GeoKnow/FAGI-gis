@@ -197,13 +197,13 @@ public class Importer {
             queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
         
 //System.out.println("Query String "+queryString);
-        System.out.println("Count WKT " + countWKT+" Count WGS "+countWgs);
+        //System.out.println("Count WKT " + countWKT+" Count WGS "+countWgs);
         int currentCount = 1;
         
         QueryExecution queryExecution = null;
         if (!countWKT){ //if geosparql geometry doesn' t exist        
             try {
-                System.out.println("Query String "+queryString);
+                //System.out.println("Query String "+queryString);
                 final Query query = QueryFactory.create(queryString1);
                 HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
                 queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, authenticator);
@@ -215,7 +215,7 @@ public class Importer {
                     final QuerySolution querySolution = resultSet.next();
                     
                     final String subject = querySolution.getResource("?s").getURI();
-                    System.out.println("Subject "+subject);
+                    //System.out.println("Subject "+subject);
                     final RDFNode objectNode1 = querySolution.get("?o1"); //lat
                     final RDFNode objectNode2 = querySolution.get("?o2"); //long
                     
@@ -252,22 +252,22 @@ public class Importer {
         else{ //if geosparql geometry exists
             //System.out.println("geosparql");
             try {
-                System.out.println("Geosparql Query String "+queryString);
+                //System.out.println("Geosparql Query String "+queryString);
                 final Query query = QueryFactory.create(queryString);
                 HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
                 queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, authenticator);
-                System.out.println("query: \n" + query + "\nendpoint: " + sourceEndpoint + " sourceGraph: " + sourceGraph);
+                //System.out.println("query: \n" + query + "\nendpoint: " + sourceEndpoint + " sourceGraph: " + sourceGraph);
                 final ResultSet resultSet = queryExecution.execSelect();
                 long startTime =  System.nanoTime();
                 while(resultSet.hasNext()) {
                     final QuerySolution querySolution = resultSet.next();
                     
                     final String subject = querySolution.getResource("?os").getURI();                 
-                    System.out.println(subject);
+                    //System.out.println(subject);
                     final RDFNode objectNode = querySolution.get("?g");
                     if(objectNode.isLiteral()) {
                         final String geometry = objectNode.asLiteral().getLexicalForm();
-                        System.out.println("Virtuoso geometry objectNode.asLiteral().getLexicalForm():   "+ geometry);
+                        //System.out.println("Virtuoso geometry objectNode.asLiteral().getLexicalForm():   "+ geometry);
                         
                         postGISImporter.loadGeometry(datasetIdent, subject, geometry);
                     }
@@ -453,7 +453,7 @@ public class Importer {
         int count = -1;
         
         final String queryString = "SELECT (COUNT (?os) as ?count) WHERE { " + restriction + " }";
-        System.out.println("Query "+queryString);
+        //System.out.println("Query "+queryString);
         QueryExecution queryExecution = null;
         try {
             final Query query = QueryFactory.create(queryString);

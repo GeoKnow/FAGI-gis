@@ -651,6 +651,11 @@ public class FuseLinkServlet extends HttpServlet {
         String[] leftPreTokens = leftPre.split(",");
         String[] rightPreTokens = rightPre.split(",");
         
+        if ( leftPreTokens.length == 1) {
+            metadataKeepLeft(idx);
+            return;
+        }
+        
         StringBuilder q = new StringBuilder();
         q.append("sparql SELECT ?o"+(leftPreTokens.length-1));
         String prev_s = "<"+nodeA+">";
@@ -723,6 +728,11 @@ public class FuseLinkServlet extends HttpServlet {
         String rightPre = predicates[1];
         String[] leftPreTokens = leftPre.split(",");
         String[] rightPreTokens = rightPre.split(",");
+        
+        if ( rightPreTokens.length == 1) {
+            metadataKeepRight(idx);
+            return;
+        }
         
         StringBuilder q = new StringBuilder();
         q.append("sparql SELECT ?o"+(rightPreTokens.length-1));
@@ -797,6 +807,11 @@ public class FuseLinkServlet extends HttpServlet {
         String[] leftPreTokens = leftPre.split(",");
         String[] rightPreTokens = rightPre.split(",");
         
+        if ( leftPreTokens.length == 1) {
+            metadataKeepLeft(idx);
+            return;
+        }
+        
         StringBuilder q = new StringBuilder();
         q.append("sparql SELECT ?o"+(leftPreTokens.length-1));
         String prev_s = "<"+nodeA+">";
@@ -870,6 +885,11 @@ public class FuseLinkServlet extends HttpServlet {
         String rightPre = predicates[1];
         String[] leftPreTokens = leftPre.split(",");
         String[] rightPreTokens = rightPre.split(",");
+        
+        if ( rightPreTokens.length == 1) {
+            metadataKeepRight(idx);
+            return;
+        }
         
         StringBuilder q = new StringBuilder();
         q.append("sparql SELECT ?o"+(rightPreTokens.length-1));

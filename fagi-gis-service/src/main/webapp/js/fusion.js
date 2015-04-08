@@ -5,9 +5,9 @@
  */
 
 $(document).ready(function() {                        // When the HTML DOM is ready loading, then execute the following function...
-    $.ajaxSetup({
-        cache: false
-    });
+    //$.ajaxSetup({
+    //    cache: false
+    //});
     //alert(OpenLayers.Events.BROWSER_EVENTS);
     init();
 });
@@ -315,6 +315,7 @@ $('#buttonL').click(function(){
                 type: 'POST',
                 //Ajax events
                 success: function( responseText ) {
+                    alert(responseText);
                     var list = document.getElementById("linksList");
                     var typesA = document.getElementById("typeListA");
                     var typesB = document.getElementById("typeListB");
@@ -450,7 +451,7 @@ function schemaMatch () {
             var modB = 1;
             var schemaListA = document.getElementById("schemasA");
             var linkMatchList = document.getElementById("linkMatchList");
-            linkMatchList.innerHTML = "";
+            //linkMatchList.innerHTML = "";
             schemaListA.innerHTML = "";
             $.each(responseJson.foundA, function(index, element) {
                 var opt = document.createElement("li");

@@ -200,7 +200,7 @@ public final class VirtuosoImporter {
                 String[] vals = prop.split(":");
                 vals[1].trim();
                 vals[0].trim();
-                System.out.println(vals[0] + " "+ vals[1]);
+                //System.out.println(vals[0] + " "+ vals[1]);
                 if ( vals[0].equals("wordnet-depth") ) {
                     wordnetDepth = Integer.parseInt(vals[1]);
                 } else if ( vals[0].equals("max-parent") ) {
@@ -218,7 +218,7 @@ public final class VirtuosoImporter {
                 }
             }
         } catch (IOException ioe) {
-            System.out.println("File not found");
+            //System.out.println("File not found");
             wordnetDepth = 5;
             maxParentDepth = 4;
             raiseToPower = 1.0;
@@ -255,7 +255,7 @@ public final class VirtuosoImporter {
             File oUni = new File("uni_predicates.txt");
 
             // This will output the full path where the file will be written to...
-            System.out.println(oOsm.getCanonicalPath());
+            //System.out.println(oOsm.getCanonicalPath());
 
             wOsm = new PrintWriter(new FileWriter(oOsm));
             wUni = new PrintWriter(new FileWriter(oUni));
@@ -316,7 +316,7 @@ public final class VirtuosoImporter {
                 wRef.println(toks.get(toks.size()-1)+" ]");
                 
                 if (toks.get(toks.size()-1).equals("SIREN"))
-                    System.out.println(toks.get(toks.size()-1));
+                    //System.out.println(toks.get(toks.size()-1));
                 
                 if ( !hs.containsKey(toks.get(toks.size()-1)) ) {
                     List<String> lst = new ArrayList<>();
@@ -391,9 +391,6 @@ public final class VirtuosoImporter {
                 }
                 wRef.println(toks.get(toks.size()-1)+" ]");
                 
-                if (toks.get(toks.size()-1).equals("SIREN"))
-                    System.out.println(toks.get(toks.size()-1));
-                
                 if ( !hs.containsKey(toks.get(toks.size()-1)) ) {
                     List<String> lst = new ArrayList<>();
                     lst.add(toks.get(toks.size()-1));
@@ -467,9 +464,6 @@ public final class VirtuosoImporter {
                 }
                 wRef.println(toks.get(toks.size()-1)+" ]");
                 
-                if (toks.get(toks.size()-1).equals("SIREN"))
-                    System.out.println(toks.get(toks.size()-1));
-                
                 if ( !hs.containsKey(toks.get(toks.size()-1)) ) {
                     List<String> lst = new ArrayList<>();
                     lst.add(toks.get(toks.size()-1));
@@ -497,12 +491,6 @@ public final class VirtuosoImporter {
             PrintWriter wAll = new PrintWriter(new FileWriter(oAll));
             for (Map.Entry pairs : hs.entrySet()) {
                 List<String> lst = (List<String>)pairs.getValue();
-                
-                for (String ret : lst) {
-                    if (ret.equals("SIREN"))
-                    System.out.println("MWRE "+ret);
-                    wAll.println(ret);
-                }
             }
             
             wAll.close();
@@ -542,7 +530,7 @@ public final class VirtuosoImporter {
                 
                 //List<Triple> lst = new ArrayList<>();
                 int p = 0;
-                System.out.println("Happens");
+                //System.out.println("Happens");
                 while(rs.next()) {
                     subject = rs.getString("subject_a");
                     fusedGeometry = rs.getString("ST_AsText");
@@ -598,9 +586,9 @@ public final class VirtuosoImporter {
         // Check if the address is a valid special local or loop back
         int start = url.lastIndexOf("//");
         int last = url.substring(start).indexOf(":");
-        System.out.println(start+" "+last);
+        //System.out.println(start+" "+last);
         String address = url.substring(start+2, last+start);
-        System.out.println("Address "+address);
+        //System.out.println("Address "+address);
         InetAddress addr = InetAddress.getByName(address);
         if (addr.isAnyLocalAddress() || addr.isLoopbackAddress())
             return true;
@@ -646,7 +634,7 @@ public final class VirtuosoImporter {
         
         starttime =  System.nanoTime();
         String endpointLoc2 = endpointA;
-        System.out.println("is local "+isLocalEndpoint(endpointA));
+        //System.out.println("is local "+isLocalEndpoint(endpointA));
         if (endpointLoc2.equals(endpointA)) {
             getFromA.append("sparql INSERT\n");
             if (scanProperties)
@@ -706,8 +694,8 @@ public final class VirtuosoImporter {
             getFromB.append("}");
 
         }        
-        System.out.println("GET FROM B \n"+getFromB);
-        System.out.println("GET FROM B \n"+getFromA);
+        //System.out.println("GET FROM B \n"+getFromB);
+        //System.out.println("GET FROM B \n"+getFromA);
         
         int count = 0;
         int i = 0;
@@ -743,7 +731,7 @@ public final class VirtuosoImporter {
         }
         //System.out.println(count);
         
-        System.out.println("First List");
+        //System.out.println("First List");
 
         endtime =  System.nanoTime();
         LOG.info("Metadata parsed in "+(endtime-starttime)/1000000000f);       
@@ -862,11 +850,11 @@ public final class VirtuosoImporter {
                     countA++;
                     countB = 0;
                     for ( IndexWord iwB : scheB.indexes) {
-                        System.out.println("Scoring : "+iwA.getLemma()+ " and "+ iwB.getLemma());   
+                        //System.out.println("Scoring : "+iwA.getLemma()+ " and "+ iwB.getLemma());   
                         countB++;
                         float tmpScore = calculateAsymmetricRelationshipOperation(iwA, iwB, m);
                         score += tmpScore;
-                        System.out.println("Score : "+tmpScore);                       
+                        //System.out.println("Score : "+tmpScore);                       
                     }
                 }
                 
@@ -878,13 +866,13 @@ public final class VirtuosoImporter {
                     countB = 0;
                     for ( String iwB : scheB.words) {
                         jaroCount++;
-                        System.out.println("Jaroing : "+iwA+ " and "+ iwB);   
+                        //System.out.println("Jaroing : "+iwA+ " and "+ iwB);   
                         jaro_dist += (float) StringUtils.getJaroWinklerDistance(iwA, iwB);
                     }
                 }
                 
                 jaro_dist_norm = jaro_dist / (jaroCount);
-                System.out.println("Jaro : " + jaro_dist_norm);
+                //System.out.println("Jaro : " + jaro_dist_norm);
                 //scheB.texDist = jaro_dist_norm;
                 if (jaro_dist_norm > maxDist ) {
                     maxDist = jaro_dist_norm;
@@ -907,7 +895,7 @@ public final class VirtuosoImporter {
                     //scheB.typeDist = same_type;
                     sim_score = (score + jaro_dist_norm + 0.5f * same_type)/3;
                 //}
-                    System.out.println("Probs ::::::: "+score);
+                    //System.out.println("Probs ::::::: "+score);
                 SchemaNormalizer snorm = new SchemaNormalizer(scheB, jaro_dist_norm, score, same_type );
                 if ( !scorer.containsKey(scheA.predicate+scheB.predicate)) {
                     List<SchemaNormalizer> scheLst = new ArrayList<SchemaNormalizer>();
@@ -917,7 +905,7 @@ public final class VirtuosoImporter {
                 scorer.get(scheA.predicate+scheB.predicate).add(snorm);
                 //m.score = sim_score;
                 if(!m.matches.isEmpty()){
-                    System.out.println(m.matches.get(0));
+                    //System.out.println(m.matches.get(0));
                     matchers.add(m);
                 }    
             }
@@ -947,8 +935,8 @@ public final class VirtuosoImporter {
                             break;
                         }
                     }
-                    System.out.println("Scoring "+selectedSche.semDist+" "+selectedSche.textDist+" "+selectedSche.typeDist);
-                    System.out.println("Scoring "+ma.sA.semDist+" "+ma.sA.texDist);
+                    //System.out.println("Scoring "+selectedSche.semDist+" "+selectedSche.textDist+" "+selectedSche.typeDist);
+                    //System.out.println("Scoring "+ma.sA.semDist+" "+ma.sA.texDist);
                     float sim_score = 0;
                     if ( !ma.sA.predicate.equals(selectedSche.sRef.predicate) ) {
                     if ( ma.sA.semDist < 0.00000001f )
@@ -960,7 +948,7 @@ public final class VirtuosoImporter {
                                         ( textWeight * ( selectedSche.textDist / ma.sA.texDist ) ) + 
                                         ( typeWeight * ( selectedSche.typeDist ) ) ) / 3.0f;
                     
-                    System.out.println("Scoring "+ma.sA.predicate+" "+selectedSche.sRef.predicate+" = "+ sim_score);
+                    //System.out.println("Scoring "+ma.sA.predicate+" "+selectedSche.sRef.predicate+" = "+ sim_score);
                     } else {
                         sim_score = 1.0f;
                     }
@@ -987,7 +975,7 @@ public final class VirtuosoImporter {
                         matchesB.add(scoredB);
                     
                 //}
-                System.out.println("Matched "+ma.sA.predicate+" with "+ ma.sB.predicate + " = "+ma.score);
+                //System.out.println("Matched "+ma.sA.predicate+" with "+ ma.sB.predicate + " = "+ma.score);
             }
         }
     }
@@ -1041,7 +1029,7 @@ public final class VirtuosoImporter {
             
                 //System.out.print("Value "+a+" ");
                 
-                System.out.print("Value : "+a+" stemmed : "+englishParser.parse(a).toString());
+                //System.out.print("Value : "+a+" stemmed : "+englishParser.parse(a).toString());
                 IndexWordSet wordSet = dictionary.lookupAllIndexWords(englishParser.parse(a).toString());
                 if (wordSet == null)
                     continue;
@@ -1157,9 +1145,9 @@ public final class VirtuosoImporter {
           //deserialize the List
           recoveredWords = (HashSet)input.readObject();
 
-          for(String word: recoveredWords){
+          //for(String word: recoveredWords){
            // System.out.println("Recovered Quark: " + word);
-          }
+          //}
         }
         catch(ClassNotFoundException ex){
           System.out.println("No class");
@@ -1172,7 +1160,7 @@ public final class VirtuosoImporter {
         foundB.clear();
         if (link != null) {
             for (int i = 0; i < optDepth+1; i++) {
-            System.out.println("DEPTH: "+i);
+            //System.out.println("DEPTH: "+i);
             StringBuilder query = new StringBuilder();
             query.append("sparql SELECT ?pa1 ?oa1 ");
             for(int j = 0; j < i; j++) {
@@ -1200,7 +1188,7 @@ public final class VirtuosoImporter {
             query.append("} }\n"
                     + "}");
             
-            System.out.println("SINGLE LINK QUERY "+query.toString());
+            //System.out.println("SINGLE LINK QUERY "+query.toString());
             
             PreparedStatement fetchProperties;
             fetchProperties = virt_conn.prepareStatement(query.toString());
@@ -1250,10 +1238,10 @@ public final class VirtuosoImporter {
                     objectChainB.add(objectB);
                     
                     if (objectA != null) {
-                        System.out.println("Object A "+objectA+" "+predicateA);
+                        //System.out.println("Object A "+objectA+" "+predicateA);
                     }
                     if (objectB != null) {
-                        System.out.println("Object B "+objectB+" "+predicateB);
+                        //System.out.println("Object B "+objectB+" "+predicateB);
                     }
                 }
                 scanChain(propertiesA, chainA, objectChainA);
@@ -1341,7 +1329,7 @@ public final class VirtuosoImporter {
                     + "}\n"
                     + "} ORDER BY (?s)");
             
-            System.out.println(query.toString());
+            //System.out.println(query.toString());
             
             PreparedStatement fetchProperties;
             fetchProperties = virt_conn.prepareStatement(query.toString());
@@ -1438,14 +1426,14 @@ public final class VirtuosoImporter {
         
         HashMap<String, Integer> freqMap = Maps.newHashMap();
         for (String key : uniquePropertiesA) {
-            System.out.println(key);
+            //System.out.println(key);
             String onto = StringUtils.substringBefore(key, "#");
             onto = onto.concat("#");
             if (onto.equals(key) ) {
                 onto = StringUtils.substring(key, 0,StringUtils.lastIndexOf(key, "/"));
                 onto = onto.concat("/");
             }
-            System.out.println("Onto "+onto+" "+StringUtils.lastIndexOf(key, "/"));
+            //System.out.println("Onto "+onto+" "+StringUtils.lastIndexOf(key, "/"));
             if ( freqMap.containsKey(onto) ) {
                 freqMap.put(onto, freqMap.get(onto) + 1);
             } else {
@@ -1463,18 +1451,18 @@ public final class VirtuosoImporter {
                 max = value;
                 domOntologyA = key;
             }
-            System.out.println("Entry "+key+" : "+value);
+            //System.out.println("Entry "+key+" : "+value);
         }
         freqMap.clear();
         for (String key : uniquePropertiesB) {
-            System.out.println(key);
+            //System.out.println(key);
             String onto = StringUtils.substringBefore(key, "#");
             onto = onto.concat("#");
             if (onto.equals(key) ) {
                 onto = StringUtils.substring(key, 0,StringUtils.lastIndexOf(key, "/"));
                 onto = onto.concat("/");
             }
-            System.out.println("Onto "+onto+" "+StringUtils.lastIndexOf(key, "/"));
+            //System.out.println("Onto "+onto+" "+StringUtils.lastIndexOf(key, "/"));
             if ( freqMap.containsKey(onto) ) {
                 freqMap.put(onto, freqMap.get(onto) + 1);
             } else {
@@ -1492,34 +1480,34 @@ public final class VirtuosoImporter {
                 max = value;
                 domOntologyB = key;
             }
-            System.out.println("Entry "+key+" : "+value);
+            //System.out.println("Entry "+key+" : "+value);
         }
         
-        System.out.println("Dominant from A "+domOntologyA+", Dominant from B "+domOntologyB);
-        System.out.println();
-        for (String key : uniquePropertiesB) {
-            System.out.println(key);
-        }
+        //System.out.println("Dominant from A "+domOntologyA+", Dominant from B "+domOntologyB);
+        //System.out.println();
+        //for (String key : uniquePropertiesB) {
+        //    System.out.println(key);
+        //}
         
-        System.out.println("Found A");
+        //System.out.println("Found A");
         Iterator iter = foundA.entrySet().iterator();
             while (iter.hasNext()) {
                 Map.Entry pairs = (Map.Entry)iter.next();
                 HashSet<ScoredMatch> set = (HashSet<ScoredMatch>)pairs.getValue();
-                System.out.println("KEY: "+pairs.getKey());
+                //System.out.println("KEY: "+pairs.getKey());
                 for(ScoredMatch s : set) {
-                    System.out.println(s.getRep());
+                    //System.out.println(s.getRep());
                 }
             }
-        System.out.println("Found B");
+        //System.out.println("Found B");
             iter = foundB.entrySet().iterator();
             while (iter.hasNext()) {
                 Map.Entry pairs = (Map.Entry)iter.next();
                 HashSet<ScoredMatch> set = (HashSet<ScoredMatch>)pairs.getValue();
-                System.out.println("KEY: "+pairs.getKey());
-                for(ScoredMatch s : set) {
-                    System.out.println(s.getRep());
-                }
+                //System.out.println("KEY: "+pairs.getKey());
+                //for(ScoredMatch s : set) {
+                    //System.out.println(s.getRep());
+                //}
             }
         
         return new SchemaMatchState(foundA, foundB, domOntologyA, domOntologyB);
@@ -1619,7 +1607,7 @@ public final class VirtuosoImporter {
                 if (ret < 0) {
                     continue;
                 }
-                System.out.println("RETURN "+ret);
+                //System.out.println("RETURN "+ret);
                 if (ret <= min) {
                     //if(ret < min)
                     //System.out.println();
@@ -1636,7 +1624,7 @@ public final class VirtuosoImporter {
             }
         }
         
-        System.out.println("END WORD "+maxParentDepth);
+        //System.out.println("END WORD "+maxParentDepth);
         if (min > maxParentDepth) {
             return (float) 0;
         } else if (min == 0) {
@@ -1743,9 +1731,9 @@ public final class VirtuosoImporter {
         }
         catch(UnknownHostException unknownHost)
         {
-            System.out.println("It is not");
+            //System.out.println("It is not");
         }
-        System.out.println(isMyDesiredIp);
+        //System.out.println(isMyDesiredIp);
         //String remoteDesc = "LOAD SERVICE <"+endpointB+"> DATA";
         //UpdateRequest getDesc = UpdateFactory.create(remoteDesc);
         //UpdateProcessor loadDesc = UpdateExecutionFactory.createRemoteForm(getDesc, endpointB);
@@ -1761,7 +1749,7 @@ public final class VirtuosoImporter {
             }
             else
             {
-                System.out.println("Ohh noes, it's a relative URI!");
+                //System.out.println("Ohh noes, it's a relative URI!");
             }
             try {
                 InetAddress localhost = InetAddress.getLocalHost();
@@ -1897,7 +1885,7 @@ public final class VirtuosoImporter {
         PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f)));
         links_graph = "http://localhost:8890/DAV/links_"+db_c.getDBName();
         String dir = bulkInsertDir.replace("\\", "/");
-        System.out.println("DIRECTORY "+dir);
+        //System.out.println("DIRECTORY "+dir);
         final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('"+dir+"bulk_inserts/selected_links.nt'), '', "+"'"+links_graph+"')";
         
         int i = nextIndex;
@@ -1954,7 +1942,7 @@ public final class VirtuosoImporter {
         //f.getParentFile().mkdirs();
         PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f)));
         String dir = bulkInsertDir.replace("\\", "/");
-        System.out.println("DIRECTORY "+dir);
+        //System.out.println("DIRECTORY "+dir);
         final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('"+dir+"bulk_inserts/selected_links.nt'), '', "
                 +"'"+"http://localhost:8890/DAV/all_links_"+db_c.getDBName()+"')";
         //int stop = 0;
@@ -2001,7 +1989,7 @@ public final class VirtuosoImporter {
         //f.getParentFile().mkdirs();
         PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f)));
         String dir = bulkInsertDir.replace("\\", "/");
-        System.out.println("DIRECTORY "+dir);
+        //System.out.println("DIRECTORY "+dir);
         final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('"+dir+"bulk_inserts/deleted_wgs.nt'), '', "+"'"+del_wgs_graph+"')";
 
         if ( lst.size() > 0 ) {
@@ -2039,7 +2027,7 @@ public final class VirtuosoImporter {
         //f.getParentFile().mkdirs();
         PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f)));
         String dir = bulkInsertDir.replace("\\", "/");
-        System.out.println("DIRECTORY "+dir);
+        //System.out.println("DIRECTORY "+dir);
         final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('"+dir+"bulk_inserts/deleted_geom.nt'), '', "+"'"+del_geom_graph+"')";
 
         if ( lst.size() > 0 ) {

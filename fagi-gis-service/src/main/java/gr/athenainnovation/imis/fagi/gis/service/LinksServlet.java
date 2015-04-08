@@ -164,19 +164,16 @@ public class LinksServlet extends HttpServlet {
             return;
         }
             
-            /* TODO output your page here. You may use following sample code. */
-            //String description = request.getParameter("description"); // Retrieves <input type="text" name="description">
-   System.out.println("Ludacristdgdfgdfos");
-            Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
+    Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
     String filename = getFilename(filePart);
     InputStream filecontent = filePart.getInputStream();
     
     //Scanner sc = new Scanner(filecontent);
-    //System.out.println(sc.next());
+    //System.out.println("Filename "+filename);
             
         
-            List<Link> output = new ArrayList<Link>();
-            HashMap<String, String> linksHashed = Maps.newHashMap();
+        List<Link> output = new ArrayList<Link>();
+        HashMap<String, String> linksHashed = Maps.newHashMap();
         Model model = ModelFactory.createDefaultModel();
         RDFDataMgr.read(model, filecontent, "", Lang.NTRIPLES);
         StmtIterator iter = model.listStatements();
@@ -229,7 +226,7 @@ public class LinksServlet extends HttpServlet {
         int i = 0;
         for(Link l : output) {
             String check = "chk"+i;
-            out.println("<li><div class=\"checkboxes\">");
+            out.println("<li><div>");
             out.println("<label for=\""+check+"\"><input type=\"checkbox\" value=\"\"name=\""+check+"\" id=\""+check+"\" />"+l.getNodeA()+"<-->"+l.getNodeB()+"</label>");
             out.println("</div>\n</li>");
             i++;
@@ -324,7 +321,8 @@ public class LinksServlet extends HttpServlet {
         }
         rs.close();
         filtersStmt.close();
-        
+        System.out.println("Printing out");
+        System.out.println(out.toString());
         out.print("+>>>+");
         
         filtersStmt = virt_conn.prepareStatement(fetchFiltersB);
@@ -345,7 +343,7 @@ public class LinksServlet extends HttpServlet {
         //HttpSession sess = request.getSession(true);
         //sess.setAttribute("linksList", output );
             
-        //System.out.println("mpampis SIZE  "+output.size());
+        System.out.println(out.toString());
         } finally {
             out.close();
         }
