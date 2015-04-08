@@ -1,5 +1,5 @@
 
-#fagi-gis-service develop
+#fagi-gis-service
 
 ___
 ##Dependencies
