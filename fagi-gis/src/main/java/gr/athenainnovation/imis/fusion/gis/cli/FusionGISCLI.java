@@ -20,6 +20,7 @@ import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
+import gr.athenainnovation.imis.fusion.gis.clustering.GeoClusterer;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.ErrorListener;
@@ -105,7 +106,10 @@ public class FusionGISCLI {
     
     private static FAGILogger errListen;
         
-    public static void main(String args[]) {        
+    public static void main(String args[]) {      
+        /* Clustering test */
+        
+        
         List<String> lines;
         long startTime, endTime;
         String config_file;
@@ -148,15 +152,13 @@ public class FusionGISCLI {
                
         if (args.length != 2) {
             System.out.println(args.length);
-            for(String a : args)
-                System.out.println(ANSI_YELLOW+"Usage: FAGI -c configFile"+ANSI_RESET);
+            //for(String a : args)
+            System.out.println(ANSI_YELLOW+"Usage: FAGI -c configFile"+ANSI_RESET);
             return;
         }
         if (args[0].equals("-c")) {
             config_file = args[1];
         } else {
-            for(String a : args)
-                System.out.println(a);
             System.out.println(ANSI_YELLOW+"Usage: FAGI -c configFile"+ANSI_RESET);
             return;
         }
@@ -183,6 +185,12 @@ public class FusionGISCLI {
                 return;
             }
             
+            //GeoClusterer gc = new GeoClusterer(st.getDbConf());
+
+            //gc.cluster(null);
+
+            //return;
+        
             String ret = createBulkLoadDir(st.getVirtDir());
             System.out.println("Ret "+ret);
             st.setVirtDir(ret);

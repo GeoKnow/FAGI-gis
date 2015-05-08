@@ -7,6 +7,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.hp.hpl.jena.graph.BulkUpdateHandler;
+import com.hp.hpl.jena.query.ParameterizedSparqlString;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
@@ -73,6 +74,8 @@ import net.didion.jwnl.data.relationship.RelationshipList;
 import net.didion.jwnl.dictionary.Dictionary;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.jena.atlas.web.auth.HttpAuthenticator;
+import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
@@ -745,6 +748,8 @@ public final class VirtuosoImporter {
     HashSet<String> recoveredWords = null;
     HashSet<String> uniquePropertiesA = new HashSet<>();
     HashSet<String> uniquePropertiesB = new HashSet<>();
+    HashSet<String> nonMatchedPropertiesA = new HashSet<>();
+    HashSet<String> nonMatchedPropertiesB = new HashSet<>();
     
     //Integer
     final Pattern patternInt = Pattern.compile( "^(\\d+)$" );
@@ -921,59 +926,72 @@ public final class VirtuosoImporter {
         //System.out.println("Total Matches "+foundA.size());
         HashMap<String, Schema> schemaPtrsA = Maps.newHashMap();
         HashMap<String, Schema> schemaPtrsB = Maps.newHashMap();
+        System.out.println("------------------------------------------");
+        System.out.println("            NON MATCHED ENTITIES          ");
+        System.out.println("------------------------------------------");
         for (SchemaMatcher ma : matchers) {
-            if ( ! ma.matches.isEmpty() ) {
+            if (!ma.matches.isEmpty()) {
                 //if (!foundA.containsKey(ma.sA.predicate)) {
-                    HashSet<ScoredMatch> matchesA = foundA.get(ma.sA.predicate);
-                    HashSet<ScoredMatch> matchesB = foundB.get(ma.sB.predicate);
-                    
-                    SchemaNormalizer selectedSche = null;
-                    List<SchemaNormalizer> snormLst = scorer.get(ma.sA.predicate+ma.sB.predicate);
-                    for(SchemaNormalizer snorm : snormLst ) {
-                        if ( ma.sB.predicate.equals(snorm.sRef.predicate) ) {
-                            selectedSche = snorm;
-                            break;
-                        }
+                
+                System.out.println(nonMatchedPropertiesA);
+                System.out.println(nonMatchedPropertiesB);
+                nonMatchedPropertiesA.remove(ma.sA.predicate);
+                nonMatchedPropertiesB.remove(ma.sB.predicate);
+                
+                HashSet<ScoredMatch> matchesA = foundA.get(ma.sA.predicate);
+                HashSet<ScoredMatch> matchesB = foundB.get(ma.sB.predicate);
+
+                SchemaNormalizer selectedSche = null;
+                List<SchemaNormalizer> snormLst = scorer.get(ma.sA.predicate + ma.sB.predicate);
+                for (SchemaNormalizer snorm : snormLst) {
+                    if (ma.sB.predicate.equals(snorm.sRef.predicate)) {
+                        selectedSche = snorm;
+                        break;
                     }
+                }
                     //System.out.println("Scoring "+selectedSche.semDist+" "+selectedSche.textDist+" "+selectedSche.typeDist);
-                    //System.out.println("Scoring "+ma.sA.semDist+" "+ma.sA.texDist);
-                    float sim_score = 0;
-                    if ( !ma.sA.predicate.equals(selectedSche.sRef.predicate) ) {
-                    if ( ma.sA.semDist < 0.00000001f )
+                //System.out.println("Scoring "+ma.sA.semDist+" "+ma.sA.texDist);
+                float sim_score = 0;
+                if (!ma.sA.predicate.equals(selectedSche.sRef.predicate)) {
+                    if (ma.sA.semDist < 0.00000001f) {
                         ma.sA.semDist = 1.0f;
-                    if ( ma.sA.texDist < 0.00000001f )
+                    }
+                    if (ma.sA.texDist < 0.00000001f) {
                         ma.sA.texDist = 1.0f;
-                    
-                    sim_score = (float) ( wordWeight * ( ( selectedSche.semDist / ma.sA.semDist ) ) + 
-                                        ( textWeight * ( selectedSche.textDist / ma.sA.texDist ) ) + 
-                                        ( typeWeight * ( selectedSche.typeDist ) ) ) / 3.0f;
-                    
+                    }
+
+                    sim_score = (float) (wordWeight * ((selectedSche.semDist / ma.sA.semDist))
+                            + (textWeight * (selectedSche.textDist / ma.sA.texDist))
+                            + (typeWeight * (selectedSche.typeDist))) / 3.0f;
+
                     //System.out.println("Scoring "+ma.sA.predicate+" "+selectedSche.sRef.predicate+" = "+ sim_score);
-                    } else {
-                        sim_score = 1.0f;
-                    }
-                    ma.score = sim_score;
-                    
-                    schemaPtrsA.put(ma.sA.predicate, ma.sA);
-                    schemaPtrsA.put(ma.sB.predicate, ma.sB);
-                    
-                    if (matchesA == null) {
-                        matchesA = Sets.newHashSet();
-                        foundA.put(ma.sA.predicate, matchesA);
-                    }
-                    if (matchesB == null) {
-                        matchesB = Sets.newHashSet();
-                        foundB.put(ma.sB.predicate, matchesB);
-                    }
-                    
-                    ScoredMatch scoredA = new ScoredMatch(ma.sB.predicate, ma.score);
-                    ScoredMatch scoredB = new ScoredMatch(ma.sA.predicate, ma.score);
-                    
-                    if (!matchesA.contains(scoredA))
-                        matchesA.add(scoredA);
-                    if (!matchesB.contains(scoredA))
-                        matchesB.add(scoredB);
-                    
+                } else {
+                    sim_score = 1.0f;
+                }
+                ma.score = sim_score;
+
+                schemaPtrsA.put(ma.sA.predicate, ma.sA);
+                schemaPtrsA.put(ma.sB.predicate, ma.sB);
+
+                if (matchesA == null) {
+                    matchesA = Sets.newHashSet();
+                    foundA.put(ma.sA.predicate, matchesA);
+                }
+                if (matchesB == null) {
+                    matchesB = Sets.newHashSet();
+                    foundB.put(ma.sB.predicate, matchesB);
+                }
+
+                ScoredMatch scoredA = new ScoredMatch(ma.sB.predicate, ma.score);
+                ScoredMatch scoredB = new ScoredMatch(ma.sA.predicate, ma.score);
+
+                if (!matchesA.contains(scoredA)) {
+                    matchesA.add(scoredA);
+                }
+                if (!matchesB.contains(scoredA)) {
+                    matchesB.add(scoredB);
+                }
+
                 //}
                 //System.out.println("Matched "+ma.sA.predicate+" with "+ ma.sB.predicate + " = "+ma.score);
             }
@@ -1253,165 +1271,171 @@ public final class VirtuosoImporter {
             propertiesB.clear();
             }
         } else {
-        final String dropSamplesGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/links_sample_"+db_c.getDBName()+">";
-        final String createSamplesGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/links_sample_"+db_c.getDBName()+">";
-        final String createLinksSample ="SPARQL INSERT\n"+
-                                  " { GRAPH <http://localhost:8890/DAV/links_sample_"+db_c.getDBName()+"> {\n"+
-                                  " ?s ?p ?o\n"+
-                                  "} }\n"+
-                                  "WHERE\n"+
-                                  "{\n"+
-                                  "{\n"+
-                                  "SELECT ?s ?p ?o WHERE {\n"+
-                                  " GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+"> { ?s ?p ?o }\n"+
-                                  "} limit "+SAMPLE_SIZE+"\n"+
-                                  "}}";
-        
-        PreparedStatement dropSamplesStmt;
-        dropSamplesStmt = virt_conn.prepareStatement(dropSamplesGraph);
-        dropSamplesStmt.execute();
-        
-        PreparedStatement createSamplesStmt;
-        createSamplesStmt = virt_conn.prepareStatement(createSamplesGraph);
-        createSamplesStmt.execute();
-        
-        PreparedStatement insertLinksSample;
-        insertLinksSample = virt_conn.prepareStatement(createLinksSample);
-        insertLinksSample.execute();
-            
-        foundA.clear();
-        foundB.clear();
-        //for (int i = optDepth; i >= 0; i--) {
-        for (int i = 0; i < optDepth+1; i++) {
-            //System.out.println("DEPTH: "+i);
-            StringBuilder query = new StringBuilder();
-            query.append("sparql SELECT distinct(?s) ?pa1 ?oa1 ");
-            for(int j = 0; j < i; j++) {
-                int ind = j+2;
-                int prev = ind - 1;
-                query.append("?pa").append(ind).append(" ?oa").append(ind).append(" ");
-            }
-            query.append("?pb1 ?ob1 ");
-            for(int j = 0; j < i; j++) {
-                int ind = j+2;
-                query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
-            }
-            query.append(" WHERE \n {\n");
-            query.append("SELECT ?s ?pa1 ?oa1 ");
-            for(int j = 0; j < i; j++) {
-                int ind = j+2;
-                int prev = ind - 1;
-                query.append("?pa").append(ind).append(" ?oa").append(ind).append(" ");
-            }
-            query.append("?pb1 ?ob1 ");
-            for(int j = 0; j < i; j++) {
-                int ind = j+2;
-                int prev = ind - 1;
-                query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
-            }
-            if (gr_c.isDominantA())
-                query.append("\nWHERE\n{\n  GRAPH <http://localhost:8890/DAV/links_sample_"+db_c.getDBName()+"> { ?s ?p ?o }\n"); 
-            else
-                query.append("\nWHERE\n{\n  GRAPH <http://localhost:8890/DAV/links_sample_"+db_c.getDBName()+"> { ?o ?p ?s }\n"); 
-            query.append(" { GRAPH <").append(targetGraph).append("_"+db_c.getDBName()+"A> { {?s ?pa1 ?oa1} ");
-            for(int j = 0; j < i; j++) {
-                int ind = j+2;
-                int prev = ind - 1;
-                query.append(" . OPTIONAL {?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append(" } ");
-            }
-            query.append("}\n } UNION { \n" + "   GRAPH <").append(targetGraph).append("_"+db_c.getDBName()+"B> { {?s ?pb1 ?ob1} ");
-            for(int j = 0; j < i; j++) {
-                int ind = j+2;
-                int prev = ind - 1;
-                query.append(" . OPTIONAL {?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append(" } ");
-            }
-            query.append("} }\n"
-                    + "}\n"
-                    + "} ORDER BY (?s)");
-            
+            final String dropSamplesGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + ">";
+            final String createSamplesGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + ">";
+            final String createLinksSample = "SPARQL INSERT\n"
+                    + " { GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + "> {\n"
+                    + " ?s ?p ?o\n"
+                    + "} }\n"
+                    + "WHERE\n"
+                    + "{\n"
+                    + "{\n"
+                    + "SELECT ?s ?p ?o WHERE {\n"
+                    + " GRAPH <http://localhost:8890/DAV/links_" + db_c.getDBName() + "> { ?s ?p ?o }\n"
+                    + "} limit " + SAMPLE_SIZE + "\n"
+                    + "}}";
+
+            PreparedStatement dropSamplesStmt;
+            dropSamplesStmt = virt_conn.prepareStatement(dropSamplesGraph);
+            dropSamplesStmt.execute();
+
+            PreparedStatement createSamplesStmt;
+            createSamplesStmt = virt_conn.prepareStatement(createSamplesGraph);
+            createSamplesStmt.execute();
+
+            PreparedStatement insertLinksSample;
+            insertLinksSample = virt_conn.prepareStatement(createLinksSample);
+            insertLinksSample.execute();
+
+            foundA.clear();
+            foundB.clear();
+            //for (int i = optDepth; i >= 0; i--) {
+            for (int i = 0; i < optDepth + 1; i++) {
+                //System.out.println("DEPTH: "+i);
+                StringBuilder query = new StringBuilder();
+                query.append("sparql SELECT distinct(?s) ?pa1 ?oa1 ");
+                for (int j = 0; j < i; j++) {
+                    int ind = j + 2;
+                    int prev = ind - 1;
+                    query.append("?pa").append(ind).append(" ?oa").append(ind).append(" ");
+                }
+                query.append("?pb1 ?ob1 ");
+                for (int j = 0; j < i; j++) {
+                    int ind = j + 2;
+                    query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
+                }
+                query.append(" WHERE \n {\n");
+                query.append("SELECT ?s ?pa1 ?oa1 ");
+                for (int j = 0; j < i; j++) {
+                    int ind = j + 2;
+                    int prev = ind - 1;
+                    query.append("?pa").append(ind).append(" ?oa").append(ind).append(" ");
+                }
+                query.append("?pb1 ?ob1 ");
+                for (int j = 0; j < i; j++) {
+                    int ind = j + 2;
+                    int prev = ind - 1;
+                    query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
+                }
+                if (gr_c.isDominantA()) {
+                    query.append("\nWHERE\n{\n  GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + "> { ?s ?p ?o }\n");
+                } else {
+                    query.append("\nWHERE\n{\n  GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + "> { ?o ?p ?s }\n");
+                }
+                query.append(" { GRAPH <").append(targetGraph).append("_" + db_c.getDBName() + "A> { {?s ?pa1 ?oa1} ");
+                for (int j = 0; j < i; j++) {
+                    int ind = j + 2;
+                    int prev = ind - 1;
+                    query.append(" . OPTIONAL {?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append(" } ");
+                }
+                query.append("}\n } UNION { \n" + "   GRAPH <").append(targetGraph).append("_" + db_c.getDBName() + "B> { {?s ?pb1 ?ob1} ");
+                for (int j = 0; j < i; j++) {
+                    int ind = j + 2;
+                    int prev = ind - 1;
+                    query.append(" . OPTIONAL {?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append(" } ");
+                }
+                query.append("} }\n"
+                        + "}\n"
+                        + "} ORDER BY (?s)");
+
             //System.out.println(query.toString());
-            
-            PreparedStatement fetchProperties;
-            fetchProperties = virt_conn.prepareStatement(query.toString());
-            ResultSet propertiesRS = fetchProperties.executeQuery();
-            
-            String prevSubject = "";
-            while(propertiesRS.next()) {
-                final String subject = propertiesRS.getString(1);
-                //propertiesRS.
-                if (!prevSubject.equals(subject) && !prevSubject.equals("")) {
-                    //if (i == optDepth) {
+                PreparedStatement fetchProperties;
+                fetchProperties = virt_conn.prepareStatement(query.toString());
+                ResultSet propertiesRS = fetchProperties.executeQuery();
+
+                String prevSubject = "";
+                while (propertiesRS.next()) {
+                    final String subject = propertiesRS.getString(1);
+                    //propertiesRS.
+                    if (!prevSubject.equals(subject) && !prevSubject.equals("")) {
+                        //if (i == optDepth) {
                         //System.out.println(subject);
                         scanMatches();
                         propertiesA.clear();
                         propertiesB.clear();
-                    //}
-                }               
-                //System.out.println(subject);
-                List <String> chainA = new ArrayList<>();
-                List <String> chainB = new ArrayList<>();
-                List <String> objectChainA = new ArrayList<>();
-                List <String> objectChainB = new ArrayList<>();
-                for(int j = 0; j <= i; j++) {
+                        //}
+                    }
+                    //System.out.println(subject);
+                    List<String> chainA = new ArrayList<>();
+                    List<String> chainB = new ArrayList<>();
+                    List<String> objectChainA = new ArrayList<>();
+                    List<String> objectChainB = new ArrayList<>();
+                    for (int j = 0; j <= i; j++) {
                     //int ind = j+2;
-                    //int prev = ind - 1;
-                    int step_over = 2*(i+1);
-                    
-                    String predicateA = propertiesRS.getString(2*(j+1));
-                    String objectA = propertiesRS.getString(2*(j+1)+1);
-                    String predicateB = propertiesRS.getString(2*(j+1)+step_over);
-                    String objectB = propertiesRS.getString(2*(j+1)+1+step_over);
-                    /*if (objectA != null) {
-                        System.out.println("Object A "+objectA+" "+patternInt.asPredicate().test(objectA));
-                    }
-                    if (objectB != null) {
-                        System.out.println("Object B "+objectB+" "+patternInt.asPredicate().test(objectB));
-                    }*/
-                    
-                    if (predicateA != null) {
-                        predicateA = URLDecoder.decode(predicateA, "UTF-8");
-                    }
-                    if (predicateB != null) {
-                        predicateB = URLDecoder.decode(predicateB, "UTF-8");
-                    }
-                    
-                    if (predicateA != null) {
-                        if ( !uniquePropertiesA.contains(predicateA) ) {
-                            uniquePropertiesA.add(predicateA);
+                        //int prev = ind - 1;
+                        int step_over = 2 * (i + 1);
+
+                        String predicateA = propertiesRS.getString(2 * (j + 1));
+                        String objectA = propertiesRS.getString(2 * (j + 1) + 1);
+                        String predicateB = propertiesRS.getString(2 * (j + 1) + step_over);
+                        String objectB = propertiesRS.getString(2 * (j + 1) + 1 + step_over);
+                        /*if (objectA != null) {
+                         System.out.println("Object A "+objectA+" "+patternInt.asPredicate().test(objectA));
+                         }
+                         if (objectB != null) {
+                         System.out.println("Object B "+objectB+" "+patternInt.asPredicate().test(objectB));
+                         }*/
+
+                        if (predicateA != null) {
+                            predicateA = URLDecoder.decode(predicateA, "UTF-8");
                         }
-                        if ( predicateA.contains("posSeq") ) {
-                            continue;
+                        if (predicateB != null) {
+                            predicateB = URLDecoder.decode(predicateB, "UTF-8");
                         }
-                    }
-                    if (predicateB != null) {
-                        if ( !uniquePropertiesB.contains(predicateB) ) {
-                            uniquePropertiesB.add(predicateB);
+
+                        if (predicateA != null) {
+                            if (!nonMatchedPropertiesA.contains(predicateA)) {
+                                nonMatchedPropertiesA.add(predicateA);
+                            }
+                            if (!uniquePropertiesA.contains(predicateA)) {
+                                uniquePropertiesA.add(predicateA);
+                            }
+                            if (predicateA.contains("posSeq")) {
+                                continue;
+                            }
                         }
-                        if ( predicateB.contains("posSeq") ) {
-                            continue;
+                        if (predicateB != null) {
+                            if (!nonMatchedPropertiesB.contains(predicateB)) {
+                                nonMatchedPropertiesB.add(predicateB);
+                            }
+                            if (!uniquePropertiesB.contains(predicateB)) {
+                                uniquePropertiesB.add(predicateB);
+                            }
+                            if (predicateB.contains("posSeq")) {
+                                continue;
+                            }
                         }
-                    }
-                    
-                    chainA.add(predicateA);
-                    objectChainA.add(objectA);
-                    chainB.add(predicateB);
-                    objectChainB.add(objectB);
-            
+
+                        chainA.add(predicateA);
+                        objectChainA.add(objectA);
+                        chainB.add(predicateB);
+                        objectChainB.add(objectB);
+
                     //System.out.println(" "+predicateA+" "+objectA);
-                    //System.out.println(" "+predicateB+" "+objectB);
+                        //System.out.println(" "+predicateB+" "+objectB);
+                    }
+                    scanChain(propertiesA, chainA, objectChainA);
+                    scanChain(propertiesB, chainB, objectChainB);
+
+                    prevSubject = subject;
                 }
-                scanChain(propertiesA, chainA, objectChainA);
-                scanChain(propertiesB, chainB, objectChainB);
-                                
-                prevSubject = subject;
+
+                scanMatches();
+                propertiesA.clear();
+                propertiesB.clear();
+
+                //System.out.println(query2.toString());
             }
-            
-            scanMatches();
-            propertiesA.clear();
-            propertiesB.clear();
-                        
-            //System.out.println(query2.toString());
-        }
         }
         StringBuilder sb = new StringBuilder();
         Iterator it = propertiesA.entrySet().iterator();
@@ -1510,7 +1534,7 @@ public final class VirtuosoImporter {
                 //}
             }
         
-        return new SchemaMatchState(foundA, foundB, domOntologyA, domOntologyB);
+        return new SchemaMatchState(foundA, foundB, domOntologyA, domOntologyB, uniquePropertiesA, uniquePropertiesB);
     }
     
     private class Namespace {
@@ -1870,6 +1894,34 @@ public final class VirtuosoImporter {
         createStmt = virt_conn.prepareStatement(createGraph);
         createStmt.execute();
         
+        //BulkInsertLinksBatch(lst, nextIndex);
+        SPARQLInsertLinksBatch(lst, nextIndex);
+    }
+    
+    public void createLinksGraph(List<Link> lst) throws SQLException, IOException {
+        final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
+        final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
+        final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
+        
+        PreparedStatement endStmt;
+        endStmt = virt_conn.prepareStatement(endDesc);
+        //endStmt.execute();
+        
+        PreparedStatement dropStmt;
+        long starttime, endtime;
+        dropStmt = virt_conn.prepareStatement(dropGraph);
+        dropStmt.execute();
+        
+        PreparedStatement createStmt;
+        createStmt = virt_conn.prepareStatement(createGraph);
+        createStmt.execute();
+        
+        //BulkInsertLinks(lst);
+        SPARQLInsertLinks(lst);
+    }
+    
+    private void BulkInsertLinksBatch(List<Link> lst, int nextIndex) throws SQLException, IOException {  
+        long starttime, endtime;
         set2 = getVirtuosoSet("http://localhost:8890/DAV/links_"+db_c.getDBName()+"", db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
         BulkUpdateHandler buh2 = set2.getBulkUpdateHandler();
         LOG.info(ANSI_YELLOW+"Loaded "+lst.size()+" links"+ANSI_RESET);
@@ -1913,28 +1965,150 @@ public final class VirtuosoImporter {
         endtime =  System.nanoTime();
         LOG.info(ANSI_YELLOW+"Links Graph created in "+((endtime-starttime)/1000000000f)+""+ANSI_RESET);
     }
+        
+    private void SPARQLInsertLinksBatch(List<Link> l, int nextIndex) {
+        boolean updating = true;
+        int addIdx = nextIndex;
+        int cSize = 1;
+        int sizeUp = 1;
+        while (updating) {
+            try {
+                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                //queryStr.append("WITH <"+fusedGraph+"> ");
+                queryStr.append("INSERT DATA { ");
+                queryStr.append("GRAPH <http://localhost:8890/DAV/links_" + db_c.getDBName() + "> { ");
+                int top = 0;
+                if (cSize >= l.size()) {
+                    top = l.size();
+                } else {
+                    top = cSize;
+                }
+                for (int i = addIdx; i < top; i++) {
+                    final String subject = l.get(i).getNodeA();
+                    final String subjectB = l.get(i).getNodeB();
+                    queryStr.appendIri(subject);
+                    queryStr.append(" ");
+                    queryStr.appendIri(SAME_AS);
+                    queryStr.append(" ");
+                    queryStr.appendIri(subjectB);
+                    queryStr.append(" ");
+                    queryStr.append(".");
+                    queryStr.append(" ");
+                }
+                queryStr.append("} }");
+                System.out.println("Print "+queryStr.toString());
+
+                UpdateRequest q = queryStr.asUpdate();
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, endpointT, authenticator);
+                insertRemoteB.execute();
+                //System.out.println("Add at "+addIdx+" Size "+cSize);
+                addIdx += (cSize - addIdx);
+                sizeUp *= 2;
+                cSize += sizeUp;
+                if (cSize >= l.size()) {
+                    cSize = l.size();
+                }
+                if (cSize == addIdx) {
+                    updating = false;
+                }
+            } catch (org.apache.jena.atlas.web.HttpException ex) {
+                System.out.println("Failed at " + addIdx + " Size " + cSize);
+                System.out.println("Crazy Stuff");
+                System.out.println(ex.getLocalizedMessage());
+                ex.printStackTrace();
+                ex.printStackTrace(System.out);
+                sizeUp = 1;
+                cSize = addIdx;
+                cSize += sizeUp;
+                if (cSize >= l.size()) {
+                    cSize = l.size();
+                }
+                    //System.out.println("Going back at "+addIdx+" Size "+cSize);
+
+                break;
+                //System.out.println("Going back at "+addIdx+" Size "+cSize);
+            } catch (Exception ex) {
+                System.out.println(ex.getLocalizedMessage());
+                break;
+            }
+        }
+    }
     
-    public void createLinksGraph(List<Link> lst) throws SQLException, IOException {
-        final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
-        final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
-        final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
-        
-        PreparedStatement endStmt;
-        endStmt = virt_conn.prepareStatement(endDesc);
-        //endStmt.execute();
-        
-        PreparedStatement dropStmt;
-        long starttime, endtime;
-        dropStmt = virt_conn.prepareStatement(dropGraph);
-        dropStmt.execute();
-        
-        PreparedStatement createStmt;
-        createStmt = virt_conn.prepareStatement(createGraph);
-        createStmt.execute();
-        
+    private void SPARQLInsertLinks(List<Link> l) {
+        boolean updating = true;
+        int addIdx = 0;
+        int cSize = 1;
+        int sizeUp = 1;
+        while (updating) {
+            try {
+                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                //queryStr.append("WITH <"+fusedGraph+"> ");
+                queryStr.append("INSERT DATA { ");
+                queryStr.append("GRAPH <http://localhost:8890/DAV/all_links_" + db_c.getDBName() + "> { ");
+                int top = 0;
+                if (cSize >= l.size()) {
+                    top = l.size();
+                } else {
+                    top = cSize;
+                }
+                for (int i = addIdx; i < top; i++) {
+                    final String subject = l.get(i).getNodeA();
+                    final String subjectB = l.get(i).getNodeB();
+                    queryStr.appendIri(subject);
+                    queryStr.append(" ");
+                    queryStr.appendIri(SAME_AS);
+                    queryStr.append(" ");
+                    queryStr.appendIri(subjectB);
+                    queryStr.append(" ");
+                    queryStr.append(".");
+                    queryStr.append(" ");
+                }
+                queryStr.append("} }");
+                    //System.out.println("Print "+queryStr.toString());
+
+                UpdateRequest q = queryStr.asUpdate();
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, endpointT, authenticator);
+                insertRemoteB.execute();
+                //System.out.println("Add at "+addIdx+" Size "+cSize);
+                addIdx += (cSize - addIdx);
+                sizeUp *= 2;
+                cSize += sizeUp;
+                if (cSize >= l.size()) {
+                    cSize = l.size();
+                }
+                if (cSize == addIdx) {
+                    updating = false;
+                }
+            } catch (org.apache.jena.atlas.web.HttpException ex) {
+                System.out.println("Failed at " + addIdx + " Size " + cSize);
+                System.out.println("Crazy Stuff");
+                System.out.println(ex.getLocalizedMessage());
+                ex.printStackTrace();
+                ex.printStackTrace(System.out);
+                sizeUp = 1;
+                cSize = addIdx;
+                cSize += sizeUp;
+                if (cSize >= l.size()) {
+                    cSize = l.size();
+                }
+                    //System.out.println("Going back at "+addIdx+" Size "+cSize);
+
+                break;
+                //System.out.println("Going back at "+addIdx+" Size "+cSize);
+            } catch (Exception ex) {
+                System.out.println(ex.getLocalizedMessage());
+                break;
+            }
+        }
+    }
+    
+    private void BulkInsertLinks(List<Link> lst) throws SQLException, IOException {  
         set2 = getVirtuosoSet("http://localhost:8890/DAV/all_links_"+db_c.getDBName(), db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
         BulkUpdateHandler buh2 = set2.getBulkUpdateHandler();
         LOG.info(ANSI_YELLOW+"Loaded "+lst.size()+" links"+ANSI_RESET);
+        long starttime, endtime;
         
         starttime = System.nanoTime();
         File f = new File(bulkInsertDir+"bulk_inserts/selected_links.nt");
@@ -1969,8 +2143,8 @@ public final class VirtuosoImporter {
         virt_conn.commit();
         //endtime =  System.nanoTime();
         LOG.info(ANSI_YELLOW+"Links Graph created in "+((endtime-starttime)/1000000000f)+""+ANSI_RESET);
-    }
     
+    }
     
     private void createDelWGSGraph(List<String> lst) throws SQLException, IOException {
         final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/del_wgs>";

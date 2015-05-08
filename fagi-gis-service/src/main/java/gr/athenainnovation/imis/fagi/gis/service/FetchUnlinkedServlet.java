@@ -68,6 +68,7 @@ public class FetchUnlinkedServlet extends HttpServlet {
         }
         
     }
+    
     private class JSONUnlinkedEntities {
         List<JSONUnlinkedEntity> entitiesA;
         List<JSONUnlinkedEntity> entitiesB;

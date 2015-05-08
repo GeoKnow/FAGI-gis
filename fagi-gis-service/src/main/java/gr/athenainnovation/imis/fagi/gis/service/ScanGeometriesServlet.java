@@ -19,6 +19,7 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.shared.JenaException;
+import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import java.io.IOException;
@@ -58,11 +59,18 @@ public class ScanGeometriesServlet extends HttpServlet {
     private static final String LONG_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#long";
     private static final String LAT_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#lat";
     
+    JSONFusedGeometries ret = null;
+    GraphConfig grConf = null;
+    
     private class JSONFusedGeometries {
         List<JSONFusedGeometry> geoms;
-
+        String message;
+        int statusCode;
+        
         public JSONFusedGeometries() {
             geoms = new ArrayList<>();
+            statusCode = -1;
+            message = "";
         }
 
         public List<JSONFusedGeometry> getGeoms() {
@@ -73,11 +81,32 @@ public class ScanGeometriesServlet extends HttpServlet {
             this.geoms = geoms;
         }
 
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public int getStatusCode() {
+            return statusCode;
+        }
+
+        public void setStatusCode(int statusCode) {
+            this.statusCode = statusCode;
+        }
+
     }
     
     private class JSONFusedGeometry {
         String geom;
         String subject;
+
+        public JSONFusedGeometry(String geom, String subject) {
+            this.geom = geom;
+            this.subject = subject;
+        }
 
         public JSONFusedGeometry() {
         }
@@ -115,84 +144,49 @@ public class ScanGeometriesServlet extends HttpServlet {
         try (PrintWriter out = response.getWriter()) {
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
-            mapper.setDateFormat(outputFormat);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            JSONFusedGeometries fused = new JSONFusedGeometries();
             
             HttpSession sess = request.getSession(true);
-            String tGraph = (String)sess.getAttribute("t_graph");
-            String geoQ = "SPARQL SELECT  ?os ?g\n" +
-                          "WHERE\n" +
-                          "  { GRAPH <"+tGraph+">  { ?os ?p1 ?b . ?b ?p2 ?g\n" +
-                          "        \n" +
-                          "      }\n" +
-                          "  }";
-            System.out.println("Geom Q "+geoQ);
+            grConf = (GraphConfig)sess.getAttribute("gr_conf");
             
-            DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
-            VirtGraph vSet = null;
-            try {    
-                vSet = new VirtGraph ("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
-                                         dbConf.getUsername(), 
-                                         dbConf.getPassword());
-            } catch (JenaException connEx) {
-                System.out.println(connEx.getMessage());      
-                out.println("Connection to virtuoso failed");
-                out.close();
+            ret = new JSONFusedGeometries();
             
-                return;
-            }
-            //System.out.println("Get SPARQL prefix "+vSet..getSparqlPrefix());
-            /*
-           VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create (geoQ, vSet);
+            final String restriction = "?s ?p1 _:a . _:a <"+AS_WKT_REGEX+"> ?g";
+        final String geoQuery = "SELECT ?s ?g WHERE { " + restriction + " }";
+
+        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+        //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
+        QueryEngineHTTP qeh = new QueryEngineHTTP(grConf.getEndpointT(), geoQuery, authenticator);
+        qeh.addDefaultGraph((String)sess.getAttribute("t_graph"));
+        QueryExecution queryExecution = qeh;
+        final com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
         
-                com.hp.hpl.jena.query.ResultSet results = vqe.execSelect();
-                System.out.println("CALLED "+results.hasNext());
-    for ( ; results.hasNext() ; )
-    {
-      QuerySolution soln = results.nextSolution() ;
-      RDFNode x = soln.get("count(?os)") ;       // Get a result variable by name.
-      System.out.println(x.asNode().toString());
-    }
-  */
-                /*Query query = QueryFactory.create(geoQ);
-                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                QueryExecution queryExecution = QueryExecutionFactory.sparqlService("http://localhost:8890/sparql", query, authenticator);
-                com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
-                long startTime =  System.nanoTime();
-                System.out.println("Geometry "+resultSet.hasNext());
-                //while(resultSet.hasNext()) {
-                //    System.out.println("kati einai kai auto");
-                //}
-                query = QueryFactory.create(geoQ);
-                authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                queryExecution = QueryExecutionFactory.create(query, ModelFactory.createModelForGraph(vSet));
-                resultSet = queryExecution.execSelect();
-                System.out.println("Geometry "+resultSet.hasNext());*/
-            Connection virt_conn = vSet.getConnection();
-            PreparedStatement fetchFusedGeoms;
-            fetchFusedGeoms = virt_conn.prepareStatement(geoQ.toString());
-            ResultSet rs = fetchFusedGeoms.executeQuery();
-            //System.out.println("CALLED "+rs.());
-            while ( rs.next() ) {
-                JSONFusedGeometry geom = new JSONFusedGeometry();
-                String g = rs.getString(2);
-                String s = rs.getString(1);
-                String truncG = StringUtils.substringBefore(g, "))");
-                truncG = truncG.concat("))");
-                geom.setGeom(truncG);
-                geom.setSubject(s);
-                
-                System.out.println("Geometry "+g);
-                fused.geoms.add(geom);
+        //geomColl.append("GEOMETRYCOLLECTION(");
+        while(resultSet.hasNext()) {
+            final QuerySolution querySolution = resultSet.next();
+            //final String predicate = querySolution.getResource("?p").getURI();
+            RDFNode s, p1, g, p2;
+            s = querySolution.get("?s");
+            g = querySolution.get("?g");
+            
+            String geo = g.asLiteral().getString();
+            int ind = geo.indexOf("^^");
+            if ( ind > 0 ) {
+                geo = geo.substring(0, ind);
             }
-            /* TODO output your page here. You may use following sample code. */
-            System.out.println(mapper.writeValueAsString(fused));
-            out.println(mapper.writeValueAsString(fused));
-        } catch (SQLException ex) {
-            Logger.getLogger(ScanGeometriesServlet.class.getName()).log(Level.SEVERE, null, ex);
+            String sub = s.toString();
+            ret.geoms.add(new JSONFusedGeometry(geo, sub));
+        }
+        
+            if (ret.geoms.size() > 0) {
+                ret.setMessage("Datasets accepted!(Found fused geometries)");
+                ret.setStatusCode(0);
+            } else {
+                ret.setMessage("Datasets accepted!(Found NO fused geometries)");
+                ret.setStatusCode(1);
+            }
+        
+            System.out.println(mapper.writeValueAsString(ret));
+            out.println(mapper.writeValueAsString(ret));
         }
     }
 

@@ -126,10 +126,10 @@ public class FuseVisibleServlet extends HttpServlet {
         DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
         
         try (PrintWriter out = response.getWriter()) {
-            System.out.println(request.getParameter("top"));
-            System.out.println(request.getParameter("right"));
-            System.out.println(request.getParameter("bottom"));
-            System.out.println(request.getParameter("left"));
+            //System.out.println(request.getParameter("top"));
+            //System.out.println(request.getParameter("right"));
+            //System.out.println(request.getParameter("bottom"));
+            //System.out.println(request.getParameter("left"));
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
             mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
@@ -157,7 +157,7 @@ public class FuseVisibleServlet extends HttpServlet {
                                     "		ST_X(dataset_a_geometries.geom) AS a_x, ST_Y(dataset_a_geometries.geom) AS a_y,\n" +
                                     "		ST_X(ST_Centroid(dataset_b_geometries.geom)) AS b_x, ST_Y(ST_Centroid(dataset_b_geometries.geom)) AS b_y\n" +
                                     "		FROM dataset_a_geometries, dataset_b_geometries) AS geoms ON(links.nodea = geoms.a_s AND links.nodeb = geoms.b_s)";
-            
+            System.out.println(selectVisible);
             try {
                 String url = DB_URL.concat(dbConf.getDBName());
                 dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());

@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Nick Vitsas <nickvitsas@imis.athena-innovation.gr>
 Build-Depends: debhelper (>= 8), default-jdk, javahelper (>= 0.40ubuntu1.1) 
 Standards-Version: 3.9.2
-Homepage: <homepage>
+Homepage: https://github.com/GeoKnow/FAGI-gis
 Distribution: ldstack-nightly
 Package: fagi-gis
 Version: 1.1+rev239

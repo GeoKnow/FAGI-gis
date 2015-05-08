@@ -1,6 +1,8 @@
 
 package gr.athenainnovation.imis.fagi.gis.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.hp.hpl.jena.shared.JenaException;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState;
@@ -14,6 +16,7 @@ import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,7 +35,41 @@ import virtuoso.jena.driver.VirtGraph;
 
 @WebServlet(name = "ConnectionServlet", urlPatterns = {"/ConnectionServlet"})
 public class ConnectionServlet extends HttpServlet {
+    
+    private JSONConnRequest ret = null;      
+    
+    private class JSONConnRequest {
+        // -1 error 0 success
+        int statusCode;
+        String message;
 
+        public JSONConnRequest() {
+            this.statusCode = -1;
+            this.message = "general error";
+        }
+
+        public JSONConnRequest(int statusCode, String message) {
+            this.statusCode = statusCode;
+            this.message = message;
+        }
+
+        public int getStatusCode() {
+            return statusCode;
+        }
+
+        public void setStatusCode(int statusCode) {
+            this.statusCode = statusCode;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+        
+    }
     private static final String DB_URL = "jdbc:postgresql:";
     
     /**
@@ -51,6 +88,9 @@ public class ConnectionServlet extends HttpServlet {
     FusionState st = new FusionState();
     DBConfig dbConf = new DBConfig("", "", "", "", "", "", "");
     Connection dbConn = null;
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+    ret = new JSONConnRequest();
     
     try {
         response.setContentType("text/html;charset=UTF-8");
@@ -78,8 +118,10 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
                                          request.getParameter("v_pass"));
         } catch (JenaException connEx) {
             vSet = null;
+            ret.setMessage("Connection to Virtuoso failed!");
+            ret.setStatusCode(-1);
             //System.out.println(connEx.getMessage());      
-            out.println("Connection to virtuoso failed");
+            out.println(mapper.writeValueAsString(ret));
             out.close();
             
             return;
@@ -92,8 +134,11 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
          try{
             Class.forName("org.postgresql.Driver");     
         } catch (ClassNotFoundException ex) {
-            System.out.println(ex.getMessage());      
-            out.println("Class of postgis failed");
+            System.out.println(ex.getMessage());    
+            ret.setMessage("Could not load Postgis JDBC Driver!");
+            ret.setStatusCode(-1);
+            //System.out.println(connEx.getMessage());      
+            out.println(mapper.writeValueAsString(ret));
             out.close();
             
             return;
@@ -107,13 +152,19 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
             //dbConn.setAutoCommit(false);
         } catch(SQLException sqlex) {
             System.out.println(sqlex.getMessage());      
-            out.println("Connection to postgis failed");
+            ret.setMessage("Connection to Postgis failed!");
+            ret.setStatusCode(-1);
+            //System.out.println(connEx.getMessage());      
+            out.println(mapper.writeValueAsString(ret));
             out.close();
             
             return;
         }
         
-        out.println("Virtuoso and PostGIS connection established");
+        ret.setMessage("Virtuoso and PostGIS connection established!");
+        ret.setStatusCode(0);
+            
+        out.println(mapper.writeValueAsString(ret));
         
         //System.out.println(request.getParameter("v_url")+" "+request.getParameter("v_pass")+" "+request.getParameter("v_name"));
         HttpSession sess = request.getSession(true);

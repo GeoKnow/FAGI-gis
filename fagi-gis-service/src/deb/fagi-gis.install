@@ -1,1 +1,1 @@
-fagi-gis.jar usr/share/fagi-gis
+fagi-gis-service.war /var/lib/tomcat7/webapps

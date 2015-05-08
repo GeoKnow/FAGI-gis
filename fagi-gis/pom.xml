@@ -16,6 +16,25 @@
 
     <dependencies>
         <dependency>
+            <groupId>nz.ac.waikato.cms.weka</groupId>
+            <artifactId>weka-dev</artifactId>
+            <version>3.7.12</version>
+        </dependency>
+        
+        <!--
+        <dependency>
+            <groupId>nz.ac.waikato.cms.weka</groupId>
+            <artifactId>weka-stable</artifactId>
+            <version>3.6.12</version>
+        </dependency>
+        -->
+        
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.16</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.10</version>
@@ -35,11 +54,6 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.3.2</version>
-        </dependency>
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.16</version>
         </dependency>
         <dependency>
             <groupId>org.apache.jena</groupId>
@@ -87,13 +101,16 @@
             <goal>jdeb</goal>
           </goals>
           <configuration>
-              <!--<key>68269074</key>
-              <signPackage>true</signPackage>-->
+              <key>68269074</key>
+              <!--<signPackage>true</signPackage>-->
               <passphrase>geofagi</passphrase>
 <!-- expand "SNAPSHOT" to what is in the "USER" env variable -->
             <verbose>true</verbose>
+            <changesIn>${basedir}/CHANGES.txt</changesIn>
+            <!--<changesOut>${basedir}/changelog</changesOut>-->
             <controlDir>${basedir}/src/deb/control</controlDir>
                 <dataSet>
+                    <!--
                     <data>
                         <src>${project.build.directory}/classes</src>
                         <type>directory</type>
@@ -103,13 +120,14 @@
                             <prefix>/usr/share/FAGI</prefix>
                         </mapper>
                     </data>
+                    -->
                     <data>
                         <src>${project.build.directory}/lib</src>
                         <type>directory</type>
                         <excludes>**/.svn,**/.svn/**,**/.git,**/.git/**</excludes>
                         <mapper>
                             <type>perm</type>
-                            <prefix>/usr/lib/FAGI</prefix>
+                            <prefix>/usr/share/fagi-gis</prefix>
                         </mapper>
                     </data>
                     <data>
@@ -117,9 +135,35 @@
                         <type>file</type>
                         <mapper>
                             <type>perm</type>
+                            <prefix>/usr/share/fagi-gis</prefix>
+                        </mapper>
+                    </data>
+                    <data>
+                        <src>${project.basedir}/changelog.gz</src>
+                        <type>file</type>
+                        <mapper>
+                            <type>perm</type>
+                            <prefix>/usr/share/doc/fagi-gis</prefix>
+                        </mapper>
+                    </data>
+                     <data>
+                        <src>${project.basedir}/copyright</src>
+                        <type>file</type>
+                        <mapper>
+                            <type>perm</type>
+                            <prefix>/usr/share/doc/fagi-gis</prefix>
+                        </mapper>
+                    </data>
+                    <data>
+                        <src>${project.basedir}/fagi-gis</src>
+                        <type>file</type>
+                        <mapper>
+                            <filemode>755</filemode>
+                            <type>perm</type>
                             <prefix>/usr/bin</prefix>
                         </mapper>
                     </data>
+                    <!--
                     <data>
                         <src>${project.basedir}/src/fagi-gis</src>
                         <type>file</type>
@@ -129,15 +173,18 @@
                             <prefix>/usr/bin</prefix>
                         </mapper>
                     </data>
+                    -->
+                    <!--
                     <data>
                         <src>${basedir}/src/deb/usr</src>
                         <type>directory</type>
                         <excludes>**/.svn,**/.svn/**,**/.git,**/.git/**</excludes>
                         <mapper>
                             <type>perm</type>
-                            <prefix>/usr/share/FAGI</prefix>
+                            <prefix>/usr/share/fagi-gis</prefix>
                         </mapper>
                     </data>
+                    -->
             </dataSet>
         </configuration>
         </execution>
@@ -166,6 +213,7 @@
                     <archive>
                         <index>true</index>
                         <manifest>
+                            <!--<classpathPrefix>/usr/share/fagi-gis/</classpathPrefix>-->
                             <classpathPrefix>lib/</classpathPrefix>
                             <addClasspath>true</addClasspath>
                             <mainClass>gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI</mainClass>
