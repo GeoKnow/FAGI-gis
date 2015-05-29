@@ -9,6 +9,10 @@ ___
     2. _Mac OS X_ requires a custom build of Wordnet which requires an existing X11 installation.
     3. _Windows_ support an older version of Wordnet which can be downloaded from [here](https://wordnet.princeton.edu/wordnet/download/) 
   * FAGI-gis requires an existing installation of Apache Tomcat 7 for the web interface.
+  * Install PostgreSQL with postgis extension:
+    1. _Linux_ `sudo apt-get install postgresql-9.3-postgis-2.1 -f`.
+    2. _Windows_: download PostgreSQL from [here](http://www.enterprisedb.com/products-services-training/pgdownload#windows) and install it along with the postgis extension.
+   
 
 ##Building Instructions
 
