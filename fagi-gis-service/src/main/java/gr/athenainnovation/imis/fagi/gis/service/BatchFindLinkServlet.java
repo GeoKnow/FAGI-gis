@@ -819,7 +819,14 @@ public class BatchFindLinkServlet extends HttpServlet {
                 geoms.remove(k);
             }
             
-             
+            for (Map.Entry<String, Geometry> entry : geomsB.entrySet()) {
+                String key = entry.getKey();
+                Geometry val = entry.getValue();
+                geoms.put(
+                        key,
+                        val.toText()
+                );
+            } 
             for (Map.Entry<String, Geometry> entry : geomsRef.entrySet()) {
                 String key = entry.getKey();
                 Geometry val = entry.getValue();
