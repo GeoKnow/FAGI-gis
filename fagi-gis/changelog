@@ -1,0 +1,22 @@
+Format: 1.8
+Date: Tue, 21 Apr 2015 08:53:28 +0300
+Source: fagi-gis
+Binary: fagi-gis
+Architecture: all
+Version: 1.1+rev239
+Distribution: ldstack-nightly
+Urgency: low
+Maintainer: Nick Vitsas <nickvitsas@imis.athena-innovation.gr>
+Changed-By: Nick Vitsas <nickvitsas@imis.athena-innovation.gr>
+Description:
+ fagi-gis - GeoData fusion
+Changes:
+ fagi-gis (1.1+rev239) ldstack-nightly; urgency=low
+ .
+   * Updated Interface
+Checksums-Sha1:
+ 1c02bc1b6f140fd609e25dfc5c819cd87bed16cc 21553260 fagi-gis_1.1+rev239_all.deb
+Checksums-Sha256:
+ 8f44d40bae519b58ee35e72904fb42747f3b7f8aaec92e8cd5c500e4290c86fd 21553260 fagi-gis_1.1+rev239_all.deb
+Files:
+ ef552a8cec72758e319c483ce6ec09b1 21553260 misc optional fagi-gis_1.1+rev239_all.deb

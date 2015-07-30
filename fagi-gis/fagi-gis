@@ -1,0 +1,8 @@
+#!/bin/bash
+args=""
+for var in "$@"
+do
+    args="$args $var"
+done
+echo $args
+java -jar target/fagi-gis.jar $args
