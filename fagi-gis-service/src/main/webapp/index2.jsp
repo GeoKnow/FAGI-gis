@@ -179,7 +179,7 @@
                 <div id="datasetPanel">
                     <form id="dataDiv" name="data_input">
                     <!-- Linux IMIS -->
-                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm_demo" title="Named Graph for Dataset A"/>
+                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm" title="Named Graph for Dataset A"/>
                         <!-- Windows IMIS 
                         Dataset A: <input type="text" name="da_name" id="idDatasetA" class="centered" value="http://localhost:8890/DAV/osm_berlin'"/> -->
                         <!-- Mac OS X 
@@ -187,7 +187,7 @@
                         <datalist id="datalist1"></datalist>
                         SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="http://localhost:8890/sparql" title="SPARQL Endpoint for Dataset A."/> 
                         <!-- Linux IMIS -->
-                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik_demo" title="Named Graph for Dataset B"/>
+                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik" title="Named Graph for Dataset B"/>
                         <!-- Windows IMIS 
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost/DAV/wik"/ title="We ask for your age only for statistical purposes."> -->
                         <!-- Mac OS X 
@@ -235,7 +235,7 @@
                         <!-- Windows IMIS 
                         PostGIS Username: <input type="text" name="p_name" class="centered" value="postgres"/> -->
                         <!-- Mac OS X -->
-                        PostGIS Username: <input type="text" name="p_name" class="centered" value="postgres"/> 
+                        PostGIS Username: <input type="text" name="p_name" class="centered" value="nickvitsas"/> 
                         PostGIS Database <input type="text" name="p_data" class="centered" value="postgis1"/>
                         PostGIS Password: <input type="password" name="p_pass" class="centered" value="1111" title="Password for PostGIS instance"/>
                         <label id="connLabel" for="male">Connection not established</label><input id="connButton" type="submit" value="Submit" style="float:right" onclick="return false;"/>

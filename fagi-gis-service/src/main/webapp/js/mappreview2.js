@@ -3138,7 +3138,9 @@ var unlinkedEntityStyleB = new OpenLayers.Style(
 );
 
 function addUnlinkedMapDataJsonWithLinks(jsonentitiess) {
-    $('#valAllButton').prop("dataset", jsonentitiess.dataset);
+    alert(jsonentitiess.dataset);
+    $('#valAllButton').data("dataset", jsonentitiess.dataset);
+    alert($('#valAllButton').data("dataset"));
     if (jsonentitiess.dataset == "A") {
         $.each(jsonentitiess.entitiesA, function (index, element) {
             if (element == "")
