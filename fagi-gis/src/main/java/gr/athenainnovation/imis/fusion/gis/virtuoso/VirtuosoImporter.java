@@ -1250,12 +1250,24 @@ public final class VirtuosoImporter {
                             if (predicateA.contains("posSeq")) {
                                 continue;
                             }
+                            if (predicateA.contains("asWKT")) {
+                                continue;
+                            }
+                            if (predicateA.contains("geometry")) {
+                                continue;
+                            }
                         }
                         if (predicateB != null) {
                             if (!uniquePropertiesB.contains(predicateB)) {
                                 //uniquePropertiesB.add(predicateB);
                             }
                             if (predicateB.contains("posSeq")) {
+                                continue;
+                            }
+                            if (predicateB.contains("asWKT")) {
+                                continue;
+                            }
+                            if (predicateB.contains("geometry")) {
                                 continue;
                             }
                         }
@@ -1426,6 +1438,12 @@ public final class VirtuosoImporter {
                             if (predicateA.contains("posSeq")) {
                                 continue;
                             }
+                            if (predicateA.contains("asWKT")) {
+                                continue;
+                            }
+                            if (predicateA.contains("geometry")) {
+                                continue;
+                            }
                         }
                         if (predicateB != null) {
                             if (!nonMatchedPropertiesB.contains(predicateB)) {
@@ -1435,6 +1453,12 @@ public final class VirtuosoImporter {
                                 uniquePropertiesB.add(predicateB);
                             }
                             if (predicateB.contains("posSeq")) {
+                                continue;
+                            }
+                            if (predicateB.contains("asWKT")) {
+                                continue;
+                            }
+                            if (predicateB.contains("geometry")) {
                                 continue;
                             }
                         }
