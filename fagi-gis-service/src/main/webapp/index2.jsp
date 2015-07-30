@@ -158,11 +158,6 @@
         </div>
 
         <!--
-<<<<<<< HEAD
-        Commented outi
-=======
-        Commented outi
->>>>>>> develop
         <div id="batch-offset-dialog" style="ui-dialog-titlebar" title="Create new user">
             <p>All form fields are required.</p>
             <form>
