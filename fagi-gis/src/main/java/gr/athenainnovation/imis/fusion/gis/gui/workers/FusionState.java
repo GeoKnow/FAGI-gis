@@ -68,7 +68,7 @@ public class FusionState {
         }
         
         if (transformation == null) {
-            System.out.println(ANSI_RED+"Invalid parameter for linksFile"+ANSI_RESET);
+            System.out.println(ANSI_RED+"Invalid transformatio"+ANSI_RESET);
             isCorrect = false;
         } else {
             isCorrect = checkTransformationParams(transformation.getID());

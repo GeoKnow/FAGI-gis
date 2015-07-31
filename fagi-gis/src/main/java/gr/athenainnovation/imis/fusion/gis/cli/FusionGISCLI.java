@@ -110,7 +110,29 @@ public class FusionGISCLI {
         /* Clustering test */
         
         
-        List<String> lines;
+        List<String> lines = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        try {
+            lines = Files.readAllLines(Paths.get("/Users/nickvitsas/Documents/Work/FAGI-gis/fagi-gis-service/util/osm_subjects.txt"), Charset.defaultCharset());
+        } catch (IOException ex) {
+            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        sb.append("SELECT * WHERE {\n");
+        int i = 0;
+        for (String line : lines) {
+            //System.out.println("Sub " + line);
+            sb.append("<" + line + "> " + "?p"+i+ " ?o"+i+ " .\n");
+            i++;
+            if (i > 40) {
+                break;
+            }
+        }
+        sb.append("}");
+        
+        System.out.println(sb.toString());
+        return;
+        
         long startTime, endTime;
         String config_file;
         /*

@@ -791,6 +791,9 @@ public final class VirtuosoImporter {
         
     }
     
+    HashMap<String, Schema> schemasA = Maps.newHashMap();
+    HashMap<String, Schema> schemasB = Maps.newHashMap();
+        
     private void scanMatches() throws JWNLException, FileNotFoundException, IOException, ParseException {
         /*Iterator it = propertiesA.entrySet().iterator();
         while (it.hasNext()) {
@@ -800,20 +803,18 @@ public final class VirtuosoImporter {
         }
         */
         //System.out.println("Schema Match "+tom++);
-        HashMap<String, Schema> schemasA = Maps.newHashMap();
         expandChain(schemasA, propertiesA, "");  
         //System.out.println();
-        HashMap<String, Schema> schemasB = Maps.newHashMap();
         expandChain(schemasB, propertiesB, "");    
         for (Map.Entry pairs : schemasA.entrySet()) {
             String chain = (String)pairs.getKey();
             Schema sche = (Schema)pairs.getValue();
-            //System.out.println("A "+chain+" "+sche.predicate);
+            System.out.println("A "+chain+" "+sche.predicate + " Size " + sche.indexes.size());
         }
         for (Map.Entry pairs : schemasB.entrySet()) {
             String chain = (String)pairs.getKey();
             Schema sche = (Schema)pairs.getValue();
-            //System.out.println("B "+chain+" "+sche.predicate);
+            System.out.println("B "+chain+" "+sche.predicate + " Size " + sche.indexes.size());
         }
         
         List<SchemaMatcher> matchers = new ArrayList<>();
@@ -826,46 +827,46 @@ public final class VirtuosoImporter {
         for (Map.Entry pairsA : schemasA.entrySet()) {
             //String chainA = (String)pairsA.getKey();
             Schema scheA = (Schema)pairsA.getValue();
+            
             nonMatchedPropertiesA.add(scheA.predicate);
+            
+            if (scheA.indexes.isEmpty()) {
+                //System.out.println("Empty Index A");
+                continue;
+            }
+            
             float maxDist = -1.0f;
             float maxScore = -1.0f;
             for (Map.Entry pairsB : schemasB.entrySet()) {
                 //String chainB = (String)pairsB.getKey();
                 Schema scheB = (Schema)pairsB.getValue();
+                //System.out.println("Would Match "+scheA.predicate + scheB.predicate);
                 nonMatchedPropertiesB.add(scheB.predicate);
                 score = 0;
                 sim = 0;
                 
-                if (scheA.indexes.isEmpty())
+                if (scheB.indexes.isEmpty()) {
+                    //System.out.println("Empty Index A");
                     continue;
-                if (scheB.indexes.isEmpty())
-                    continue;
+                }
                 
                 SchemaMatcher m =  new SchemaMatcher(scheA, scheB);
                 countA = 0;
-                //System.out.println("Scanning ");
-                for ( IndexWord iwA : scheA.indexes) {
-                    //System.out.print(iwA.getLemma()+" ");
-                }
-                //System.out.print(" with ");
-                for ( IndexWord iwB : scheB.indexes) {
-                    //System.out.print(iwB.getLemma()+" ");
-                }
                                             
-                //System.out.println("Parsed "+englishParser.parse(main));
+                //System.out.println("Matching "+scheA.predicate + scheB.predicate);
                 //System.out.println("Main "+main);
                 for ( IndexWord iwA : scheA.indexes) {
                     countA++;
                     countB = 0;
                     for ( IndexWord iwB : scheB.indexes) {
-                        //System.out.println("Scoring : "+iwA.getLemma()+ " and "+ iwB.getLemma());   
+                        System.out.println("Scoring : "+iwA.getLemma()+ " and "+ iwB.getLemma());   
                         countB++;
                         float tmpScore = calculateAsymmetricRelationshipOperation(iwA, iwB, m);
                         score += tmpScore;
                         //System.out.println("Score : "+tmpScore);                       
                     }
                 }
-                
+                System.out.println();
                 float jaro_dist = 0;
                 float jaro_dist_norm;
                 int jaroCount = 0;
@@ -1029,15 +1030,19 @@ public final class VirtuosoImporter {
             
             //String que = "";
             List<String> arrl = new ArrayList<>();
-            //System.out.println(chain.link);
-            Matcher mat = patternWordbreaker.matcher(chain.link);
+            //System.out.println("Chain Link : " + chain.link);
+            
+            //URL normalizer can possibly be truned on here
+            String normalizedLink = URLDecoder.decode(chain.link, "UTF-8");
+            //Matcher mat = patternWordbreaker.matcher(chain.link);
+            Matcher mat = patternWordbreaker.matcher(normalizedLink);
             while (mat.find()) {
                 arrl.add(mat.group());
             }
             //System.out.print("Found:");
-            //for(String s : arrl)
-            //    System.out.print(" "+s);
-            //System.out.println();
+            for(String s : arrl)
+                System.out.print(" "+s);
+            System.out.println();
             //List<String> arrl = StringUtils.splitByCharacterTypeCamelCase(chain.link);
             Schema m = new Schema(); 
             m.predicate = pred;
@@ -1047,19 +1052,23 @@ public final class VirtuosoImporter {
             QueryParser englishParser = new QueryParser(Version.LUCENE_36, "", englishAnalyzer);
             for (String a : arrl) {
                 m.addWord(a);
-                if (recoveredWords.contains(a.toLowerCase()))
+                if (recoveredWords.contains(a.toLowerCase())) {
+                    System.out.println("Cancelling "+a);
                     continue;
+                }
             
                 //System.out.print("Value "+a+" ");
                 
-                //System.out.print("Value : "+a+" stemmed : "+englishParser.parse(a).toString());
+                System.out.println("Value : "+a+" stemmed : "+englishParser.parse(a).toString());
                 IndexWordSet wordSet = dictionary.lookupAllIndexWords(englishParser.parse(a).toString());
+                //IndexWordSet wordSet = dictionary.lookupAllIndexWords(a);
                 if (wordSet == null)
                     continue;
                 IndexWord[] indices = wordSet.getIndexWordArray();
                 IndexWord best = null;
                 int bestInt = 0;
                 for (IndexWord idx : indices) { 
+                    System.out.println("POS label " + idx.getPOS().getLabel());
                     if ( idx.getPOS().getLabel().equals("noun") ) {
                         best = idx;
                         bestInt = 3;
@@ -1072,8 +1081,10 @@ public final class VirtuosoImporter {
                     }
                 }
                 
-                if (best == null)
+                if (best == null) {
+                    System.out.println("Null Best for " + englishParser.parse(a).toString());
                     continue;
+                }
             
                 m.addIndex(best);
             }
@@ -1083,6 +1094,7 @@ public final class VirtuosoImporter {
             //System.out.println("Inserting predicate: "+ pred);
             lst.put(pred, m);
         }
+        //System.out.println();
     }
     
     private void scanChain(HashMap< String, MetadataChain > cont, List <String> chain, List <String> objectChain) {
@@ -1090,17 +1102,15 @@ public final class VirtuosoImporter {
         if (chain.isEmpty())
             return;
         
-        MetadataChain root = null;
         String link = chain.get(0);
+        if (link == null) {
+            return;
+        }
+        
+        MetadataChain root = null;
         if ( cont.containsKey(link) ) {
             root = cont.get(link);
         } else {
-            
-            if (link == null) {
-                //System.out.println("null");
-                return;
-            }
-            
             String main = StringUtils.substringAfter(link, "#");
             if (main.equals("") ) {
                 main = StringUtils.substring(link, StringUtils.lastIndexOf(link, "/")+1);
@@ -1138,7 +1148,7 @@ public final class VirtuosoImporter {
             }
             //System.out.println(main);
             
-            MetadataChain newChain = new MetadataChain(main, link, objectChain.get(0));
+            MetadataChain newChain = new MetadataChain(main, link, objectChain.get(i));
             root.addCahin(newChain);
             root = newChain;
             //System.out.print(link+" ");
@@ -1148,7 +1158,7 @@ public final class VirtuosoImporter {
     }
     
     public SchemaMatchState scanProperties(int optDepth, String link) throws SQLException, JWNLException, FileNotFoundException, IOException, ParseException {
-        //optDepth = 1;
+        optDepth = 3;
         if ( SystemUtils.IS_OS_MAC_OSX ) {
             JWNL.initialize(new ByteArrayInputStream(getJWNL(PATH_TO_WORDNET_OS_X).getBytes(StandardCharsets.UTF_8)));
         }
@@ -1250,12 +1260,24 @@ public final class VirtuosoImporter {
                             if (predicateA.contains("posSeq")) {
                                 continue;
                             }
+                            if (predicateA.contains("asWKT")) {
+                                continue;
+                            }
+                            if (predicateA.contains("geometry")) {
+                                continue;
+                            }
                         }
                         if (predicateB != null) {
                             if (!uniquePropertiesB.contains(predicateB)) {
                                 //uniquePropertiesB.add(predicateB);
                             }
                             if (predicateB.contains("posSeq")) {
+                                continue;
+                            }
+                            if (predicateB.contains("asWKT")) {
+                                continue;
+                            }
+                            if (predicateB.contains("geometry")) {
                                 continue;
                             }
                         }
@@ -1353,25 +1375,25 @@ public final class VirtuosoImporter {
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
-                    query.append(" . OPTIONAL {?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append("  ");
+                    query.append(" . ?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append("  ");
                 }
                 for (int j = 0; j < i; j++) {
-                    query.append(" } ");
+                    query.append(" ");
                 }
                 query.append("}\n } UNION { \n" + "   GRAPH <").append(targetGraph).append("_" + db_c.getDBName() + "B> { {?s ?pb1 ?ob1} ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
-                    query.append(" . OPTIONAL {?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append("  ");
+                    query.append(" . ?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append("  ");
                 }
                 for (int j = 0; j < i; j++) {
-                    query.append(" } ");
+                    query.append(" ");
                 }
                 query.append("} }\n"
                         + "}\n"
                         + "} ORDER BY (?s)");
 
-                //System.out.println("Properties Query : "+query.toString());
+                System.out.println("Properties Query : "+query.toString());
                 PreparedStatement fetchProperties;
                 fetchProperties = virt_conn.prepareStatement(query.toString());
                 ResultSet propertiesRS = fetchProperties.executeQuery();
@@ -1424,7 +1446,13 @@ public final class VirtuosoImporter {
                                 uniquePropertiesA.add(predicateA);
                             }
                             if (predicateA.contains("posSeq")) {
-                                continue;
+                                //continue;
+                            }
+                            if (predicateA.contains("asWKT")) {
+                                //continue;
+                            }
+                            if (predicateA.contains("geometry")) {
+                                //continue;
                             }
                         }
                         if (predicateB != null) {
@@ -1435,7 +1463,13 @@ public final class VirtuosoImporter {
                                 uniquePropertiesB.add(predicateB);
                             }
                             if (predicateB.contains("posSeq")) {
-                                continue;
+                                //continue;
+                            }
+                            if (predicateB.contains("asWKT")) {
+                                //continue;
+                            }
+                            if (predicateB.contains("geometry")) {
+                                //continue;
                             }
                         }
 
@@ -1444,9 +1478,11 @@ public final class VirtuosoImporter {
                         chainB.add(predicateB);
                         objectChainB.add(objectB);
 
-                    //System.out.println(" "+predicateA+" "+objectA);
+                        //System.out.println(" "+predicateA+" "+objectA);
                         //System.out.println(" "+predicateB+" "+objectB);
                     }
+                    //System.out.println("Chain A "+chainA);
+                    //System.out.println("Chain B "+chainB);
                     scanChain(propertiesA, chainA, objectChainA);
                     scanChain(propertiesB, chainB, objectChainB);
 

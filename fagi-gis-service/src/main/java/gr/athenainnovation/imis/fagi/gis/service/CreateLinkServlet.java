@@ -58,24 +58,7 @@ public class CreateLinkServlet extends HttpServlet {
     private static final String SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
     private static final int DATASET_A = 0;
     private static final int DATASET_B = 1;
-    
-    private DBConfig dbConf;
-    private GraphConfig grConf;
-    private VirtGraph vSet = null;
     private static final String DB_URL = "jdbc:postgresql:";
-    private PreparedStatement stmt = null;
-    private PreparedStatement stmtAddGeomA = null;
-    private PreparedStatement stmtAddGeomB = null;
-    private Connection dbConn = null;
-    private ResultSet rs = null;
-    private List<FusionState> fs = null;
-    private String tGraph = null;
-    private String nodeA = null;
-    private String nodeB = null;
-    private String dom = null;
-    private String domSub = null;
-    private HttpSession sess = null;
-    private PrintWriter out ;
     
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -89,6 +72,22 @@ public class CreateLinkServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
+        DBConfig dbConf;
+        GraphConfig grConf;
+        VirtGraph vSet = null;
+        PreparedStatement stmt = null;
+        PreparedStatement stmtAddGeomA = null;
+        PreparedStatement stmtAddGeomB = null;
+        Connection dbConn = null;
+        ResultSet rs = null;
+        List<FusionState> fs = null;
+        String tGraph = null;
+        String nodeA = null;
+        String nodeB = null;
+        String dom = null;
+        String domSub = null;
+        HttpSession sess = null;
+    
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
            
@@ -110,17 +109,20 @@ public class CreateLinkServlet extends HttpServlet {
             System.out.println("Sub A : "+nodeA);
             System.out.println("Sub B : "+nodeB);
             
-            initGeomConnection();
-            insertLink();
-            insertMetadata();
-            insertGeometry(nodeA, grConf.getGraphA(), grConf.getEndpointA(), DATASET_A);
-            insertGeometry(nodeB, grConf.getGraphB(), grConf.getEndpointB(), DATASET_B);
+            dbConn = initGeomConnection(dbConf, out);
+            vSet = insertLink(vSet, sess, dbConn, grConf, dbConf, nodeA, nodeB);
+            insertMetadata(vSet, dbConf, grConf,tGraph, nodeA, nodeB);
+            insertGeometry(dbConn, nodeA, grConf.getGraphA(), grConf.getEndpointA(), DATASET_A);
+            insertGeometry(dbConn, nodeB, grConf.getGraphB(), grConf.getEndpointB(), DATASET_B);
+            
+            dbConn.close();
+            vSet.close();
             
             out.println("{}");
         }
     }
 
-    private boolean validateLinking(String lsub, String rsub) throws SQLException {
+    private boolean validateLinking(GraphConfig grConf, VirtGraph vSet, String lsub, String rsub) throws SQLException {
         Connection virt_conn = vSet.getConnection();
         PreparedStatement stmt;
         java.sql.ResultSet rs;
@@ -161,7 +163,7 @@ public class CreateLinkServlet extends HttpServlet {
         }
     }
     
-    void insertLink() {
+    VirtGraph insertLink(VirtGraph vSet, HttpSession sess, Connection dbConn, GraphConfig grConf, DBConfig dbConf, String nodeA, String nodeB) {
                 System.out.println("Linking ");
                 
         if (vSet == null) {
@@ -175,7 +177,7 @@ public class CreateLinkServlet extends HttpServlet {
                 connEx.printStackTrace();
                 System.out.println(connEx.getMessage());
                 System.out.println("Connected ");
-                return;
+                return null;
             }
         }
         try {
@@ -185,7 +187,7 @@ public class CreateLinkServlet extends HttpServlet {
             queryStr.append("INSERT DATA { ");
             queryStr.append("GRAPH <http://localhost:8890/DAV/links_" + dbConf.getDBName() + "> { ");
 
-            boolean makeSwap = validateLinking(nodeA, nodeB);
+            boolean makeSwap = validateLinking(grConf, vSet, nodeA, nodeB);
             
             String subject = nodeA;
             String subjectB = nodeB;
@@ -257,9 +259,11 @@ public class CreateLinkServlet extends HttpServlet {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+        
+        return vSet;
     }
 
-    void insertMetadata() throws SQLException {
+    void insertMetadata(VirtGraph vSet, DBConfig dbConf, GraphConfig grConf, String tGraph, String nodeA, String nodeB) throws SQLException {
         if (vSet == null) {
             try {
                 vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
@@ -332,7 +336,7 @@ public class CreateLinkServlet extends HttpServlet {
         
         Connection virt_conn = vSet.getConnection();
         
-        stmt = virt_conn.prepareStatement(getFromA.toString());
+        PreparedStatement stmt = virt_conn.prepareStatement(getFromA.toString());
         stmt.executeUpdate();
 
         stmt.close();
@@ -343,20 +347,33 @@ public class CreateLinkServlet extends HttpServlet {
         stmt.close();
     }
     
-    void initGeomConnection() {
+    Connection initGeomConnection(DBConfig dbConf, PrintWriter out) {
         try {
             String url = DB_URL.concat(dbConf.getDBName());
-            dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
+            Connection dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
             dbConn.setAutoCommit(false);
+            return dbConn;
         } catch (SQLException sqlex) {
             System.out.println(sqlex.getMessage());
             out.println("Connection to postgis failed");
             out.close();
         }
+        
+        return null;
     }
     
-    void initGeomStatement(int DS_ID) throws SQLException {
-        
+    PreparedStatement initGeomStatementA(int DS_ID, Connection dbConn) throws SQLException {
+        final String insertGeometryAString = "INSERT INTO dataset_a_geometries (subject, geom) VALUES (?, ST_GeometryFromText(?, 4326))";
+        return dbConn.prepareStatement(insertGeometryAString);
+    }
+
+    PreparedStatement initGeomStatementB(int DS_ID, Connection dbConn) throws SQLException {
+        final String insertGeometryBString = "INSERT INTO dataset_b_geometries (subject, geom) VALUES (?, ST_GeometryFromText(?, 4326))";
+        return dbConn.prepareStatement(insertGeometryBString);
+    }
+    
+    void initGeomStatement(int DS_ID, Connection dbConn) throws SQLException {
+        /*
         if ( DS_ID == DATASET_A ) {
             final String insertGeometryAString = "INSERT INTO dataset_a_geometries (subject, geom) VALUES (?, ST_GeometryFromText(?, 4326))";
             stmtAddGeomA = dbConn.prepareStatement(insertGeometryAString);
@@ -364,30 +381,31 @@ public class CreateLinkServlet extends HttpServlet {
             final String insertGeometryBString = "INSERT INTO dataset_b_geometries (subject, geom) VALUES (?, ST_GeometryFromText(?, 4326))";
             stmtAddGeomB = dbConn.prepareStatement(insertGeometryBString);
         }
+        */
     }
     
-    void addGeom ( int DS_ID,  String sub, String geom ) throws SQLException {
+    void addGeom ( int DS_ID,  PreparedStatement stmt, String sub, String geom ) throws SQLException {
         if ( DS_ID == DATASET_A ) {
-            stmtAddGeomA.setString(1, sub);
-            stmtAddGeomA.setString(2, geom);
-            stmtAddGeomA.addBatch();
+            stmt.setString(1, sub);
+            stmt.setString(2, geom);
+            stmt.addBatch();
         } else {
-            stmtAddGeomB.setString(1, sub);
-            stmtAddGeomB.setString(2, geom);
-            stmtAddGeomB.addBatch();
+            stmt.setString(1, sub);
+            stmt.setString(2, geom);
+            stmt.addBatch();
         }
     }
     
-    void finishGeomUpload(int DS_ID) throws SQLException {
+    void finishGeomUpload(int DS_ID, PreparedStatement stmt, Connection dbConn) throws SQLException {
         if ( DS_ID == DATASET_A ) {
-            stmtAddGeomA.executeBatch();
+            stmt.executeBatch();
         } else {
-            stmtAddGeomB.executeBatch();
+            stmt.executeBatch();
         }
         dbConn.commit();
     }
     
-    void insertGeometry(String node, String sourceGraph, String sourceEndpoint, int DS_ID) {
+    void insertGeometry(Connection dbConn, String node, String sourceGraph, String sourceEndpoint, int DS_ID) {
         final String restrictionForWgs = "<"+node+"> ?p1 ?o1 . <"+node+"> ?p2 ?o2 "
                 + "FILTER(regex(?p1, \"" + LAT_REGEX + "\", \"i\"))"
                 + "FILTER(regex(?p2, \"" + LONG_REGEX + "\", \"i\"))";
@@ -404,7 +422,12 @@ public class CreateLinkServlet extends HttpServlet {
         QueryExecution queryExecution = null;
         if (!countWKT){ //if geosparql geometry doesn' t exist        
             try {
-                initGeomStatement(DS_ID);
+                PreparedStatement stmt = null;
+                if ( DS_ID == DATASET_A ) {
+                    stmt = initGeomStatementA(DS_ID, dbConn);
+                } else {
+                    stmt = initGeomStatementB(DS_ID, dbConn);
+                }
                 final Query query = QueryFactory.create(queryString1);
                 HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
                 queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, authenticator);
@@ -424,7 +447,7 @@ public class CreateLinkServlet extends HttpServlet {
                         //construct wkt serialization
                         String geometry = "POINT ("+ longitude + " " + latitude +")";
                         //postGISImporter.loadGeometry(datasetIdent, subject, geometry);
-                        addGeom(DS_ID, node, geometry);
+                        addGeom(DS_ID, stmt, node, geometry);
                     }
                     else {
                         //LOG.warn("Resource found where geometry serialisation literal expected.");
@@ -433,7 +456,9 @@ public class CreateLinkServlet extends HttpServlet {
                     //if (callback != null )
                         //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));                                       
                 }
-                finishGeomUpload(DS_ID);
+                queryExecution.close();
+                finishGeomUpload(DS_ID, stmt, dbConn);
+                stmt.close();
                 //postGISImporter.finishUpdates();
                 //System.out.println("PostGISImporter finishedUpdates");
                 //long endTime =  System.nanoTime();
@@ -452,7 +477,12 @@ public class CreateLinkServlet extends HttpServlet {
         else { //if geosparql geometry exists
             //System.out.println("geosparql");
             try {
-                initGeomStatement(DS_ID);
+                PreparedStatement stmt = null;
+                if ( DS_ID == DATASET_A ) {
+                    stmt = initGeomStatementA(DS_ID, dbConn);
+                } else {
+                    stmt = initGeomStatementB(DS_ID, dbConn);
+                }
                 //System.out.println("Geosparql Query String "+queryString);
                 final Query query = QueryFactory.create(queryString);
                 HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
@@ -471,14 +501,16 @@ public class CreateLinkServlet extends HttpServlet {
                         //System.out.println("Virtuoso geometry objectNode.asLiteral().getLexicalForm():   "+ geometry);
 
                         //postGISImporter.loadGeometry(datasetIdent, subject, geometry);
-                        addGeom(DS_ID, node, geometry);
+                        addGeom(DS_ID, stmt, node, geometry);
                     } else {
                         //LOG.warn("Resource found where geometry serialisation literal expected.");
                     }
                     //if (callback != null )
                     //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWKT)));
                 }
-                finishGeomUpload(DS_ID);
+                queryExecution.close();
+                finishGeomUpload(DS_ID, stmt, dbConn);
+                stmt.close();
                 //postGISImporter.finishUpdates();
                 //System.out.println("Count : "+currentCount);
                 //long endTime =  System.nanoTime();
@@ -569,6 +601,7 @@ public class CreateLinkServlet extends HttpServlet {
         } catch (SQLException ex) {
             Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
+            /*
             if (stmt != null) {
                 try {
                     stmt.close();
@@ -597,6 +630,7 @@ public class CreateLinkServlet extends HttpServlet {
                     Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+            */
         }
     }
 
@@ -616,6 +650,7 @@ public class CreateLinkServlet extends HttpServlet {
         } catch (SQLException ex) {
             Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
+            /*
             if (stmt != null) {
                 try {
                     stmt.close();
@@ -644,6 +679,7 @@ public class CreateLinkServlet extends HttpServlet {
                     Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+            */
         }
     }
 

@@ -5,6 +5,7 @@
         <title>FAGI-gis</title>
         <meta name="description" content="website description" />
         <meta name="keywords" content="website keywords, website keywords" />
+        <link href='http://fonts.googleapis.com/css?family=Indie+Flower' rel='stylesheet' type='text/css'>
         <link rel="stylesheet" href="js/codemirror/theme/lesser-dark.css">
         <link rel="stylesheet" href="js/codemirror/theme/base16-light.css">
         <link rel="stylesheet" href="js/codemirror/lib/codemirror.css">
@@ -179,7 +180,7 @@
                 <div id="datasetPanel">
                     <form id="dataDiv" name="data_input">
                     <!-- Linux IMIS -->
-                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm_demo" title="Named Graph for Dataset A"/>
+                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm" title="Named Graph for Dataset A"/>
                         <!-- Windows IMIS 
                         Dataset A: <input type="text" name="da_name" id="idDatasetA" class="centered" value="http://localhost:8890/DAV/osm_berlin'"/> -->
                         <!-- Mac OS X 
@@ -187,7 +188,7 @@
                         <datalist id="datalist1"></datalist>
                         SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="http://localhost:8890/sparql" title="SPARQL Endpoint for Dataset A."/> 
                         <!-- Linux IMIS -->
-                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik_demo" title="Named Graph for Dataset B"/>
+                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik" title="Named Graph for Dataset B"/>
                         <!-- Windows IMIS 
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost/DAV/wik"/ title="We ask for your age only for statistical purposes."> -->
                         <!-- Mac OS X 
@@ -235,7 +236,7 @@
                         <!-- Windows IMIS 
                         PostGIS Username: <input type="text" name="p_name" class="centered" value="postgres"/> -->
                         <!-- Mac OS X -->
-                        PostGIS Username: <input type="text" name="p_name" class="centered" value="postgres"/> 
+                        PostGIS Username: <input type="text" name="p_name" class="centered" value="nickvitsas"/> 
                         PostGIS Database <input type="text" name="p_data" class="centered" value="postgis1"/>
                         PostGIS Password: <input type="password" name="p_pass" class="centered" value="1111" title="Password for PostGIS instance"/>
                         <label id="connLabel" for="male">Connection not established</label><input id="connButton" type="submit" value="Submit" style="float:right" onclick="return false;"/>
@@ -363,27 +364,27 @@
                     </select>
                 </div>
                 <div id="matchingPanel">
-                    <table class="complex_selector">
+                    <table class="complex_selector table-responsive">
                         <p>
                             <label for="spinner">Select scoring threshold:</label>
                             <input id="spinner" name="value">
                         </p>
                         
                         <tbody><tr>
-                                <td id="datasetNameA" style="width:216; text-align: center;" align="left" valign="bottom">Dataset A</td>
-                                <td id="datasetNameB" style="width:216; text-align: center;" align="left" valign="bottom">Dataset B</td>
+                                <td id="datasetNameA" align="left" valign="bottom">Dataset A</td>
+                                <td id="datasetNameB" align="left" valign="bottom">Dataset B</td>
                                 <td>
                                 </td>
-                                <td style="width:216; text-align: center;" align="left" valign="bottom">Selected</td>
+                                <td align="left" valign="bottom">Selected</td>
                             </tr>
                             <tr>
-                                <td style="width:30%;">
+                                <td>
                                     <div class="horscroll">
                                         <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
                                         <ul id="schemasA" class="schemaList"></ul>
                                     </div>
                                 </td>
-                                <td style="width:30%">
+                                <td>
                                     <div class="horscroll">
                                         <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
                                         <ul id="schemasB" class="schemaList"></ul>
@@ -402,7 +403,7 @@
                                             </tr>
                                         </tbody></table> 
                                 </td>
-                                <td style="width:30%">
+                                <td>
                                     <ul id="matchList" class="righted">
                                     </ul>
                                 </td>

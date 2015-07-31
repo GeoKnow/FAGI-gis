@@ -182,32 +182,48 @@ function init() {
     });
     
     $('#valAllButton').click(function () {  
-        /*var ds = $('#valAllButton').prop("dataset");
+        var ds = $('#valAllButton').data("dataset");
         if (ds == "A") {
             $.each(vectorsA.features, function (index, element) {
                 var links = element.attributes.links;
                 if (links.length > 0) {
-                    var bestLink = links[0];
-                    var score = -1;
-                     for ( var i = 0; i < links.length; i++ ) {
-                     if ( links[i].dist > maxDist ) {
-                     maxDist = links[i].dist;
-                     }
-                     var bestScore = nestLink.jindex + best
-                     for ( var i = 1; i < links.length; i++ ) {
-                     var score
-                     }
+                    var bestLink = null;
+                    var bestScore = -1;
+                    for (var i = 0; i < links.length; i++) {
+                        if ( links[i].validated ) 
+                            continue;
+                        var linkScore = links[i].dist + links[i].jIndex;
+                        if ( linkScore > bestScore ) {
+                            bestScore = linkScore;
+                            bestLink = links[i];
+                        }
+                    }
+                    console.log("Best Score " + bestScore);
+                    if ( bestLink != null )
+                        validateLink(bestLink, ds);
                 }
             });
         } else {
             $.each(vectorsB.features, function (index, element) {
                 var links = element.attributes.links;
                 if (links.length > 0) {
-                    var bestLink = links[0];
-                    var maxDist = -1;
+                    var bestLink = null;
+                    var bestScore = -1;
+                    for (var i = 0; i < links.length; i++) {
+                        if ( links[i].validated ) 
+                            continue;
+                        var linkScore = links[i].dist + links[i].jIndex;
+                        if ( linkScore > bestScore ) {
+                            bestScore = linkScore;
+                            bestLink = links[i];
+                        }
+                    }
+                    console.log("Best Score " + bestScore);
+                    if ( bestLink != null )
+                        validateLink(bestLink, ds);
                 }
             });
-        }*/
+        }
     });
     
     $('#valButton').click( function () {
@@ -412,6 +428,63 @@ function init() {
             $(this).change();
         }});
     spinner.spinner("value", 0.3);
+}
+
+function validateLink(feat, ds) {
+    //console.log(feat.attributes.la.attributes.a);
+    console.log("Dataset "+ds);
+    document.getElementById("popupValidateMenu").style.opacity = 0;
+    document.getElementById("popupValidateMenu").style.display = 'none';
+    enableSpinner();
+    $.ajax({
+        url: 'CreateLinkServlet', //Server script to process data
+        type: 'POST',
+        //Ajax events
+        // the type of data we expect back
+        dataType: "json",
+        success: function (responseText) {
+            feat.validated = true;
+
+            var i = 0;
+            var linksA = feat.attributes.la.attributes.links;
+            var linksB = feat.attributes.lb.attributes.links;
+            var toDel = [];
+            var newLinksA = [];
+            var newLinksB = [];
+            if (ds == "A") {
+                for (i = 0; i < linksA.length; i++) {
+                    if (linksA[i].validated == false)
+                        toDel[toDel.length] = linksA[i];
+                    else
+                        newLinksA[newLinksA.length] = linksA[i];
+                }
+                feat.attributes.la.attributes.links = newLinksA;
+
+            } else {
+                for (i = 0; i < linksB.length; i++) {
+                    if (linksB[i].validated == false)
+                        toDel[toDel.length] = linksB[i];
+                    else
+                        newLinksB[newLinksB.length] = linksB[i];
+                }
+                feat.attributes.lb.attributes.links = newLinksB;
+            }
+            //vectorsLinksTemp.destroyFeatures(toDel);
+            vectorsLinks.destroyFeatures(toDel);
+            feat.validated = true;
+            vectorsLinks.drawFeature(feat);
+            //console.log("All good " + responseText);
+
+            disableSpinner();
+        },
+        error: function (responseText) {
+            disableSpinner();
+            alert("All bad " + responseText);
+            alert("Error");
+        },
+        data: {'subA': feat.attributes.la.attributes.a, 'subB': feat.attributes.lb.attributes.a}
+        //Options to tell jQuery not to process data or worry about content-type.
+    });
 }
 
 $("#domA").change(function () {
