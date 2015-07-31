@@ -791,6 +791,9 @@ public final class VirtuosoImporter {
         
     }
     
+    HashMap<String, Schema> schemasA = Maps.newHashMap();
+    HashMap<String, Schema> schemasB = Maps.newHashMap();
+        
     private void scanMatches() throws JWNLException, FileNotFoundException, IOException, ParseException {
         /*Iterator it = propertiesA.entrySet().iterator();
         while (it.hasNext()) {
@@ -800,10 +803,8 @@ public final class VirtuosoImporter {
         }
         */
         //System.out.println("Schema Match "+tom++);
-        HashMap<String, Schema> schemasA = Maps.newHashMap();
         expandChain(schemasA, propertiesA, "");  
         //System.out.println();
-        HashMap<String, Schema> schemasB = Maps.newHashMap();
         expandChain(schemasB, propertiesB, "");    
         for (Map.Entry pairs : schemasA.entrySet()) {
             String chain = (String)pairs.getKey();
@@ -827,12 +828,13 @@ public final class VirtuosoImporter {
             //String chainA = (String)pairsA.getKey();
             Schema scheA = (Schema)pairsA.getValue();
             
-            if (scheA.indexes.isEmpty()) {
-                    //System.out.println("Empty Index A");
-                    continue;
-                }
-            
             nonMatchedPropertiesA.add(scheA.predicate);
+            
+            if (scheA.indexes.isEmpty()) {
+                //System.out.println("Empty Index A");
+                continue;
+            }
+            
             float maxDist = -1.0f;
             float maxScore = -1.0f;
             for (Map.Entry pairsB : schemasB.entrySet()) {
@@ -1031,14 +1033,16 @@ public final class VirtuosoImporter {
             //System.out.println("Chain Link : " + chain.link);
             
             //URL normalizer can possibly be truned on here
-            Matcher mat = patternWordbreaker.matcher(chain.link);
+            String normalizedLink = URLDecoder.decode(chain.link, "UTF-8");
+            //Matcher mat = patternWordbreaker.matcher(chain.link);
+            Matcher mat = patternWordbreaker.matcher(normalizedLink);
             while (mat.find()) {
                 arrl.add(mat.group());
             }
             //System.out.print("Found:");
-            //for(String s : arrl)
-            //    System.out.print(" "+s);
-            //System.out.println();
+            for(String s : arrl)
+                System.out.print(" "+s);
+            System.out.println();
             //List<String> arrl = StringUtils.splitByCharacterTypeCamelCase(chain.link);
             Schema m = new Schema(); 
             m.predicate = pred;
@@ -1048,19 +1052,23 @@ public final class VirtuosoImporter {
             QueryParser englishParser = new QueryParser(Version.LUCENE_36, "", englishAnalyzer);
             for (String a : arrl) {
                 m.addWord(a);
-                if (recoveredWords.contains(a.toLowerCase()))
+                if (recoveredWords.contains(a.toLowerCase())) {
+                    System.out.println("Cancelling "+a);
                     continue;
+                }
             
                 //System.out.print("Value "+a+" ");
                 
-                //System.out.print("Value : "+a+" stemmed : "+englishParser.parse(a).toString());
+                System.out.println("Value : "+a+" stemmed : "+englishParser.parse(a).toString());
                 IndexWordSet wordSet = dictionary.lookupAllIndexWords(englishParser.parse(a).toString());
+                //IndexWordSet wordSet = dictionary.lookupAllIndexWords(a);
                 if (wordSet == null)
                     continue;
                 IndexWord[] indices = wordSet.getIndexWordArray();
                 IndexWord best = null;
                 int bestInt = 0;
                 for (IndexWord idx : indices) { 
+                    System.out.println("POS label " + idx.getPOS().getLabel());
                     if ( idx.getPOS().getLabel().equals("noun") ) {
                         best = idx;
                         bestInt = 3;
@@ -1073,8 +1081,10 @@ public final class VirtuosoImporter {
                     }
                 }
                 
-                if (best == null)
+                if (best == null) {
+                    System.out.println("Null Best for " + englishParser.parse(a).toString());
                     continue;
+                }
             
                 m.addIndex(best);
             }
