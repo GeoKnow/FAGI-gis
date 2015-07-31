@@ -5,6 +5,7 @@
         <title>FAGI-gis</title>
         <meta name="description" content="website description" />
         <meta name="keywords" content="website keywords, website keywords" />
+        <link href='http://fonts.googleapis.com/css?family=Indie+Flower' rel='stylesheet' type='text/css'>
         <link rel="stylesheet" href="js/codemirror/theme/lesser-dark.css">
         <link rel="stylesheet" href="js/codemirror/theme/base16-light.css">
         <link rel="stylesheet" href="js/codemirror/lib/codemirror.css">
@@ -363,27 +364,27 @@
                     </select>
                 </div>
                 <div id="matchingPanel">
-                    <table class="complex_selector">
+                    <table class="complex_selector table-responsive">
                         <p>
                             <label for="spinner">Select scoring threshold:</label>
                             <input id="spinner" name="value">
                         </p>
                         
                         <tbody><tr>
-                                <td id="datasetNameA" style="width:216; text-align: center;" align="left" valign="bottom">Dataset A</td>
-                                <td id="datasetNameB" style="width:216; text-align: center;" align="left" valign="bottom">Dataset B</td>
+                                <td id="datasetNameA" align="left" valign="bottom">Dataset A</td>
+                                <td id="datasetNameB" align="left" valign="bottom">Dataset B</td>
                                 <td>
                                 </td>
-                                <td style="width:216; text-align: center;" align="left" valign="bottom">Selected</td>
+                                <td align="left" valign="bottom">Selected</td>
                             </tr>
                             <tr>
-                                <td style="width:30%;">
+                                <td>
                                     <div class="horscroll">
                                         <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
                                         <ul id="schemasA" class="schemaList"></ul>
                                     </div>
                                 </td>
-                                <td style="width:30%">
+                                <td>
                                     <div class="horscroll">
                                         <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
                                         <ul id="schemasB" class="schemaList"></ul>
@@ -402,7 +403,7 @@
                                             </tr>
                                         </tbody></table> 
                                 </td>
-                                <td style="width:30%">
+                                <td>
                                     <ul id="matchList" class="righted">
                                     </ul>
                                 </td>

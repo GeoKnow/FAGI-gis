@@ -39,8 +39,13 @@ label input[type="checkbox"] {
 */
 html { 
   height: 100%;
+  font-family:'Yanone Kaffeesatz' !important;
 }
 
+* {
+font-family: 'Indie Flower', cursive;
+}
+    
 * { 
   margin: 0;
   padding: 0;
