@@ -252,8 +252,10 @@ public class FuseLinkServlet extends HttpServlet {
         //JSONFusions selectedFusions = new JSONFusions();
         try {
             
+            String classParam = request.getParameter("classes");
             String[] classes = request.getParameterValues("classes[]");
-            if ( classes == null ) {
+            
+            if ( classes == null && classParam == null ) {
                 out.print("{}");
                 return;
             }
@@ -346,46 +348,50 @@ public class FuseLinkServlet extends HttpServlet {
             System.out.println("Fusing : "+nodeA+" "+nodeB);
             AbstractFusionTransformation trans = null;
             for(;;) {
-                String domOnto = "";
-                if ( grConf.isDominantA() ) 
-                    domOnto = (String)sess.getAttribute("domA");
-                else 
-                    domOnto = (String)sess.getAttribute("domB");
-                System.out.println("Add Classes !!!!!!!!!!!!!!!!");
-                for (String c : classes ) {
-                    ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
-                    //queryStr.append("WITH <"+fusedGraph+"> ");
-                    queryStr.append("INSERT DATA { ");
-                    queryStr.append("GRAPH <" + tGraph + "> { ");
+                if (classParam == null) {
+                    String domOnto = "";
+                    if (grConf.isDominantA()) {
+                        domOnto = (String) sess.getAttribute("domA");
+                    } else {
+                        domOnto = (String) sess.getAttribute("domB");
+                    }
+                    System.out.println("Add Classes !!!!!!!!!!!!!!!!");
 
-                    queryStr.appendIri(nodeA);
-                    queryStr.append(" ");
-                    queryStr.appendIri(TYPE);
-                    queryStr.append(" ");
-                    queryStr.appendIri(domOnto + c);
-                    queryStr.append(" ");
-                    queryStr.append(".");
-                    queryStr.append(" ");
-                    queryStr.appendIri(domOnto + c);
-                    queryStr.append(" ");
-                    queryStr.appendIri(TYPE);
-                    queryStr.append(" ");
-                    queryStr.appendIri(OWL_CLASS);
-                    queryStr.append(".");
-                    queryStr.append(" ");
-                    queryStr.appendIri(domOnto + c);
-                    queryStr.append(" ");
-                    queryStr.appendIri(LABEL);
-                    queryStr.append(" ");
-                    queryStr.appendLiteral(c);
-                    
-                    queryStr.append("} }");
-                    System.out.println("Add Owl Class "+queryStr.toString());
+                    for (String c : classes) {
+                        ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                        //queryStr.append("WITH <"+fusedGraph+"> ");
+                        queryStr.append("INSERT DATA { ");
+                        queryStr.append("GRAPH <" + tGraph + "> { ");
 
-                    UpdateRequest q = queryStr.asUpdate();
-                    HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                    UpdateProcessor insertClass = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
-                    insertClass.execute();
+                        queryStr.appendIri(nodeA);
+                        queryStr.append(" ");
+                        queryStr.appendIri(TYPE);
+                        queryStr.append(" ");
+                        queryStr.appendIri(domOnto + c);
+                        queryStr.append(" ");
+                        queryStr.append(".");
+                        queryStr.append(" ");
+                        queryStr.appendIri(domOnto + c);
+                        queryStr.append(" ");
+                        queryStr.appendIri(TYPE);
+                        queryStr.append(" ");
+                        queryStr.appendIri(OWL_CLASS);
+                        queryStr.append(".");
+                        queryStr.append(" ");
+                        queryStr.appendIri(domOnto + c);
+                        queryStr.append(" ");
+                        queryStr.appendIri(LABEL);
+                        queryStr.append(" ");
+                        queryStr.appendLiteral(c);
+
+                        queryStr.append("} }");
+                        System.out.println("Add Owl Class " + queryStr.toString());
+
+                        UpdateRequest q = queryStr.asUpdate();
+                        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                        UpdateProcessor insertClass = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                        insertClass.execute();
+                    }
                 }
                 
                 trans = FuserPanel.transformations.get(selectedFusions[0].action);
@@ -555,6 +561,93 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
     
+    private void clearPrevious(String[] l, String[] r) {
+        System.out.println("\n\n\nCLEARING\n\n\n\n");
+        //System.out.println("Left " + l);
+        //System.out.println("Right " + r);
+        
+        if ( l == null && r == null ) {
+            System.out.println("\n\n\nCLEARING\n\n\n\n");
+            return;
+        }
+        
+        ParameterizedSparqlString queryStr = null;
+
+        /*UpdateRequest q = queryStr.asUpdate();
+        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+        UpdateProcessor insertClass = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+        insertClass.execute();
+             */       
+        if ( l != null ) {
+            for (String s : l) {
+                String[] toks = s.split(",");
+                String prev_s = "<" + nodeA +">";
+                int index = 0;
+                
+                queryStr = new ParameterizedSparqlString();
+                queryStr.append("DELETE { ");
+                queryStr.append("GRAPH <" + tGraph + "> { ");
+                for (String tok : toks) {
+                    queryStr.append(prev_s);
+                    queryStr.append(" ");
+                    queryStr.appendIri(tok);
+                    queryStr.append(" ");
+                    queryStr.append("?o"+index);
+                    queryStr.append(" ");
+                    queryStr.append(". ");
+                    prev_s = "?o"+index;
+                    index++;
+                }
+                queryStr.append("} }");
+            }
+        }
+         
+        if ( queryStr != null ) {
+            System.out.println("Deletes A " + queryStr.toString());
+            UpdateRequest q = queryStr.asUpdate();
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            UpdateProcessor delPrev = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+            delPrev.execute();
+        }
+        
+        queryStr = null;
+        
+        if ( r != null ) {
+            for (String s : r) {
+                String[] toks = s.split(",");
+                String prev_s = "<" + nodeA +">";
+                int index = 0;
+                
+                queryStr = new ParameterizedSparqlString();
+                queryStr.append("DELETE { ");
+                queryStr.append("GRAPH <" + tGraph + "> { ");
+                for (String tok : toks) {
+                    queryStr.append(prev_s);
+                    queryStr.append(" ");
+                    queryStr.appendIri(tok);
+                    queryStr.append(" ");
+                    queryStr.append("?o"+index);
+                    queryStr.append(" ");
+                    queryStr.append(". ");
+                    prev_s = "?o"+index;
+                    index++;
+                }
+                queryStr.append("} }");
+            }
+        }  
+        
+        if ( queryStr != null ) {
+            System.out.println("Deletes B " + queryStr.toString());
+            UpdateRequest q = queryStr.asUpdate();
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            UpdateProcessor delPrev = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+            //delPrev.execute();
+        }
+        
+        System.out.println("\n\n\nCLEARING\n\n\n\n");
+
+    }
+    
     private void metadataConcatenation(int idx) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
@@ -591,6 +684,8 @@ public class FuseLinkServlet extends HttpServlet {
         System.out.println("Right pres "+rightPre);   
         for ( String s : rightPres )
             System.out.print(s + " ");
+        
+        clearPrevious(leftPres, rightPres);
         
         // Find Least Common Prefix
         int lcpIndexB = 0;
@@ -1041,6 +1136,8 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
+        clearPrevious(leftPres, rightPres);
+                
         // Find Least Common Prefix
         int lcpIndex = 0;
         String lcpProperty = "";
@@ -1397,6 +1494,8 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
+        clearPrevious(leftPres, rightPres);
+        
         // Find Least Common Prefix
         int lcpIndex = 0;
         String lcpProperty = "";
@@ -1752,6 +1851,8 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
+        clearPrevious(leftPres, rightPres);
+        
         // Find Least Common Prefix
         int lcpIndex = 0;
         String lcpProperty = "";
@@ -2031,6 +2132,8 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
+        clearPrevious(leftPres, rightPres);
+        
         // Find Least Common Prefix
         int lcpIndex = 0;
         String lcpProperty = "";
@@ -2304,6 +2407,8 @@ public class FuseLinkServlet extends HttpServlet {
         System.out.println("Right pres "+rightPre);   
         for ( String s : rightPres )
             System.out.print(s + " ");
+        
+        clearPrevious(leftPres, rightPres);
         
         //System.out.println("In the far depths "+leftPreTokens.length + " " + rightPreTokens.length);
         //for (String s : fs.get((idx-1)).predsB) {

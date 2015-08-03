@@ -2838,7 +2838,7 @@ function performFusion() {
     var teach = $('#fuseButton').prop("recommendation");
     teach.fusionAction = geomFuse.action;
     //alert(JSON.stringify(teach));
-    
+    /*
     $.ajax({
         // request type
         type: "POST",
@@ -2851,11 +2851,6 @@ function performFusion() {
         // code to run if the request succeeds;
         // the response is passed to the function
         success: function (responseJson) {
-            //alert(JSON.stringify(responseJson));
-            /*avail_classes = "";
-            $.each(responseJson.tag, function (index, element) {
-                avail_trans += "<option value=\"" + element + "\">" + element + "</option>";
-            });*/
         },
         // code to run if the request fails; the raw request and
         // status codes are passed to the function
@@ -2870,7 +2865,7 @@ function performFusion() {
             //$('#connLabel').text("connected");
         }
     });
-    
+    */
     current_feature.attributes.la.geometry.transform(WGS84, map.getProjectionObject());
     current_feature.attributes.lb.geometry.transform(WGS84, map.getProjectionObject());
 
