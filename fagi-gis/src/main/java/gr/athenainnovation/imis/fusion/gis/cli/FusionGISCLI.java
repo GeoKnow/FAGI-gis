@@ -111,6 +111,8 @@ public class FusionGISCLI {
         
         
         List<String> lines = new ArrayList<>();
+        
+        /*
         StringBuilder sb = new StringBuilder();
         try {
             lines = Files.readAllLines(Paths.get("/Users/nickvitsas/Documents/Work/FAGI-gis/fagi-gis-service/util/osm_subjects.txt"), Charset.defaultCharset());
@@ -133,8 +135,10 @@ public class FusionGISCLI {
         System.out.println(sb.toString());
         return;
         
+        */
         long startTime, endTime;
         String config_file;
+        
         /*
         HashSet<String> stopWordsList = new HashSet<>();
         FileInputStream fstream = null;
