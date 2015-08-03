@@ -91,7 +91,9 @@ public class LearningServlet extends HttpServlet {
 //        System.out.println("base PATH linux = " + PATH);
 //        System.out.println("base PATH windows = " + PATH_WIN);
         System.out.println(FuserPanel.transformations);
-        defineOS();
+        
+        isLinux = !OS.contains("win");
+        
         parseTagsMappedToClasses();
         
         fusionActions = new FusionActions(FuserPanel.transformations);
@@ -345,25 +347,7 @@ public class LearningServlet extends HttpServlet {
          System.out.println("mapperWithIDs " + mapperWithIDs);
          System.out.println("idsWithMappings " + idsWithMappings);
      }
-    
-         
-    private static void defineOS() {
-        
-        //System.getProperty("user.home");
-        //System.out.println("lalaka\n " + System.getenv());
-        
-        if(OS.contains("nux")){
-            isLinux = true;
-        }
-        else if(OS.contains("win")){
-            isLinux = false;
-        }
-        else{
-            System.out.println("Your operating system is not supported yet :/");
-            System.exit(0);
-        }
-    }
-       
+          
     public EntitiesCart getEntitiesCart(){
         return entitiesCart;
     }
