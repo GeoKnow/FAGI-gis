@@ -12,7 +12,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Maps;
+import com.hp.hpl.jena.query.ParameterizedSparqlString;
 import com.hp.hpl.jena.shared.JenaException;
+import com.hp.hpl.jena.update.UpdateExecutionFactory;
+import com.hp.hpl.jena.update.UpdateProcessor;
+import com.hp.hpl.jena.update.UpdateRequest;
 import gr.athenainnovation.imis.fusion.gis.geotransformations.AbstractFusionTransformation;
 import gr.athenainnovation.imis.fusion.gis.geotransformations.Concatenation;
 import gr.athenainnovation.imis.fusion.gis.geotransformations.ShiftAToB;
@@ -52,6 +56,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.atlas.web.auth.HttpAuthenticator;
+import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoUpdateFactory;
 import virtuoso.jena.driver.VirtuosoUpdateRequest;
@@ -65,6 +71,10 @@ public class FuseLinkServlet extends HttpServlet {
 
     private static final String WKT = "http://www.opengis.net/ont/geosparql#asWKT";
     private static final String HAS_GEOMETRY = "http://www.opengis.net/ont/geosparql#hasGeometry";
+    private static final String TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+    private static final String OWL_CLASS = "http://www.w3.org/2002/07/owl#Class";
+    private static final String LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
+    
     private DBConfig dbConf;
     private GraphConfig grConf;
     private VirtGraph vSet = null;
@@ -242,6 +252,12 @@ public class FuseLinkServlet extends HttpServlet {
         //JSONFusions selectedFusions = new JSONFusions();
         try {
             
+            String[] classes = request.getParameterValues("classes[]");
+            if ( classes == null ) {
+                out.print("{}");
+                return;
+            }
+            
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
             mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
@@ -330,6 +346,48 @@ public class FuseLinkServlet extends HttpServlet {
             System.out.println("Fusing : "+nodeA+" "+nodeB);
             AbstractFusionTransformation trans = null;
             for(;;) {
+                String domOnto = "";
+                if ( grConf.isDominantA() ) 
+                    domOnto = (String)sess.getAttribute("domA");
+                else 
+                    domOnto = (String)sess.getAttribute("domB");
+                System.out.println("Add Classes !!!!!!!!!!!!!!!!");
+                for (String c : classes ) {
+                    ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                    //queryStr.append("WITH <"+fusedGraph+"> ");
+                    queryStr.append("INSERT DATA { ");
+                    queryStr.append("GRAPH <" + tGraph + "> { ");
+
+                    queryStr.appendIri(nodeA);
+                    queryStr.append(" ");
+                    queryStr.appendIri(TYPE);
+                    queryStr.append(" ");
+                    queryStr.appendIri(domOnto + c);
+                    queryStr.append(" ");
+                    queryStr.append(".");
+                    queryStr.append(" ");
+                    queryStr.appendIri(domOnto + c);
+                    queryStr.append(" ");
+                    queryStr.appendIri(TYPE);
+                    queryStr.append(" ");
+                    queryStr.appendIri(OWL_CLASS);
+                    queryStr.append(".");
+                    queryStr.append(" ");
+                    queryStr.appendIri(domOnto + c);
+                    queryStr.append(" ");
+                    queryStr.appendIri(LABEL);
+                    queryStr.append(" ");
+                    queryStr.appendLiteral(c);
+                    
+                    queryStr.append("} }");
+                    System.out.println("Add Owl Class "+queryStr.toString());
+
+                    UpdateRequest q = queryStr.asUpdate();
+                    HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                    UpdateProcessor insertClass = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                    insertClass.execute();
+                }
+                
                 trans = FuserPanel.transformations.get(selectedFusions[0].action);
                 if ( trans instanceof ShiftAToB) {
                     ((ShiftAToB)trans).setShift(sFactors.shift);

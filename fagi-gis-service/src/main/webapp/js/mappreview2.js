@@ -2612,7 +2612,7 @@ function fusionPanel(event, val, node) {
         recommendation.owlClassB[recommendation.owlClassB.length] = element;
     });
     //alert(JSON.stringify(recommendation));
-    //classRecommendation
+    
     $.ajax({
         // request type
         type: "POST",
@@ -2805,6 +2805,13 @@ function performFusion() {
         shiftValuesJSON.rotateFact = $('#rotate_fac').val();
     }
     
+    //classRecommendation
+    var send = $('#classRecommendation').val();
+    
+    if ( send == null ) 
+        send = "";
+    
+    //alert(send);
     //alert(current_feature == null);
     var geomCells = tblRows[1].getElementsByTagName("td");
     var geomFuse = new Object();
@@ -2920,7 +2927,7 @@ function performFusion() {
         // the URL for the request
         url: "FuseLinkServlet",
         // the data to send (will be converted to a query string)
-        data: {props: sendData, propsJSON: sndJSON, factJSON: sndShiftJSON},
+        data: {props: sendData, propsJSON: sndJSON, factJSON: sndShiftJSON, classes: send},
         // the type of data we expect back
         dataType: "json",
         // code to run if the request succeeds;
