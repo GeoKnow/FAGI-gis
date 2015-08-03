@@ -5,7 +5,10 @@
         <title>FAGI-gis</title>
         <meta name="description" content="website description" />
         <meta name="keywords" content="website keywords, website keywords" />
+        <link href='http://fonts.googleapis.com/css?family=Bree+Serif' rel='stylesheet' type='text/css'>
+        <!--
         <link href='http://fonts.googleapis.com/css?family=Indie+Flower' rel='stylesheet' type='text/css'>
+        -->
         <link rel="stylesheet" href="js/codemirror/theme/lesser-dark.css">
         <link rel="stylesheet" href="js/codemirror/theme/base16-light.css">
         <link rel="stylesheet" href="js/codemirror/lib/codemirror.css">
