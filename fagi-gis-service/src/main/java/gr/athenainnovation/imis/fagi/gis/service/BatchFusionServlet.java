@@ -440,9 +440,10 @@ public class BatchFusionServlet extends HttpServlet {
                 
                 loadClusterLinks(clusterLinks);
                 createClusterGraph(clusterLinks);
+                
+                dbConn.commit();
             }
             
-            dbConn.commit();
             System.out.println(selectedFusions[0].preL);
             
             AbstractFusionTransformation trans = null;
@@ -695,6 +696,112 @@ public class BatchFusionServlet extends HttpServlet {
             metadataKeepFlatLeft(idx);
             metadataKeepFlatRight(idx);  
         }
+    }
+    
+    private void clearPrevious(String[] l, String[] r) {
+        System.out.println("\n\n\nCLEARING\n\n\n\n");
+        //System.out.println("Left " + l);
+        //System.out.println("Right " + r);
+        
+        if ( l == null && r == null ) {
+            System.out.println("\n\n\nCLEARING\n\n\n\n");
+            return;
+        }
+        
+        ParameterizedSparqlString queryStr = null;
+    
+        if ( l != null ) {
+            for (String s : l) {
+                String[] toks = s.split(",");
+                String prev_s = "<" + nodeA +">";
+                int index = 0;
+                
+                queryStr = new ParameterizedSparqlString();
+                queryStr.append("DELETE { GRAPH <" + tGraph + "> { ");
+                for (String tok : toks) {
+                    queryStr.append(prev_s);
+                    queryStr.append(" ");
+                    queryStr.appendIri(tok);
+                    queryStr.append(" ");
+                    queryStr.append("?o"+index);
+                    queryStr.append(" ");
+                    queryStr.append(". ");
+                    prev_s = "?o"+index;
+                    index++;
+                }
+                queryStr.append("} } WHERE { GRAPH <" + tGraph + "> { ");
+                prev_s = "<" + nodeA +">";
+                for (String tok : toks) {
+                    queryStr.append(prev_s);
+                    queryStr.append(" ");
+                    queryStr.appendIri(tok);
+                    queryStr.append(" ");
+                    queryStr.append("?o"+index);
+                    queryStr.append(" ");
+                    queryStr.append(". ");
+                    prev_s = "?o"+index;
+                    index++;
+                }
+                queryStr.append("} }");
+            }
+        }
+         
+        if ( queryStr != null ) {
+            System.out.println("Deletes A " + queryStr.toString());
+            UpdateRequest q = queryStr.asUpdate();
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            UpdateProcessor delPrev = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+            delPrev.execute();
+        }
+        
+        queryStr = null;
+        
+        if ( r != null ) {
+            for (String s : r) {
+                String[] toks = s.split(",");
+                String prev_s = "<" + nodeA +">";
+                int index = 0;
+                
+                queryStr = new ParameterizedSparqlString();
+                queryStr.append("DELETE { GRAPH <" + tGraph + "> { ");
+                for (String tok : toks) {
+                    queryStr.append(prev_s);
+                    queryStr.append(" ");
+                    queryStr.appendIri(tok);
+                    queryStr.append(" ");
+                    queryStr.append("?o"+index);
+                    queryStr.append(" ");
+                    queryStr.append(". ");
+                    prev_s = "?o"+index;
+                    index++;
+                }
+                queryStr.append("} } WHERE { GRAPH <" + tGraph + "> { ");
+                prev_s = "<" + nodeA +">";
+                for (String tok : toks) {
+                    queryStr.append(prev_s);
+                    queryStr.append(" ");
+                    queryStr.appendIri(tok);
+                    queryStr.append(" ");
+                    queryStr.append("?o"+index);
+                    queryStr.append(" ");
+                    queryStr.append(". ");
+                    prev_s = "?o"+index;
+                    index++;
+                }
+                queryStr.append("} }");
+            }
+        }  
+        
+        if ( queryStr != null ) {
+            System.out.println("Deletes B " + queryStr.toString());
+            UpdateRequest q = queryStr.asUpdate();
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            UpdateProcessor delPrev = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+            //delPrev.execute();
+        }
+        
+        System.out.println("\n\n\nCLEARING\n\n\n\n");
+
     }
     
     private void metadataKeepFlatLeft(int idx) throws SQLException, UnsupportedEncodingException {

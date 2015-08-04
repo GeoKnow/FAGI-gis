@@ -572,12 +572,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
         
         ParameterizedSparqlString queryStr = null;
-
-        /*UpdateRequest q = queryStr.asUpdate();
-        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-        UpdateProcessor insertClass = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
-        insertClass.execute();
-             */       
+    
         if ( l != null ) {
             for (String s : l) {
                 String[] toks = s.split(",");
@@ -585,8 +580,20 @@ public class FuseLinkServlet extends HttpServlet {
                 int index = 0;
                 
                 queryStr = new ParameterizedSparqlString();
-                queryStr.append("DELETE { ");
-                queryStr.append("GRAPH <" + tGraph + "> { ");
+                queryStr.append("DELETE { GRAPH <" + tGraph + "> { ");
+                for (String tok : toks) {
+                    queryStr.append(prev_s);
+                    queryStr.append(" ");
+                    queryStr.appendIri(tok);
+                    queryStr.append(" ");
+                    queryStr.append("?o"+index);
+                    queryStr.append(" ");
+                    queryStr.append(". ");
+                    prev_s = "?o"+index;
+                    index++;
+                }
+                queryStr.append("} } WHERE { GRAPH <" + tGraph + "> { ");
+                prev_s = "<" + nodeA +">";
                 for (String tok : toks) {
                     queryStr.append(prev_s);
                     queryStr.append(" ");
@@ -619,8 +626,20 @@ public class FuseLinkServlet extends HttpServlet {
                 int index = 0;
                 
                 queryStr = new ParameterizedSparqlString();
-                queryStr.append("DELETE { ");
-                queryStr.append("GRAPH <" + tGraph + "> { ");
+                queryStr.append("DELETE { GRAPH <" + tGraph + "> { ");
+                for (String tok : toks) {
+                    queryStr.append(prev_s);
+                    queryStr.append(" ");
+                    queryStr.appendIri(tok);
+                    queryStr.append(" ");
+                    queryStr.append("?o"+index);
+                    queryStr.append(" ");
+                    queryStr.append(". ");
+                    prev_s = "?o"+index;
+                    index++;
+                }
+                queryStr.append("} } WHERE { GRAPH <" + tGraph + "> { ");
+                prev_s = "<" + nodeA +">";
                 for (String tok : toks) {
                     queryStr.append(prev_s);
                     queryStr.append(" ");
