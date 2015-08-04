@@ -149,6 +149,7 @@ var vectorsLinks = new OpenLayers.Layer.Vector('Links Layer', {isBaseLayer: fals
 //var vectorsLinks = new OpenLayers.Layer.Vector('Links Layer', {isBaseLayer: false, style: styleLinks});
 var vectorsLinksTemp = new OpenLayers.Layer.Vector('Links Layer Temp', {isBaseLayer: false, style: styleLinks});
 var bboxLayer = new OpenLayers.Layer.Vector('BBox Layer', {isBaseLayer: false, style: styleBBox});
+var linksPreviewed = false;
 
 // SPARQL Editors
 var sparqlEditorA = null;
@@ -2459,7 +2460,7 @@ function onLinkFeatureSelect(event) {
             success: function (responseJson) {
                 //$('#connLabel').text(responseJson);
                 fusionPanel(event.feature, responseJson);
-                map.zoomToExtent(event.feature.geometry.getBounds());
+                //map.zoomToExtent(event.feature.geometry.getBounds());
             },
             // code to run if the request fails; the raw request and
             // status codes are passed to the function
