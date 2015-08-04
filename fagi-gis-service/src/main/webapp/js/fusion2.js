@@ -186,6 +186,11 @@ function init() {
         if (ds == "A") {
             $.each(vectorsA.features, function (index, element) {
                 var links = element.attributes.links;
+                if ( typeof links === "undefined" ) {
+                    console.log(element.attributes.a);
+                    map.zoomToExtent(element.geometry.getBounds());
+                }
+                
                 if (links.length > 0) {
                     var bestLink = null;
                     var bestScore = -1;
@@ -198,7 +203,7 @@ function init() {
                             bestLink = links[i];
                         }
                     }
-                    console.log("Best Score " + bestScore);
+                    //console.log("Best Score " + bestScore);
                     if ( bestLink != null )
                         validateLink(bestLink, ds);
                 }
@@ -206,6 +211,10 @@ function init() {
         } else {
             $.each(vectorsB.features, function (index, element) {
                 var links = element.attributes.links;
+                if ( typeof links === "undefined" ) {
+                    console.log(element.attributes.a);
+                    map.zoomToExtent(element.geometry.getBounds());
+                }
                 if (links.length > 0) {
                     var bestLink = null;
                     var bestScore = -1;
@@ -1073,131 +1082,223 @@ function submitLinks(batchFusion) {
 
     enableSpinner();
     $("#matchingMenu").trigger('click');
-    $.ajax({
-        // request type
-        type: "POST",
-        // the URL for the request
-        url: "PreviewServlet",
-        // the data to send (will be converted to a query string)
-        data: {links: sendData},
-        // the type of data we expect back
-        dataType: "text",
-        // code to run if the request succeeds;
-        // the response is passed to the function
-        success: function (responseText) {
-            //$('#connLabel').text(responseText);
-            if (responseText === "Connection parameters not set") {
-                $('#dataLabel').text(responseText);
-            } else {
-                //alert('add');
-                //addMapData(responseText);
-                if ( batchFusion === true ) {
-                    addMapData(responseText);
-                    var tbl = document.getElementById("bFusionTable");
-                    //alert('so close 2');
-                    var tblBody = document.getElementById("bFusionTable");
-                    //alert(tblBody);
-                    var tblRows = tblBody.getElementsByTagName("tr");
-                    var sendJSON = new Array();
-                    var clusterJSON = null;
-                    var shiftValuesJSON = new Object();
-                    if (!$('#bscale_fac').prop('disabled')) {
-                        shiftValuesJSON.shift = $('#bshift').val();
-                        shiftValuesJSON.scaleFact = $('#bscale_fac').val();
-                        shiftValuesJSON.rotateFact = $('#brotate_fac').val();
-                    }
-                    if (!$('#offset-x-a').prop('disabled')) {
-                        shiftValuesJSON.gOffsetAX = $('#offset-x-a').val();
-                        shiftValuesJSON.gOffsetAY = $('#offset-y-a').val();
-                        shiftValuesJSON.gOffsetBX = $('#offset-x-b').val();
-                        shiftValuesJSON.gOffsetBY = $('#offset-y-b').val();
-                    }
-                    //alert($( "#clusterSelector" ).val());
-                    if ( $( "#clusterSelector" ).val() > -1 ) {
-                        //alert("Cluster chosen");
-                        clusterJSON = createLinkCluster($( "#clusterSelector" ).val());
-                    }
-                    
-                    //alert(current_feature == null);
-                    var geomCells = tblRows[1].getElementsByTagName("td");
-                    var geomFuse = new Object();
-
-                    geomFuse.pre = geomCells[1].innerHTML;
-                    geomFuse.preL = "http://www.opengis.net/ont/geosparql#asWKT";
-                    var tmpGeomAction = geomCells[3].getElementsByTagName("select");
-                    //alert('after valB '+tmpGeomAction.length+' '+geomCells.length);
-                    if (tmpGeomAction.length == 1) {
-                        geomFuse.action = tmpGeomAction[0].value;
-                    }
-                    
-                    sendJSON[sendJSON.length] = geomFuse;
-                    for (var i = 2; i < tblRows.length; i++) {
-                        var cells = tblRows[i].getElementsByTagName("td");
-                        var propFuse = new Object();
-
-                        propFuse.pre = tblRows[i].newPred;
-                        propFuse.preL = tblRows[i].long_name;
-                        var tmpAction = cells[3].getElementsByTagName("select");
-                        if (tmpAction.length == 1) {
-                            propFuse.action = tmpAction[0].value;
-                        }
-
-                        sendJSON[sendJSON.length] = propFuse;
-                    }
-
-                    var sndJSON = JSON.stringify(sendJSON);
-                    var sndShiftJSON = JSON.stringify(shiftValuesJSON);
-                    $.ajax({
-                        // request type
-                        type: "POST",
-                        // the URL for the request
-                        url: "BatchFusionServlet",
-                        // the data to send (will be converted to a query string)
-                        data: {propsJSON: sndJSON, factJSON: sndShiftJSON, clusterJSON: clusterJSON, cluster: $( "#clusterSelector" ).val()},
-                        // the type of data we expect back
-                        dataType: "json",
-                        // code to run if the request succeeds;
-                        // the response is passed to the function
-                        success: function (responseJson) {
-                            //$('#connLabel').text(responseJson);
-                            batchFusionPreview(responseJson);
-                            //previewLinkedGeom(responseJson);
-                            //fusionPanel(event, responseJson);
-                            disableSpinner();
-                        },
-                        // code to run if the request fails; the raw request and
-                        // status codes are passed to the function
-                        error: function (xhr, status, errorThrown) {
-                            disableSpinner();
-                            alert("Sorry, there was a problem!");
-                            console.log("Error: " + errorThrown);
-                            console.log("Status: " + status);
-                            console.dir(xhr);
-                        },
-                        // code to run regardless of success or failure
-                        complete: function (xhr, status) {
-                            //$('#connLabel').text("connected");
-                        }
-                    });
+    if (!linksPreviewed) {
+        $.ajax({
+            // request type
+            type: "POST",
+            // the URL for the request
+            url: "PreviewServlet",
+            // the data to send (will be converted to a query string)
+            data: {links: sendData},
+            // the type of data we expect back
+            dataType: "text",
+            // code to run if the request succeeds;
+            // the response is passed to the function
+            success: function (responseText) {
+                //$('#connLabel').text(responseText);
+                linksPreviewed = true;
+                if (responseText === "Connection parameters not set") {
+                    $('#dataLabel').text(responseText);
                 } else {
-                    disableSpinner();
-                    addMapData(responseText);
+                    //alert('add');
+                    //addMapData(responseText);
+                    if (batchFusion === true) {
+                        addMapData(responseText);
+                        var tbl = document.getElementById("bFusionTable");
+                        //alert('so close 2');
+                        var tblBody = document.getElementById("bFusionTable");
+                        //alert(tblBody);
+                        var tblRows = tblBody.getElementsByTagName("tr");
+                        var sendJSON = new Array();
+                        var clusterJSON = null;
+                        var shiftValuesJSON = new Object();
+                        if (!$('#bscale_fac').prop('disabled')) {
+                            shiftValuesJSON.shift = $('#bshift').val();
+                            shiftValuesJSON.scaleFact = $('#bscale_fac').val();
+                            shiftValuesJSON.rotateFact = $('#brotate_fac').val();
+                        }
+                        if (!$('#offset-x-a').prop('disabled')) {
+                            shiftValuesJSON.gOffsetAX = $('#offset-x-a').val();
+                            shiftValuesJSON.gOffsetAY = $('#offset-y-a').val();
+                            shiftValuesJSON.gOffsetBX = $('#offset-x-b').val();
+                            shiftValuesJSON.gOffsetBY = $('#offset-y-b').val();
+                        }
+                        //alert($( "#clusterSelector" ).val());
+                        if ($("#clusterSelector").val() > -1) {
+                            //alert("Cluster chosen");
+                            clusterJSON = createLinkCluster($("#clusterSelector").val());
+                        }
+
+                        //alert(current_feature == null);
+                        var geomCells = tblRows[1].getElementsByTagName("td");
+                        var geomFuse = new Object();
+
+                        geomFuse.pre = geomCells[1].innerHTML;
+                        geomFuse.preL = "http://www.opengis.net/ont/geosparql#asWKT";
+                        var tmpGeomAction = geomCells[3].getElementsByTagName("select");
+                        //alert('after valB '+tmpGeomAction.length+' '+geomCells.length);
+                        if (tmpGeomAction.length == 1) {
+                            geomFuse.action = tmpGeomAction[0].value;
+                        }
+
+                        sendJSON[sendJSON.length] = geomFuse;
+                        for (var i = 2; i < tblRows.length; i++) {
+                            var cells = tblRows[i].getElementsByTagName("td");
+                            var propFuse = new Object();
+
+                            propFuse.pre = tblRows[i].newPred;
+                            propFuse.preL = tblRows[i].long_name;
+                            var tmpAction = cells[3].getElementsByTagName("select");
+                            if (tmpAction.length == 1) {
+                                propFuse.action = tmpAction[0].value;
+                            }
+
+                            sendJSON[sendJSON.length] = propFuse;
+                        }
+
+                        var sndJSON = JSON.stringify(sendJSON);
+                        var sndShiftJSON = JSON.stringify(shiftValuesJSON);
+                        $.ajax({
+                            // request type
+                            type: "POST",
+                            // the URL for the request
+                            url: "BatchFusionServlet",
+                            // the data to send (will be converted to a query string)
+                            data: {propsJSON: sndJSON, factJSON: sndShiftJSON, clusterJSON: clusterJSON, cluster: $("#clusterSelector").val()},
+                            // the type of data we expect back
+                            dataType: "json",
+                            // code to run if the request succeeds;
+                            // the response is passed to the function
+                            success: function (responseJson) {
+                                //$('#connLabel').text(responseJson);
+                                batchFusionPreview(responseJson);
+                                //previewLinkedGeom(responseJson);
+                                //fusionPanel(event, responseJson);
+                                disableSpinner();
+                            },
+                            // code to run if the request fails; the raw request and
+                            // status codes are passed to the function
+                            error: function (xhr, status, errorThrown) {
+                                disableSpinner();
+                                alert("Sorry, there was a problem!");
+                                console.log("Error: " + errorThrown);
+                                console.log("Status: " + status);
+                                console.dir(xhr);
+                            },
+                            // code to run regardless of success or failure
+                            complete: function (xhr, status) {
+                                //$('#connLabel').text("connected");
+                            }
+                        });
+                    } else {
+                        disableSpinner();
+                        addMapData(responseText);
+                    }
                 }
+            },
+            // code to run if the request fails; the raw request and
+            // status codes are passed to the function
+            error: function (xhr, status, errorThrown) {
+                alert("Sorry, there was a problem!");
+                console.log("Error: " + errorThrown);
+                console.log("Status: " + status);
+                console.dir(xhr);
+            },
+            // code to run regardless of success or failure
+            complete: function (xhr, status) {
+                //$('#connLabel').text("connected");
             }
-        },
-        // code to run if the request fails; the raw request and
-        // status codes are passed to the function
-        error: function (xhr, status, errorThrown) {
-            alert("Sorry, there was a problem!");
-            console.log("Error: " + errorThrown);
-            console.log("Status: " + status);
-            console.dir(xhr);
-        },
-        // code to run regardless of success or failure
-        complete: function (xhr, status) {
-            //$('#connLabel').text("connected");
+        });
+    } else {
+        if (batchFusion === true) {
+            var tbl = document.getElementById("bFusionTable");
+            //alert('so close 2');
+            var tblBody = document.getElementById("bFusionTable");
+            //alert(tblBody);
+            var tblRows = tblBody.getElementsByTagName("tr");
+            var sendJSON = new Array();
+            var clusterJSON = null;
+            var shiftValuesJSON = new Object();
+            if (!$('#bscale_fac').prop('disabled')) {
+                shiftValuesJSON.shift = $('#bshift').val();
+                shiftValuesJSON.scaleFact = $('#bscale_fac').val();
+                shiftValuesJSON.rotateFact = $('#brotate_fac').val();
+            }
+            if (!$('#offset-x-a').prop('disabled')) {
+                shiftValuesJSON.gOffsetAX = $('#offset-x-a').val();
+                shiftValuesJSON.gOffsetAY = $('#offset-y-a').val();
+                shiftValuesJSON.gOffsetBX = $('#offset-x-b').val();
+                shiftValuesJSON.gOffsetBY = $('#offset-y-b').val();
+            }
+            //alert($( "#clusterSelector" ).val());
+            if ($("#clusterSelector").val() > -1) {
+                //alert("Cluster chosen");
+                clusterJSON = createLinkCluster($("#clusterSelector").val());
+            }
+
+            //alert(current_feature == null);
+            var geomCells = tblRows[1].getElementsByTagName("td");
+            var geomFuse = new Object();
+
+            geomFuse.pre = geomCells[1].innerHTML;
+            geomFuse.preL = "http://www.opengis.net/ont/geosparql#asWKT";
+            var tmpGeomAction = geomCells[3].getElementsByTagName("select");
+            //alert('after valB '+tmpGeomAction.length+' '+geomCells.length);
+            if (tmpGeomAction.length == 1) {
+                geomFuse.action = tmpGeomAction[0].value;
+            }
+
+            sendJSON[sendJSON.length] = geomFuse;
+            for (var i = 2; i < tblRows.length; i++) {
+                var cells = tblRows[i].getElementsByTagName("td");
+                var propFuse = new Object();
+
+                propFuse.pre = tblRows[i].newPred;
+                propFuse.preL = tblRows[i].long_name;
+                var tmpAction = cells[3].getElementsByTagName("select");
+                if (tmpAction.length == 1) {
+                    propFuse.action = tmpAction[0].value;
+                }
+
+                sendJSON[sendJSON.length] = propFuse;
+            }
+
+            var sndJSON = JSON.stringify(sendJSON);
+            var sndShiftJSON = JSON.stringify(shiftValuesJSON);
+            $.ajax({
+                // request type
+                type: "POST",
+                // the URL for the request
+                url: "BatchFusionServlet",
+                // the data to send (will be converted to a query string)
+                data: {propsJSON: sndJSON, factJSON: sndShiftJSON, clusterJSON: clusterJSON, cluster: $("#clusterSelector").val()},
+                // the type of data we expect back
+                dataType: "json",
+                // code to run if the request succeeds;
+                // the response is passed to the function
+                success: function (responseJson) {
+                    //$('#connLabel').text(responseJson);
+                    batchFusionPreview(responseJson);
+                    //previewLinkedGeom(responseJson);
+                    //fusionPanel(event, responseJson);
+                    disableSpinner();
+                },
+                // code to run if the request fails; the raw request and
+                // status codes are passed to the function
+                error: function (xhr, status, errorThrown) {
+                    disableSpinner();
+                    alert("Sorry, there was a problem!");
+                    console.log("Error: " + errorThrown);
+                    console.log("Status: " + status);
+                    console.dir(xhr);
+                },
+                // code to run regardless of success or failure
+                complete: function (xhr, status) {
+                    //$('#connLabel').text("connected");
+                }
+            });
         }
-    });
+    }
 }
 
 function createLinkCluster(cluster) {
