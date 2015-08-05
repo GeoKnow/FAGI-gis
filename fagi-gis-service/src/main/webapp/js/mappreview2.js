@@ -1768,7 +1768,12 @@ function doDragA(feature, pixel) {
                 var otherEndLinkIdx;
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
                     if ( otherEnd.attributes.links[j] == selectedGeomA.attributes.links[i] ) {
+                        console.log('other end link' + otherEndLinkIdx);
+                        console.log('other end link' + (otherEnd.attributes.links[j] == selectedGeomA.attributes.links[i]));
+                        console.log('other end link' + (otherEnd.attributes.links[j].attributes.a == selectedGeomA.attributes.links[i].attributes.a));
                         otherEndLinkIdx = j;
+                        
+                        break;
                     } 
                 }
                 vectorsLinks.destroyFeatures([selectedGeomA.attributes.links[i]]);
@@ -1800,6 +1805,10 @@ function doDragA(feature, pixel) {
                     'opacity': selectedGeomA.attributes.links[i].attributes.opacity};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
+                if ( !validated ) {
+                    linkFeature.jIndex = selectedGeomA.attributes.links[i].jIndex;
+                    linkFeature.dist = selectedGeomA.attributes.links[i].dist;
+                }
                 selectedGeomA.attributes.links[i] = linkFeature;
                 otherEnd.attributes.links[otherEndLinkIdx] = linkFeature;
                 vectorsLinks.addFeatures([linkFeature]);
@@ -1894,10 +1903,14 @@ function doDragB(feature, pixel) {
             for (i = 0; i < selectedGeomB.attributes.links.length; i++) {
                 var validated = selectedGeomB.attributes.links[i].validated;
                 var otherEnd = selectedGeomB.attributes.links[i].attributes.la;
-                var otherEndLinkIdx;
+                var otherEndLinkIdx = 0;
+                
+                
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
                     if ( otherEnd.attributes.links[j] == selectedGeomB.attributes.links[i] ) {
                         otherEndLinkIdx = j;
+                        
+                        break;
                     } 
                 }
                 vectorsLinks.destroyFeatures([selectedGeomB.attributes.links[i]]);
@@ -1935,6 +1948,10 @@ function doDragB(feature, pixel) {
                     'cluster': selectedGeomB.attributes.links[i].attributes.cluster};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
+                if ( !validated ) {
+                    linkFeature.jIndex = selectedGeomB.attributes.links[i].jIndex;
+                    linkFeature.dist = selectedGeomB.attributes.links[i].dist;
+                }
                 selectedGeomB.attributes.links[i] = linkFeature;
                 otherEnd.attributes.links[otherEndLinkIdx] = linkFeature;
                 vectorsLinks.addFeatures([linkFeature]);
@@ -1952,13 +1969,7 @@ function doDragB(feature, pixel) {
 
 // Featrue stopped moving 
 function endDragB(feature, pixel) {
-    //console.log( "end drag B" );
      if (selectedGeomB != null) {
-        selectedGeomB.geometry.transform(map.getProjectionObject(), WGS84);
-        //alert('End drag '+wkt.write(selectedGeomB));
-        //alert('End drag '+wkt.write(selectedGeomB.linls[0]));
-        selectedGeomB.geometry.transform(WGS84, map.getProjectionObject());
-        //selectedGeomB.state = OpenLayers.State.UPDATE;
         selectedGeomB = null;
     }
 }

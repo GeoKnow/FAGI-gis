@@ -190,10 +190,11 @@ function init() {
                     console.log(element.attributes.a);
                     map.zoomToExtent(element.geometry.getBounds());
                 }
-                
+                console.log(element.attributes.a);
                 if (links.length > 0) {
                     var bestLink = null;
                     var bestScore = -1;
+                    console.log("Links Count " + links.length);
                     for (var i = 0; i < links.length; i++) {
                         if ( links[i].validated ) 
                             continue;
@@ -203,7 +204,8 @@ function init() {
                             bestLink = links[i];
                         }
                     }
-                    //console.log("Best Score " + bestScore);
+                    console.log("Best Score " + bestScore);
+                    
                     if ( bestLink != null )
                         validateLink(bestLink, ds);
                 }
@@ -467,7 +469,7 @@ function validateLink(feat, ds) {
                     else
                         newLinksA[newLinksA.length] = linksA[i];
                 }
-                feat.attributes.la.attributes.links = newLinksA;
+                //feat.attributes.la.attributes.links = newLinksA;
 
             } else {
                 for (i = 0; i < linksB.length; i++) {
@@ -476,10 +478,10 @@ function validateLink(feat, ds) {
                     else
                         newLinksB[newLinksB.length] = linksB[i];
                 }
-                feat.attributes.lb.attributes.links = newLinksB;
+                //feat.attributes.lb.attributes.links = newLinksB;
             }
             //vectorsLinksTemp.destroyFeatures(toDel);
-            vectorsLinks.destroyFeatures(toDel);
+            //vectorsLinks.destroyFeatures(toDel);
             feat.validated = true;
             vectorsLinks.drawFeature(feat);
             //console.log("All good " + responseText);
@@ -733,8 +735,6 @@ var next_link_id = 0;
 $('#addLinkSchema').click(function () {
     if (linkLastSelectedFromA === null || linkLastSelectedFromB === null) {
         alert("No properties selected");
-        //alert(lastSelectedFromA === null);
-        //alert(lastSelectedFromB === null);
         return;
     }
 
