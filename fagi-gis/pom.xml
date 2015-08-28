@@ -4,7 +4,7 @@
 
     <groupId>gr.athena-innovation.imis</groupId>
     <artifactId>fagi-gis</artifactId>
-    <version>1.1+rev239</version>
+    <version>1.1+rev240</version>
     <packaging>jar</packaging>
     
     <url>http://maven.apache.org</url>
@@ -267,8 +267,8 @@
                     <archive>
                         <index>true</index>
                         <manifest>
-                            <!--<classpathPrefix>/usr/share/fagi-gis/</classpathPrefix>-->
-                            <classpathPrefix>lib/</classpathPrefix>
+                            <classpathPrefix>/usr/share/fagi-gis/</classpathPrefix>
+                            <!--<classpathPrefix>lib/</classpathPrefix>-->
                             <addClasspath>true</addClasspath>
                             <mainClass>gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI</mainClass>
                         </manifest>

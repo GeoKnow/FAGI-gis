@@ -12,14 +12,14 @@
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.version>239</project.version>
+        <project.version>240</project.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>fagi-gis</artifactId>
-            <version>1.1+rev239</version>
+            <version>1.1+rev240</version>
         </dependency>
         <dependency>
             <groupId>javax</groupId>

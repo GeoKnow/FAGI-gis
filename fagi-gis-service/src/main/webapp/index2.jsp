@@ -1,3 +1,7 @@
+<%@page language="java"%>
+<%@page import="java.lang.*"%>
+<%@page import="java.util.*"%>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <html>
@@ -19,7 +23,85 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="css/stylesheet.css" />
 </head>
+    
     <body>
+        <%
+            String str = request.getParameter("dataset-a");
+            if ( str == null ) 
+                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+            else
+                request.setAttribute("dataset-a", request.getParameter("dataset-a"));
+            
+            str = request.getParameter("dataset-b");
+            if ( str == null ) 
+                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+            else
+                request.setAttribute("dataset-b", request.getParameter("dataset-b"));
+            
+            str = request.getParameter("endpoint-a");
+            if ( str == null ) 
+                request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
+            else
+                request.setAttribute("endpoint-a", request.getParameter("endpoint-a"));
+            
+            str = request.getParameter("endpoint-b");
+            if ( str == null ) 
+                request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
+            else
+                request.setAttribute("endpoint-b", request.getParameter("endpoint-b"));
+            
+            str = request.getParameter("postgis-username");
+            if ( str == null ) 
+                request.setAttribute("postgis-username", "postgres");
+            else
+                request.setAttribute("postgis-username", request.getParameter("postgis-username"));
+            
+            str = request.getParameter("postgis-password");
+            if ( str == null ) 
+                request.setAttribute("postgis-password", "1111");
+            else
+                request.setAttribute("postgis-password", request.getParameter("postgis-password"));
+            
+            str = request.getParameter("postgis-host");
+            if ( str == null ) 
+                request.setAttribute("postgis-host", "localhost");
+            else
+                request.setAttribute("postgis-host", request.getParameter("postgis-host"));
+            
+            str = request.getParameter("postgis-port");
+            if ( str == null ) 
+                request.setAttribute("postgis-port", "1111");
+            else
+                request.setAttribute("postgis-port", request.getParameter("postgis-port"));
+            
+            str = request.getParameter("target-endpoint");
+            if ( str == null ) 
+                request.setAttribute("target-endpoint", "http://localhost:8890/sparql");
+            else
+                request.setAttribute("target-endpoint", request.getParameter("target-endpoint"));
+            
+            str = request.getParameter("target-dataset");
+            if ( str == null ) 
+                request.setAttribute("target-dataset", "http://localhost:8890/fused_dataset");
+            else
+                request.setAttribute("target-dataset", request.getParameter("target-dataset"));
+            
+            /*
+             $scope.service.serviceUrl +
+					'?endpoint-a=' + encodeURIComponent($scope.fagi.endpointA == $scope.endpoint? authEndpoint : $scope.fagi.endpointA ) +
+					'&endpoint-b=' + encodeURIComponent($scope.fagi.endpointB == $scope.endpoint? authEndpoint : $scope.fagi.endpointB ) +
+					'&dataset-a='  + encodeURIComponent($scope.fagi.datasetA!=""? $scope.fagi.datasetA.replace(':',ConfigurationService.getUriBase()):"") +
+					'&dataset-b='  + encodeURIComponent($scope.fagi.datasetB!=""? $scope.fagi.datasetB.replace(':',ConfigurationService.getUriBase()):"") +
+					'&postgis-username='+ encodeURIComponent($scope.fagi.database.dbUser) +
+					'&postgis-password='+ encodeURIComponent($scope.fagi.database.dbPassword) +
+					'&postgis-database='+ encodeURIComponent($scope.fagi.database.dbName) +
+					'&postgis-host='+ encodeURIComponent($scope.fagi.database.dbHost) +
+					'&postgis-port='+ encodeURIComponent($scope.fagi.database.dbPort) +
+					'&target-endpoint='+ encodeURIComponent(authEndpoint) +
+					'&target-dataset='+ encodeURIComponent($scope.fagi.targetGraph.replace(':',ConfigurationService.getUriBase())) ;
+            */
+        %>
+        
         <div id="fg-screen-dimmer"></div>
         <div id="fg-loading-spinner" class="loader">
             <svg xmlns=http://www.w3.org/2000/svg  viewBox="0 0 100 100" id=circle-middle>
@@ -109,7 +191,6 @@
                 <table style="width:100%; height:1%;">
                     <tr>
 
-
                         <td><a id="connectionMenu" href="#connection">connection</a></td>
                         <td><a id="datasetMenu" href="#datasets">datasets</a></td>
                         <td><a id="linksMenu" href="#links">links</a></td>
@@ -183,7 +264,7 @@
                 <div id="datasetPanel">
                     <form id="dataDiv" name="data_input">
                     <!-- Linux IMIS -->
-                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm_demo" title="Named Graph for Dataset A"/>
+                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="<% out.println(request.getAttribute("dataset-a"));%>" title="Named Graph for Dataset A"/>
                         <!-- Windows IMIS 
                         Dataset A: <input type="text" name="da_name" id="idDatasetA" class="centered" value="http://localhost:8890/DAV/osm_berlin'"/> -->
                         <!-- Mac OS X 
@@ -191,7 +272,7 @@
                         <datalist id="datalist1"></datalist>
                         SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="http://localhost:8890/sparql" title="SPARQL Endpoint for Dataset A."/> 
                         <!-- Linux IMIS -->
-                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik_demo" title="Named Graph for Dataset B"/>
+                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="<% out.println(request.getAttribute("dataset-b"));%>" title="Named Graph for Dataset B"/>
                         <!-- Windows IMIS 
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost/DAV/wik"/ title="We ask for your age only for statistical purposes."> -->
                         <!-- Mac OS X 

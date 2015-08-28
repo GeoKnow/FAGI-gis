@@ -1,9 +1,9 @@
 Format: 1.8
-Date: Tue, 21 Apr 2015 08:53:28 +0300
+Date: Fri, 28 Aug 2015 11:59:23 +0300
 Source: fagi-gis
 Binary: fagi-gis
 Architecture: all
-Version: 1.1+rev239
+Version: 1.1+rev240
 Distribution: ldstack-nightly
 Urgency: low
 Maintainer: Nick Vitsas <nickvitsas@imis.athena-innovation.gr>
@@ -11,12 +11,13 @@ Changed-By: Nick Vitsas <nickvitsas@imis.athena-innovation.gr>
 Description:
  fagi-gis - GeoData fusion
 Changes:
- fagi-gis (1.1+rev239) ldstack-nightly; urgency=low
+ fagi-gis (1.1+rev240) ldstack-nightly; urgency=low
  .
    * Updated Interface
+   * Fixed FAGI script
 Checksums-Sha1:
- 1c02bc1b6f140fd609e25dfc5c819cd87bed16cc 21553260 fagi-gis_1.1+rev239_all.deb
+ c04b4ae1d88fba4c0bd15fd69470165f6ddaaeb8 27938540 fagi-gis_1.1+rev240_all.deb
 Checksums-Sha256:
- 8f44d40bae519b58ee35e72904fb42747f3b7f8aaec92e8cd5c500e4290c86fd 21553260 fagi-gis_1.1+rev239_all.deb
+ c0fc55f7862745f285031e453904c6cc7ba89f827cbb27c0ac27fca9fa2cbb0a 27938540 fagi-gis_1.1+rev240_all.deb
 Files:
- ef552a8cec72758e319c483ce6ec09b1 21553260 misc optional fagi-gis_1.1+rev239_all.deb
+ 4d26dc46db7747933e8e6327730dce88 27938540 misc optional fagi-gis_1.1+rev240_all.deb
