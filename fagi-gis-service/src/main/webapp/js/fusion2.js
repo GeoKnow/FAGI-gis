@@ -1879,7 +1879,7 @@ function linkPropSelectedA() {
             });
         }
         
-        list = document.getElementById("linkSchemasB");
+        list = document.getElementById("linkSchemasA");
         listItems = list.getElementsByTagName("li");
         endListLoop = false;
         //if (typeof elems != 'undefined') {

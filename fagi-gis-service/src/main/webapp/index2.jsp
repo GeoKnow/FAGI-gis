@@ -62,6 +62,12 @@
             else
                 request.setAttribute("postgis-password", request.getParameter("postgis-password"));
             
+            str = request.getParameter("postgis-database");
+            if ( str == null ) 
+                request.setAttribute("postgis-database", "postgis1");
+            else
+                request.setAttribute("postgis-database", request.getParameter("postgis-database"));
+            
             str = request.getParameter("postgis-host");
             if ( str == null ) 
                 request.setAttribute("postgis-host", "localhost");
@@ -270,16 +276,16 @@
                         <!-- Mac OS X 
                         Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm" title="Named Graph for Dataset A"/> -->
                         <datalist id="datalist1"></datalist>
-                        SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="http://localhost:8890/sparql" title="SPARQL Endpoint for Dataset A."/> 
+                        SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="<% out.println(request.getAttribute("endpoint-a"));%>" title="SPARQL Endpoint for Dataset A."/> 
                         <!-- Linux IMIS -->
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="<% out.println(request.getAttribute("dataset-b"));%>" title="Named Graph for Dataset B"/>
                         <!-- Windows IMIS 
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost/DAV/wik"/ title="We ask for your age only for statistical purposes."> -->
                         <!-- Mac OS X 
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik"/> -->
-                        SPARQL Endpoint B: <input type="text" name="db_end" class="centered" value="http://localhost:8890/sparql" title="SPARQL Endpoint for Dataset A."/>
-                        Target Graph: <input type="text" name="t_graph" class="centered" value="http://localhost:8890/fused_dataset" title="Name of the target Dataset"/>
-                        SPARQL Endpoint Target: <input type="text" name="t_end" class="centered" value="http://localhost:8890/sparql" title="SPARQL Endpoint of the target dataset."/>
+                        SPARQL Endpoint B: <input type="text" name="db_end" class="centered" value="<% out.println(request.getAttribute("endpoint-b"));%>" title="SPARQL Endpoint for Dataset A."/>
+                        Target Graph: <input type="text" name="t_graph" class="centered" value="<% out.println(request.getAttribute("target-dataset"));%>" title="Name of the target Dataset"/>
+                        SPARQL Endpoint Target: <input type="text" name="t_end" class="centered" value="<% out.println(request.getAttribute("target-endpoint"));%>" title="SPARQL Endpoint of the target dataset."/>
                         <!--Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/fagi/Desktop/"/>-->
                         <!-- Linux IMIS 
                         Bulk Insert Dir: <input type="text" name="bulk" class="centered" value="/home/nick/Projects/FAGI-gis-master/"/> -->
@@ -312,7 +318,7 @@
                 </div>
                 <div id="connectionPanel">
                     <form id="connDiv" name="conn_input"><p />
-                        Virtuoso URL: <input type="text" name="v_url" class="centered" value="localhost:1111"/>
+                        Virtuoso URL: <input type="text" name="v_url" class="centered" value="<% out.println(request.getAttribute("postgis-host")+":"+request.getAttribute("postgis-port"));%>"/>
                         Virtuoso Username: <input type="text" name="v_name" class="centered" value="dba"/>
                         Virtuoso Password: <input type="password" name="v_pass" class="centered" value="dba"/>
                         <!-- Linux IMIS 
@@ -320,9 +326,9 @@
                         <!-- Windows IMIS 
                         PostGIS Username: <input type="text" name="p_name" class="centered" value="postgres"/> -->
                         <!-- Mac OS X -->
-                        PostGIS Username: <input type="text" name="p_name" class="centered" value="postgres"/> 
-                        PostGIS Database <input type="text" name="p_data" class="centered" value="postgis1"/>
-                        PostGIS Password: <input type="password" name="p_pass" class="centered" value="1111" title="Password for PostGIS instance"/>
+                        PostGIS Username: <input type="text" name="p_name" class="centered" value="<% out.println(request.getAttribute("postgis-username"));%>"/> 
+                        PostGIS Database <input type="text" name="p_data" class="centered" value="<% out.println(request.getAttribute("postgis-database"));%>"/>
+                        PostGIS Password: <input type="password" name="p_pass" class="centered" value="<% out.println(request.getAttribute("postgis-password"));%>" title="Password for PostGIS instance"/>
                         <label id="connLabel" for="male">Connection not established</label><input id="connButton" type="submit" value="Submit" style="float:right" onclick="return false;"/>
                     </form>
                 </div>
