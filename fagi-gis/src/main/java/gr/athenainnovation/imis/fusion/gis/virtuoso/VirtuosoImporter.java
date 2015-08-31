@@ -31,6 +31,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -75,6 +76,8 @@ import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.util.Version;
 import virtuoso.jena.driver.VirtGraph;
+import virtuoso.jena.driver.VirtuosoUpdateFactory;
+import virtuoso.jena.driver.VirtuosoUpdateRequest;
 
 /**
  * Forms appropriate triples from the PostGIS database and inserts them in the virtuoso specified graph.
@@ -632,6 +635,31 @@ public final class VirtuosoImporter {
         endtime =  System.nanoTime();
         LOG.info(ANSI_YELLOW+"Thread test lasted "+((endtime-starttime)/1000000000f) +""+ANSI_RESET);
         
+        URL endAURL = new URL(endpointA);
+        URL endBURL = new URL(endpointB);
+        System.out.println("Host A " + endAURL.getHost() + " : " + endAURL.getPort());
+        System.out.println("Host B " + endBURL.getHost() + " : " + endBURL.getPort());
+        boolean isEndpointALocal = false;
+        boolean isEndpointBLocal = false;
+        try
+        {
+            isEndpointALocal = isThisMyIpAddress(InetAddress.getByName(endAURL.getHost())); //"localhost" for localhost
+        }
+        catch(UnknownHostException unknownHost)
+        {
+            System.out.println("It is not");
+        }
+        try
+        {
+            isEndpointBLocal = isThisMyIpAddress(InetAddress.getByName(endBURL.getHost())); //"localhost" for localhost
+        }
+        catch(UnknownHostException unknownHost)
+        {
+            System.out.println("It is not");
+        }
+        System.out.println(isEndpointALocal);
+        System.out.println(isEndpointBLocal);
+        
         starttime =  System.nanoTime();
         String endpointLoc2 = endpointA;
         //System.out.println("is local "+isLocalEndpoint(endpointA));
@@ -651,7 +679,10 @@ public final class VirtuosoImporter {
             getFromA.append("} }\nWHERE\n");
             getFromA.append("{\n");
             getFromA.append(" GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
-            getFromA.append(" GRAPH <").append(graphA).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+            if ( !isEndpointALocal ) 
+                getFromA.append(" GRAPH <").append(graphA).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+            else    
+                getFromA.append(" SERVICE <"+endpointA+"> { GRAPH <").append(graphA).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
             getFromA.append("\n");
             getFromA.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
             getFromA.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
@@ -681,7 +712,10 @@ public final class VirtuosoImporter {
             getFromB.append("} }\nWHERE\n");
             getFromB.append("{\n");
             getFromB.append(" GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
-            getFromB.append(" GRAPH <").append(graphB).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+            if ( isEndpointBLocal ) 
+                getFromB.append(" GRAPH <").append(graphB).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+            else 
+                getFromB.append(" SERVICE <"+endpointB+"> { GRAPH <").append(graphB).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
             getFromB.append("\n");
             getFromB.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
             getFromB.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
@@ -694,8 +728,8 @@ public final class VirtuosoImporter {
             getFromB.append("}");
 
         }        
-        //System.out.println("GET FROM B \n"+getFromB);
-        //System.out.println("GET FROM B \n"+getFromA);
+        System.out.println("GET FROM B \n"+getFromB);
+        System.out.println("GET FROM B \n"+getFromA);
         
         int count = 0;
         int i = 0;
@@ -2134,7 +2168,13 @@ public final class VirtuosoImporter {
                 UpdateRequest q = queryStr.asUpdate();
                 HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
                 UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, endpointT, authenticator);
-                insertRemoteB.execute();
+                //insertRemoteB.execute();
+                
+                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(queryStr.toString(), set);
+        
+                //update_handler.addUpdate(updateQuery);
+                vur.exec();
+        
                 //System.out.println("Add at "+addIdx+" Size "+cSize);
                 addIdx += (cSize - addIdx);
                 sizeUp *= 2;
@@ -2192,6 +2232,7 @@ public final class VirtuosoImporter {
         
                 out.println(triple);
             }
+            
             out.close();
             
             PreparedStatement uploadBulkFileStmt;
