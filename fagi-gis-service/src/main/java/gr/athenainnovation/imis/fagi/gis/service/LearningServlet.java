@@ -50,20 +50,38 @@ public class LearningServlet extends HttpServlet {
     
     private static final String OS = System.getProperty("os.name").toLowerCase();
     private static final String PATH = System.getProperty("user.home");   //when apache starts with sudo, this fails. returns /root 
-    //private static final String PATH_WIN = System.getenv("ProgramFiles");  //  C:\Program Files   
-    private static final String PATH_WIN = "C:";
+    //private static final String PATH_WIN = System.getenv("ProgramFiles");  //  C:\Program Files  
+    private static final String PATH_WIN = System.getenv("ProgramFiles(X86)");  //  C:\Program Files x86
     
+    private static final String PATH_DOC = System.getProperty("user.home") + File.separatorChar + "My Documents";
+    
+    //private static final String PATH_WIN = "C:";
+    
+    /* //old paths.
+        private static final String LINUX_TAG_MODEL = PATH + "/FAGI_models/best_model";   
+        private static final String WINDOWS_TAG_MODEL = PATH_WIN + "\\FAGI_models\\best_model";   
+        private static final String LINUX_FUSIONS_MODEL = PATH + "/FAGI_models/model";
+        private static final String WINDOWS_FUSIONS_MODEL = PATH_WIN + "\\FAGI_models\\model";               
+        private static final String LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI_models/default_model";
+        private static final String WINDOWS_DEFAULT_FUSIONS_MODEL = PATH_WIN + "\\FAGI_models\\default_model";
+        private static final String LINUX_MAP_FILE = PATH + "/FAGI_models/Map";
+        private static final String WINDOWS_MAP_FILE = PATH_WIN + "\\FAGI_models\\Map";
+
+        private static final String LINUX_TRAIN_FILE = PATH + "/FAGI_models/trainFile.ser";
+        private static final String WINDOWS_TRAIN_FILE = PATH_WIN + "\\FAGI_models\\trainFile.ser";   
+    */
+       
     private static final String LINUX_TAG_MODEL = PATH + "/FAGI_models/best_model";   
-    private static final String WINDOWS_TAG_MODEL = PATH_WIN + "\\FAGI_models\\best_model";   
+    private static final String WINDOWS_TAG_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\best_model";   
     private static final String LINUX_FUSIONS_MODEL = PATH + "/FAGI_models/model";
-    private static final String WINDOWS_FUSIONS_MODEL = PATH_WIN + "\\FAGI_models\\model";               
+    private static final String WINDOWS_FUSIONS_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\model";               
     private static final String LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI_models/default_model";
-    private static final String WINDOWS_DEFAULT_FUSIONS_MODEL = PATH_WIN + "\\FAGI_models\\default_model";
+    private static final String WINDOWS_DEFAULT_FUSIONS_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\default_model";
     private static final String LINUX_MAP_FILE = PATH + "/FAGI_models/Map";
-    private static final String WINDOWS_MAP_FILE = PATH_WIN + "\\FAGI_models\\Map";
+    private static final String WINDOWS_MAP_FILE = PATH_WIN + "\\FAGI-gis\\files\\ontology\\Map";
     
     private static final String LINUX_TRAIN_FILE = PATH + "/FAGI_models/trainFile.ser";
-    private static final String WINDOWS_TRAIN_FILE = PATH_WIN + "\\FAGI_models\\trainFile.ser";   
+    private static final String WINDOWS_TRAIN_FILE = PATH_DOC + "\\FAGI-gis\\SVM_models\\train_data\\trainFile.ser";      
     
     private static final int TAG_REC_SIZE = 6;
             
@@ -80,7 +98,6 @@ public class LearningServlet extends HttpServlet {
     private Map<String, Integer> mapperWithIDs;
     private Map<Integer, String> idsWithMappings;
     private static final boolean NETBEANS = true;
-    
     //private final Connection dbConn = null;
     //private final HttpSession sess = null;
     
