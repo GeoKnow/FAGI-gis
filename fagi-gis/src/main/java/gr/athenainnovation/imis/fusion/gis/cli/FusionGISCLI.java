@@ -3,6 +3,7 @@ package gr.athenainnovation.imis.fusion.gis.cli;
 
 import com.hp.hpl.jena.graph.BulkUpdateHandler;
 import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.graph.NodeFactory;
 import com.hp.hpl.jena.graph.Triple;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
 import com.hp.hpl.jena.query.Query;
@@ -11,6 +12,7 @@ import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
+import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.sparql.algebra.Op;
 import com.hp.hpl.jena.sparql.algebra.OpAsQuery;
 import com.hp.hpl.jena.sparql.algebra.op.OpProject;
@@ -20,6 +22,7 @@ import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
+import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 import gr.athenainnovation.imis.fusion.gis.clustering.GeoClusterer;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
@@ -83,6 +86,8 @@ import net.didion.jwnl.data.relationship.RelationshipFinder;
 import net.didion.jwnl.data.relationship.RelationshipList;
 import net.didion.jwnl.dictionary.Dictionary;
 import net.didion.jwnl.dictionary.MorphologicalProcessor;
+import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.system.StreamRDF;
 import virtuoso.jena.driver.VirtGraph;
 //import org.apache.commons.lang3.StringUtils;
 
@@ -109,7 +114,25 @@ public class FusionGISCLI {
     public static void main(String args[]) {      
         /* Clustering test */
         
-        
+        /*
+        VirtGraph vSet;
+        try {
+            vSet = new VirtGraph("jdbc:virtuoso://" + "localhost:1111" + "/CHARSET=UTF-8",
+                    "dba",
+                    "dba");
+        } catch (JenaException connEx) {
+            System.out.println(connEx.getMessage());
+            System.out.println("Connection to virtuoso failed");
+                //System.out.close();
+
+            return;
+        }
+ 
+        StreamRDF destination = null; 
+        RDFDataMgr.parse(destination, "http://example/data.ttl") ;
+
+        return;
+        */
         List<String> lines = new ArrayList<>();
         
         /*
