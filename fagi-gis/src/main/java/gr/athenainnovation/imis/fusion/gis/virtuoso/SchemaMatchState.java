@@ -48,5 +48,28 @@ public class SchemaMatchState {
                 System.out.println("Transformation "+entry.getKey());
                 metaTransforms.add(entry.getKey());
             }
-    }    
+    }   
+    
+    public List<String> getPropertyList() {
+        List<String> lst = new ArrayList<>();
+        
+        for ( String s : otherPropertiesA ) {
+            lst.add(s);
+        }
+        
+        for ( String s : otherPropertiesB ) {
+            lst.add(s);
+        }
+        
+        for ( String s : foundA.keySet() ) {
+            lst.add(s);
+        }
+        
+        for ( String s : foundB.keySet() ) {
+            lst.add(s);
+        }
+        
+        return lst;
+    }
+    
 }
