@@ -27,6 +27,13 @@
     height: 30px;
 }
    
+input[type=checkbox], input[type=radio] {
+    vertical-align: middle;
+    position: relative;
+}
+input[type=radio] {
+}
+
 /*
 td input[type="checkbox"] {
     vertical-align: middle;
@@ -615,13 +622,15 @@ li.underline {
     color: blue;
 }
 
+/*
 .checkboxes label {
     display: block;
 }
 .checkboxes input {
     vertical-align: middle;
 }
-.checkboxes label span {
+*/
+label span {
     vertical-align: middle;
 }
 
