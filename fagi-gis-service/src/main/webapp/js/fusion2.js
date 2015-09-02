@@ -2531,7 +2531,10 @@ function setDatasets()
             $('#datasetNameB').html($('#idDatasetB').val());
             $('#legendLinkSetA').html($('#idDatasetA').val());
             $('#legendLinkSetB').html($('#idDatasetB').val());
-            scanGeometries();
+            
+            if ( $('#fg-fetch-fused-check').prop('checked') )
+                scanGeometries();
+            
             $("#linksMenu").trigger('click');
         },
         // code to run if the request fails; the raw request and

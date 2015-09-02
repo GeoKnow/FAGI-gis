@@ -15,6 +15,8 @@ import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Enumeration;
@@ -127,11 +129,8 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
             return;
         }
         
-        System.out.println();
-        final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
-        databaseInitialiser.initialise(dbConf);
-        
-         try{
+        // Make a connection to check if a database with the same name exists
+        try{
             Class.forName("org.postgresql.Driver");     
         } catch (ClassNotFoundException ex) {
             System.out.println(ex.getMessage());    
@@ -147,7 +146,7 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
             //final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
             //databaseInitialiser.initialise(st.getDbConf());
                 
-            String url = DB_URL.concat(dbConf.getDBName());
+            String url = DB_URL;//.concat(dbConf.getDBName());
             dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
             //dbConn.setAutoCommit(false);
         } catch(SQLException sqlex) {
@@ -161,6 +160,24 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
             return;
         }
         
+        // Check database existance ( PostgreSQL specific )
+        PreparedStatement stmt = dbConn.prepareStatement("SELECT 1 from pg_database WHERE datname = ? ");
+        stmt.setString(1, dbConf.getDBName());
+        ResultSet rs = stmt.executeQuery();
+        
+        // If it has a row then the database exists
+        boolean createDB = true;
+        if(rs.next()) {
+            System.out.println("Database already exists");
+            createDB = false;
+        }
+        
+        // Create if needed
+        if (createDB) {
+            final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
+            databaseInitialiser.initialise(dbConf);
+        }
+        
         ret.setMessage("Virtuoso and PostGIS connection established!");
         ret.setStatusCode(0);
             
@@ -170,11 +187,6 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
         HttpSession sess = request.getSession(true);
         sess.setAttribute("db_conf",  dbConf);
                 
-        //while ( sess.getAttributeNames().hasMoreElements()) {
-            //System.out.println(sess.getAttributeNames().nextElement());
-            //sess.getAttributeNames().
-        //}
-        //sess.invalidate();
         } finally {
             if(vSet != null)
                 vSet.close();
