@@ -50,23 +50,26 @@ public class SchemaMatchState {
             }
     }   
     
-    public List<String> getPropertyList() {
+    public List<String> getPropertyList(String d) {
         List<String> lst = new ArrayList<>();
         
-        for ( String s : otherPropertiesA ) {
-            lst.add(s);
-        }
+        if ( d.compareTo("A") == 0 ) {
+            for ( String s : otherPropertiesA ) {
+                lst.add(s);
+            }
+            for ( String s : foundA.keySet() ) {
+                lst.add(s);
+            }
+        } else {
         
-        for ( String s : otherPropertiesB ) {
-            lst.add(s);
-        }
-        
-        for ( String s : foundA.keySet() ) {
-            lst.add(s);
-        }
-        
-        for ( String s : foundB.keySet() ) {
-            lst.add(s);
+            for (String s : otherPropertiesB) {
+                lst.add(s);
+            }
+
+            for (String s : foundB.keySet()) {
+                lst.add(s);
+            }
+
         }
         
         return lst;

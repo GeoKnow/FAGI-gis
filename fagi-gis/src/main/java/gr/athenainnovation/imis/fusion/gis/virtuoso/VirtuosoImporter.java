@@ -663,7 +663,7 @@ public final class VirtuosoImporter {
         starttime =  System.nanoTime();
         String endpointLoc2 = endpointA;
         //System.out.println("is local "+isLocalEndpoint(endpointA));
-        if (endpointLoc2.equals(endpointA)) {
+        //if (endpointLoc2.equals(endpointA)) {
             getFromA.append("sparql INSERT\n");
             if (scanProperties)
                 getFromA.append("  { GRAPH <").append(targetGraph).append("_"+db_c.getDBName()+"A"+"> {\n");
@@ -679,7 +679,7 @@ public final class VirtuosoImporter {
             getFromA.append("} }\nWHERE\n");
             getFromA.append("{\n");
             getFromA.append(" GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
-            if ( !isEndpointALocal ) 
+            if ( isEndpointALocal ) 
                 getFromA.append(" GRAPH <").append(graphA).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
             else    
                 getFromA.append(" SERVICE <"+endpointA+"> { GRAPH <").append(graphA).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
@@ -694,9 +694,9 @@ public final class VirtuosoImporter {
             getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
             getFromA.append("}");
             //System.out.println(getFromA);
-        }
+        //}
         
-        if (endpointLoc2.equals(endpointB)) {
+        //if (endpointLoc2.equals(endpointB)) {
             getFromB.append("sparql INSERT\n");
             if (scanProperties)
                 getFromB.append("  { GRAPH <").append(targetGraph).append("_"+db_c.getDBName()+"B"+"> {\n");
@@ -727,7 +727,7 @@ public final class VirtuosoImporter {
             getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
             getFromB.append("}");
 
-        }        
+        //}        
         System.out.println("GET FROM B \n"+getFromB);
         System.out.println("GET FROM B \n"+getFromA);
         

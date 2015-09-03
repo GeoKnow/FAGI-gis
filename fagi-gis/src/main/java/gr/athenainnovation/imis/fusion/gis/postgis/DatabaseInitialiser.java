@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Level;
@@ -102,4 +103,52 @@ public class DatabaseInitialiser {
         
         LOG.info(ANSI_YELLOW+"Database initialised"+ANSI_RESET);
     }
+    
+    public void clearTables(final DBConfig dbConfig) throws SQLException {
+        final String dbName = dbConfig.getDBName();
+        final String dbUsername = dbConfig.getDBUsername();
+        final String dbPassword = dbConfig.getDBPassword();
+        
+        Connection db = null;
+        PreparedStatement stmt = null;
+        String sql;
+        try {
+            Class.forName("org.postgresql.Driver");
+            final String url = DB_URL.concat(dbConfig.getDBName());
+            db = DriverManager.getConnection(url, dbUsername, dbPassword);
+            db.setAutoCommit(false);
+            
+            String deleteATable = "DELETE FROM dataset_b_geometries";
+            stmt = db.prepareStatement(deleteATable);
+            stmt.executeUpdate();
+
+            stmt.close();
+
+            String deleteBTable = "DELETE FROM dataset_a_geometries";
+            stmt = db.prepareStatement(deleteBTable);
+            stmt.executeUpdate();
+
+            stmt.close();
+            
+            String deleteFTable = "DELETE FROM fused_geometries";
+            stmt = db.prepareStatement(deleteFTable);
+            stmt.executeUpdate();
+
+            stmt.close();
+            
+            db.commit();
+        }
+        catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(DatabaseInitialiser.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            if (stmt != null) {
+                stmt.close();
+            }
+
+            if (db != null) {
+                db.close();
+            }
+        }
+    }
+    
 }
