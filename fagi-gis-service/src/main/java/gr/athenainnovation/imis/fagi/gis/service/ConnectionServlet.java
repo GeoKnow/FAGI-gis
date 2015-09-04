@@ -176,6 +176,9 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
         if (createDB) {
             final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
             databaseInitialiser.initialise(dbConf);
+        } else {
+            final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
+            databaseInitialiser.clearTables(dbConf);
         }
         
         ret.setMessage("Virtuoso and PostGIS connection established!");

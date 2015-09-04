@@ -8,12 +8,14 @@ package gr.athenainnovation.imis.fagi.gis.service;
 import com.google.common.collect.Maps;
 import com.hp.hpl.jena.graph.BulkUpdateHandler;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
+import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 import com.hp.hpl.jena.shared.JenaException;
+import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
@@ -103,33 +105,38 @@ public class LinksServlet extends HttpServlet {
         PreparedStatement stmt;
         ResultSet rs;
 
-        String checkA = "SPARQL SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + lsub + "> ?p ?o } }";
-        String checkB = "SPARQL SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + lsub + "> ?p ?o } }";
+        String checkA = "SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + lsub + "> ?p ?o } }";
+        String checkB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + lsub + "> ?p ?o } }";
         System.out.println("Found in A : " + checkA + " B : " + checkB);
         System.out.println("Left sub : " + lsub + " Right sub : " + rsub);
-        stmt = virt_conn.prepareStatement(checkA);
-        rs = stmt.executeQuery();
-
+        
+        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+        //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
+        QueryEngineHTTP qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
+        qeh.addDefaultGraph(grConf.getGraphA());
+        QueryExecution queryExecution = qeh;
+        com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
+            
         boolean foundInA = false;
         boolean foundInB = false;
-        while (rs.next()) {
+        while (resultSet.hasNext()) {
             foundInA = true;
             break;
         }
-
-        rs.close();
-        stmt.close();
-
-        stmt = virt_conn.prepareStatement(checkB);
-        rs = stmt.executeQuery();
-
-        while (rs.next()) {
+        
+        queryExecution.close();
+        
+        qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
+        qeh.addDefaultGraph(grConf.getGraphA());
+        queryExecution = qeh;
+        resultSet = queryExecution.execSelect();
+        
+        while (resultSet.hasNext()) {
             foundInB = true;
             break;
         }
 
-        rs.close();
-        stmt.close();
+        queryExecution.close();
 
         System.out.println("Found in A : " + foundInA + " B : " + foundInB);
         if (foundInA) {
@@ -322,7 +329,7 @@ public class LinksServlet extends HttpServlet {
             sess.setAttribute("virt_imp", virtImp);
             virtImp.createLinksGraph(output);
 
-            virtImp.importGeometriesToVirtuoso((String) sess.getAttribute("t_graph"));
+            //virtImp.importGeometriesToVirtuoso((String) sess.getAttribute("t_graph"));
             virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true);
             final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + ">";
 

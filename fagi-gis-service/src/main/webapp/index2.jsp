@@ -285,6 +285,14 @@
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik"/> -->
                         SPARQL Endpoint B: <input type="text" name="db_end" class="centered" value="<% out.println(request.getAttribute("endpoint-b"));%>" title="SPARQL Endpoint for Dataset A."/>
                         Target Graph: <input type="text" name="t_graph" class="centered" value="<% out.println(request.getAttribute("target-dataset"));%>" title="Name of the target Dataset"/>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td style="padding-right: 20px;" align="left" valign="bottom">Preview geometries from target dataset:</td>
+                                    <td style="padding-right: 20px;"><div><input id="fg-fetch-fused-check" name="t" value="true" type="checkbox" checked="false"/></div></td>
+                                </tr>
+                            </tbody>
+                        </table>
                         SPARQL Endpoint Target: <input type="text" name="t_end" class="centered" value="<% out.println(request.getAttribute("target-endpoint"));%>" title="SPARQL Endpoint of the target dataset."/>
                         <!--Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/fagi/Desktop/"/>-->
                         <!-- Linux IMIS 
@@ -296,9 +304,9 @@
                         <table>
                             <tbody>
                                 <tr>
-                                    <td style="padding-right: 20px;" align="left" valign="bottom">Dominant Dataset:</td>
-                                    <td style="text-align: center; padding-right: 20px;"><div class="checkboxes" style="display:inline-block;"><label><input id="domA" name="d_dom" value="true" type="checkbox" checked="true"/>A</label></div></td>
-                                    <td style="text-align: center; padding-right: 20px;"><div class="checkboxes" style="display:inline-block;"><label><input id="domB" type="checkbox" />B</label></div></td>                                  
+                                    <td style="vertical-align: middle; text-align: center; padding-right: 20px;" align="left" valign="bottom">Dominant Dataset:</td>
+                                    <td style="vertical-align: middle;; text-align: center; padding-right: 20px;"><label><input id="domA" name="d_dom" value="true" type="checkbox" checked="true"/>A</label></td>
+                                    <td style="vertical-align: middle; text-align: center; padding-right: 20px;"><label><input id="domB" type="checkbox" />B</label></td>                                  
                                 </tr>
                             </tbody>
                         </table>

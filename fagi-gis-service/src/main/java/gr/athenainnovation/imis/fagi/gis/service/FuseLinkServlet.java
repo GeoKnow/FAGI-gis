@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Maps;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
+import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
+import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
@@ -59,6 +62,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import virtuoso.jena.driver.VirtGraph;
+import virtuoso.jena.driver.VirtuosoQueryExecution;
+import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
 import virtuoso.jena.driver.VirtuosoUpdateFactory;
 import virtuoso.jena.driver.VirtuosoUpdateRequest;
 
@@ -2561,12 +2566,31 @@ public class FuseLinkServlet extends HttpServlet {
                 prev_s = "?o"+i;
             }
             q.append("} }");
-            System.out.println(q.toString());
+            //System.out.println(q.toString());
             VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
             vur.exec();
+            
+            /*
+            q.setLength(0);
+            ParameterizedSparqlString pss = new ParameterizedSparqlString();
+            q.append("SELECT * WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+            for (int i = 0; i < rightPreTokens.length; i++) {
+                q.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
+                prev_s = "?o"+i;
+            }
+            q.append("} }");
+            
+            System.out.println(q.toString());
+            
+            final Query query = QueryFactory.create(q.toString());
+            VirtuosoQueryExecution queryExecution = VirtuosoQueryExecutionFactory.create(query, vSet);
+            
+            final com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
+            */
         }
     }
     
+    //private class RDF
     private void updateGeom( String subA, String subB, String geomA, String geomB ) throws SQLException {
         final String qA = "UPDATE dataset_a_geometries SET geom = ST_GeomFromText(?, 4326) WHERE subject = ?";
         final String qB = "UPDATE dataset_b_geometries SET geom = ST_GeomFromText(?, 4326) WHERE subject = ?";
@@ -2588,6 +2612,7 @@ public class FuseLinkServlet extends HttpServlet {
         dbConn.commit();
         
     }
+    
     private String formInsertQuery(String tGraph, String subject, String fusedGeometry) { 
         return "INSERT INTO <" + tGraph + "> { <" + subject + "> <" + HAS_GEOMETRY + "> _:a . _:a <" + WKT + "> \"" + fusedGeometry + "\"^^<http://www.opengis.net/ont/geosparql#wktLiteral> }";
     }
