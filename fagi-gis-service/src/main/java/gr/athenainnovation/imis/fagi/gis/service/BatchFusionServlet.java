@@ -1936,22 +1936,29 @@ public class BatchFusionServlet extends HttpServlet {
         
         System.out.println("L C P : "+lcpIndex + " : " + lcpProperty);
         
-        /*if (rightPres.length > 1) {
-            StringBuilder q = null;
-            final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
-            for (String rightProp : rightPres) {
-                String[] leftPreTokens = leftPre.split(",");
-                String[] rightPreTokens = rightProp.split(",");
-                
-                if (rightPreTokens.length == 1) {
-                    //metadataKeepRight(idx);
-                    //return;
-                }
+        final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
+        for (String rightProp : rightPres) {
+            //String[] leftPreTokens = leftPre.split(",");
+            //String[] rightPreTokens = rightPre.split(",");
+            String[] mainPattern = rightProp.split(",");
+            
+            List<String> patterns = findChains(rightProp, lst);
+            
+            StringBuilder q = new StringBuilder();
+            String prev_s = "";
+            System.out.println("Patterns " + patterns);
+            
+            for (String pattern : patterns) {
+                q.setLength(0);
 
-                q = new StringBuilder();
-                q.append("sparql SELECT ?s ?o" + (rightPreTokens.length - 1)+ " ?ot1 ?ot2 ?ot3");
-                q.append(" ?ot1 ?ot2 ?ot3 ");
-                String prev_s = "?s";
+                String[] rightPreTokens = pattern.split(",");
+                
+                System.out.println("Pattern : " + pattern);
+                System.out.println("Right Tokens : " + rightPreTokens.length);
+                System.out.println("Main Pattern : " + mainPattern.length);
+                
+                q.append("SPARQL SELECT ?s ?o" + (rightPreTokens.length - 1));
+                prev_s = "?s";
                 q.append(" WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
@@ -1971,10 +1978,8 @@ public class BatchFusionServlet extends HttpServlet {
                     q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
                 }
-                q.append(" OPTIONAL { "+prev_s+" ?pt1 ?ot1 . ");
-                q.append(" OPTIONAL {?ot1 ?pt2 ?ot2 . ");
-                q.append(" OPTIONAL {?ot2 ?pt3 ?ot3 . } } }");
-                q.append("} }");
+                q.append("FILTER isLiteral("+prev_s+")} }");
+                
                 System.out.println(q.toString());
                 PreparedStatement stmt;
                 stmt = virt_conn.prepareStatement(q.toString());
@@ -1982,244 +1987,49 @@ public class BatchFusionServlet extends HttpServlet {
 
                 while (rs.next()) {
                     //for (int i = 0; i < pres.length; i++) {
-                    String s = rs.getString(1);
                     String o = rs.getString(2);
-                    String ot1 = rs.getString("ot1");
-                    String ot2 = rs.getString("ot2");
-                    String ot3 = rs.getString("ot3");
+                    String s = rs.getString(1);
+
                     StringBuilder concat_str;
-                    if (ot3 != null) {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(ot3 + " ");
-                    } else if (ot2 != null) {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(ot2 + " ");
-                    } else if (ot1 != null) {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(ot1 + " ");
-                    } else {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(o + " ");
-                    }
-                    System.out.println("Subject " + s);
-                    System.out.println("Object " + o);
                     
-                    String simplified = StringUtils.substringAfter(rightPreTokens[rightPreTokens.length - 1], "#");
-                    if (simplified.equals("")) {
-                        simplified = StringUtils.substring(rightPreTokens[rightPreTokens.length - 1], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length - 1], "/") + 1);
-                    }
-                }
-            }
-            q = new StringBuilder();
-            System.out.println("Size " + newObjs.size());
-            for (Map.Entry<String, StringBuilder> entry : newObjs.entrySet()) {
-                String sub = entry.getKey();
-                StringBuilder newObj = entry.getValue();
-                newObj.setLength(newObj.length() - 1);
-                q = new StringBuilder();
-                q.append("INSERT { GRAPH <" + tGraph + "> { ");
-                String prev_s = "<" + sub + ">";
-                for (int i = 0; i < lcpIndex; i++) {
-                 q.append(prev_s + " <" + lcpProperty + "> ?o" + i + " . ");
-                 prev_s = "?o" + i;
-                 }
-                q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\" . ");
-                q.append("} }");
-                System.out.println("Last query " + q.toString());
-                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
-                vur.exec();
-            }
-        } else {*/
-        for (String rightProp : rightPres) {
-            //String[] leftPreTokens = leftPre.split(",");
-            //String[] rightPreTokens = rightPre.split(",");
-            String[] mainPattern = rightProp.split(",");
-            
-            List<String> patterns = findChains(rightProp, lst);
-            
-            final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
-            StringBuilder q = new StringBuilder();
-            String prev_s = "";
-            System.out.println("Patterns " + patterns);
-            //for (String pattern : patterns) {
-                q.setLength(0);
-                //String[] rightPreTokens = pattern.split(",");
-                
-                //System.out.println("Pattern : " + pattern);
-                //System.out.println("Right Tokens : " + rightPreTokens.length);
-                //System.out.println("Main Pattern : " + mainPattern.length);
-            
-                StringBuilder insq = new StringBuilder();
-                insq.append("INSERT { GRAPH <" + tGraph + "> { ");
-
-                prev_s = "?s";
-                for (int i = 0; i < mainPattern.length - 2; i++) {
-                    insq.append(prev_s + " <" + mainPattern[i] + "> ?o" + i + " . ");
-                    prev_s = "?o" + i;
-                }
-                insq.append(prev_s + " <" + domOnto + newPred + "> ?result");
-                String var_pattern = "?s CONCAT ( ";
-                for (int i = 0; i < mainPattern.length; i++) {
-                    for (int j = 0; j < patterns.size(); j++) {
-                        var_pattern += "?o" + j + "" + i + ",' ',";
-                    }
-                }                
-                insq.append(" } } WHERE {\n");
-                insq.append("SELECT "+var_pattern);
-                insq.setLength(insq.length() - 1);
-                insq.append(") AS ?result WHERE { ");
-                if (activeCluster > -1) {
-                    if (grConf.isDominantA()) {
-                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                    } else {
-                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                    }
-                } else {
-                    if (grConf.isDominantA()) {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                    } else {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                    }
-                }
-                insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-            for (int j = 0; j < patterns.size(); j++) {
-                String pattern = patterns.get(j);
-                String[] rightPreTokens = pattern.split(",");
-                //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                prev_s = "?s";
-                for (int i = 0; i < rightPreTokens.length; i++) {
-                    insq.append(prev_s + " <" + rightPreTokens[i] + "> " + "?o" + j + "" + i + " . ");
-                    prev_s = "?o" + j + "" + i;
-                }
-                //insq.append(prev_s + " <" + rightPreTokens[rightPreTokens.length - 1] + "> " + "?o" + (rightPreTokens.length - 1) + " . ");
-            }
-                insq.append("} } }");
-                System.out.println(insq);
-
-                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
-                vur.exec();
-                    
-                /*
-            StringBuilder q = new StringBuilder();
-            q.append("sparql SELECT ?s ?o" + (rightPreTokens.length - 1) + " ?ot1 ?ot2 ?ot3");
-            String prev_s = "?s";
-            q.append(" WHERE {");
-            if (activeCluster > -1) {
-                if (grConf.isDominantA()) {
-                    q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                } else {
-                    q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                }
-            } else {
-                if (grConf.isDominantA()) {
-                    q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                } else {
-                    q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                }
-            }
-            q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-            for (int i = 0; i < rightPreTokens.length; i++) {
-                q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
-                prev_s = "?o" + i;
-            }
-            q.append(" OPTIONAL { "+prev_s+" ?pt1 ?ot1 . ");
-            q.append(" OPTIONAL {?ot1 ?pt2 ?ot2 . ");
-            q.append(" OPTIONAL {?ot2 ?pt3 ?ot3 . } } }");
-            q.append("} }");
-            System.out.println(q.toString());
-            PreparedStatement stmt;
-            stmt = virt_conn.prepareStatement(q.toString());
-            ResultSet rs = stmt.executeQuery();
-
-            final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
-            while (rs.next()) {
-                //for (int i = 0; i < pres.length; i++) {
-                String o = rs.getString(2);
-                String s = rs.getString(1);
-                String ot1 = rs.getString("ot1");
-                    String ot2 = rs.getString("ot2");
-                    String ot3 = rs.getString("ot3");
-                             
-                StringBuilder concat_str;
-                if (ot3 != null) {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(ot3 + " ");
-                } else if (ot2 != null) {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(ot2 + " ");
-                } else if (ot1 != null) {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(ot1 + " ");
-                } else {
                     concat_str = newObjs.get(s);
                     if (concat_str == null) {
                         concat_str = new StringBuilder();
                         newObjs.put(s, concat_str);
                     }
                     concat_str.append(o + " ");
+                    
+                    System.out.println("Subject " + s);
+                    System.out.println("Object " + o);
+
                 }
-                System.out.println("Subject " + s);
-                System.out.println("Object " + o);
-                
-                String simplified = StringUtils.substringAfter(rightPreTokens[rightPreTokens.length - 1], "#");
-                if (simplified.equals("")) {
-                    simplified = StringUtils.substring(rightPreTokens[rightPreTokens.length - 1], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length - 1], "/") + 1);
-                }
-                
+                System.out.println("Size " + newObjs.size());
             }
-            System.out.println("Size " + newObjs.size());
-            for (Map.Entry<String, StringBuilder> entry : newObjs.entrySet()) {
-                String sub = entry.getKey();
-                StringBuilder newObj = entry.getValue();
-                newObj.setLength(newObj.length() - 1);
-                q = new StringBuilder();
-                q.append("INSERT { GRAPH <" + tGraph + "> { ");
-                prev_s = "<" + sub + ">";
-                for (int i = 0; i < rightPreTokens.length - 1; i++) {
-                    q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
-                    prev_s = "?o" + i;
-                }
-                q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
-                q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                prev_s = "<" + sub + ">";
-                for (int i = 0; i < rightPreTokens.length; i++) {
-                    q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
-                    prev_s = "?o" + i;
-                }
-                q.append("} }");
-                System.out.println("Last query " + q.toString());
-                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
-                vur.exec();
-                */
-            //}
+        }
+        
+        String[] path = rightPres[0].split(",");
+        for (Map.Entry<String, StringBuilder> entry : newObjs.entrySet()) {
+            String sub = entry.getKey();
+            StringBuilder newObj = entry.getValue();
+            newObj.setLength(newObj.length() - 1);
+            StringBuilder q = new StringBuilder();
+            q.append("INSERT { GRAPH <" + tGraph + "> { ");
+            String prev_s = "<" + sub + ">";
+            for (int i = 0; i < lcpIndex; i++) {
+                q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
+                prev_s = "?o" + i;
+            }
+            q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
+            q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+            prev_s = "<" + sub + ">";
+            for (int i = 0; i < lcpIndex; i++) {
+                q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
+                prev_s = "?o" + i;
+            }
+            q.append("} }");
+            System.out.println("Last query " + q.toString());
+            VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
+            vur.exec();
         }
     }
     
@@ -2267,7 +2077,6 @@ public class BatchFusionServlet extends HttpServlet {
         Map<String, Map.Entry<Integer, Integer> > commonPres = new HashMap<>();
         for (String leftProp : leftPres) {
             String[] leftPreTokens = leftProp.split(",");
-            String[] rightPreTokens = leftProp.split(",");
 
             // Find LCP (Least Common Prefix)
             for (int i = 0; i < leftPreTokens.length; i++) {
@@ -2303,14 +2112,14 @@ public class BatchFusionServlet extends HttpServlet {
         System.out.println("L C P : "+lcpIndex + " : " + lcpProperty);
         
         System.out.println("Left Pres " + leftPres);
+        final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
         for (String leftProp : leftPres) {
             //String[] leftPreTokens = leftPre.split(",");
             //String[] rightPreTokens = rightPre.split(",");
             String[] mainPattern = leftProp.split(",");
             
-            List<String> patterns = findChains(leftPre, lst);
+            List<String> patterns = findChains(leftProp, lst);
             
-            final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
             StringBuilder q = new StringBuilder();
             String prev_s = "";
             System.out.println("Patterns " + patterns);
@@ -2375,31 +2184,31 @@ public class BatchFusionServlet extends HttpServlet {
 
                 }
             }
-            
-            System.out.println("Size " + newObjs.size());
-            for (Map.Entry<String, StringBuilder> entry : newObjs.entrySet()) {
-                String sub = entry.getKey();
-                StringBuilder newObj = entry.getValue();
-                newObj.setLength(newObj.length() - 1);
-                q = new StringBuilder();
-                q.append("INSERT { GRAPH <" + tGraph + "> { ");
-                prev_s = "<" + sub + ">";
-                for (int i = 0; i < mainPattern.length - 1; i++) {
-                    q.append(prev_s + " <" + mainPattern[i] + "> ?o" + i + " . ");
-                    prev_s = "?o" + i;
-                }
-                q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
-                q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-                prev_s = "<" + sub + ">";
-                for (int i = 0; i < mainPattern.length; i++) {
-                    q.append(prev_s + " <" + mainPattern[i] + "> ?o" + i + " . ");
-                    prev_s = "?o" + i;
-                }
-                q.append("} }");
-                System.out.println("Last query " + q.toString());
-                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
-                vur.exec();
+        }
+        
+        String[] path = leftPres[0].split(",");
+        for (Map.Entry<String, StringBuilder> entry : newObjs.entrySet()) {
+            String sub = entry.getKey();
+            StringBuilder newObj = entry.getValue();
+            newObj.setLength(newObj.length() - 1);
+            StringBuilder q = new StringBuilder();
+            q.append("INSERT { GRAPH <" + tGraph + "> { ");
+            String prev_s = "<" + sub + ">";
+            for (int i = 0; i < lcpIndex; i++) {
+                q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
+                prev_s = "?o" + i;
             }
+            q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
+            q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+            prev_s = "<" + sub + ">";
+            for (int i = 0; i < lcpIndex; i++) {
+                q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
+                prev_s = "?o" + i;
+            }
+            q.append("} }");
+            System.out.println("Last query " + q.toString());
+            VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
+            vur.exec();
         }
     }
     
