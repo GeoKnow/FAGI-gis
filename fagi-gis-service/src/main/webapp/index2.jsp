@@ -151,6 +151,13 @@
             </svg>
         </div>
         
+        <!--
+        <div class="tooltip" style="top: 200px; left: 500px;" id="fg-debug-popup">
+            <button id="close-debug-menu-btn" type="button" class="btn btn-primary">X</button>
+            Debug Output
+        </div>
+        -->
+        
         <div class="tooltip" id="popupFindLinkMenu">
             <button id="close-findlink-menu-btn" type="button" class="btn btn-primary">X</button>
             <table style="width:100%; color:white;">
@@ -245,7 +252,7 @@
                             </form></td>
                     </tr>
                 </table> </div>
-            <div style="float:right; width:100%; height:95%;" id="map"></div>
+            <div style="float:right; width:100%; height:98%;" id="map"></div>
         </div>
 
         <!--

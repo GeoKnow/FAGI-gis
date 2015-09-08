@@ -2094,13 +2094,31 @@ function propSelectedA() {
                     });
                 });
             }
+            
+            var list = document.getElementById("schemasA");
+            var listItems = list.getElementsByTagName("li");
+            if (typeof elems != 'undefined') {
+                $.each(listItems, function (index1, element1) {
+                    if (element1.match_count > 0)
+                        element1.style.backgroundColor = "yellow";
+                    else
+                        element1.style.backgroundColor = this.backColor;
+                    
+                    element1.prev_selected = false;
+                });
+            }
+            
             //alert("as");
             if (this.match_count > 0)
                 this.style.backgroundColor = "yellow";
             else
                 this.style.backgroundColor = this.backColor;
         } else {
-            this.style.backgroundColor = this.backColor;
+            if (this.match_count > 0)
+                this.style.backgroundColor = "yellow";
+            else
+                this.style.backgroundColor = this.backColor;
+            
         }
         lastSelectedFromA = null;
         this.prev_selected = false;
@@ -2136,13 +2154,6 @@ function propSelectedA() {
                     });
                 });
             }
-            /*
-            if (lastSelectedFromA.match_count > 0)
-                lastSelectedFromA.style.backgroundColor = "yellow";
-            else
-                lastSelectedFromA.style.backgroundColor = lastSelectedFromA.backColor;
-            lastSelectedFromA.prev_selected = false;
-            */
             
             if ( window.event.ctrlKey ) {
                 lastSelectedFromA = this;
@@ -2252,8 +2263,25 @@ function propSelectedB() {
                 this.style.backgroundColor = "yellow";
             else
                 this.style.backgroundColor = this.backColor;
+            
+            var list = document.getElementById("schemasB");
+            var listItems = list.getElementsByTagName("li");
+            if (typeof elems != 'undefined') {
+                $.each(listItems, function (index1, element1) {
+                    if (element1.match_count > 0)
+                        element1.style.backgroundColor = "yellow";
+                    else
+                        element1.style.backgroundColor = this.backColor;
+                    
+                    element1.prev_selected = false;
+                });
+            }
+            
         } else {
-            this.style.backgroundColor = this.backColor;
+            if (this.match_count > 0)
+                this.style.backgroundColor = "yellow";
+            else
+                this.style.backgroundColor = this.backColor;
         }
         lastSelectedFromB = null;
         this.prev_selected = false;

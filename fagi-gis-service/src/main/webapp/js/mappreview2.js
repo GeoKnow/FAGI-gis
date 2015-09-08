@@ -836,6 +836,11 @@ $(document).ready(function () {
     map.events.register("click", map, function (e) {
         mselectActive = false;
         
+        //document.getElementById("fg-debug-popup").style.opacity = 0.8;
+            //document.getElementById("fg-debug-popup").style.display = 'inline';
+            //document.getElementById("fg-debug-popup").style.top = mouse.y;
+        //document.getElementById("fg-debug-popup").style.left = mouse.x; 
+        
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
 
@@ -984,8 +989,10 @@ function fetchContained() {
             //alert(responseJson);
             bboxLayer.destroyFeatures();
             addUnlinkedMapDataJson(responseJson);
+            
             document.getElementById("popupBBoxMenu").style.opacity = 0;
             document.getElementById("popupBBoxMenu").style.display = 'none';
+            
             disableSpinner();
             //$('#popupBBoxMenu').hide();
         },

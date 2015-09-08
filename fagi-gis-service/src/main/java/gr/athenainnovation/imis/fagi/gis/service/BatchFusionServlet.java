@@ -12,7 +12,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Maps;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.shared.JenaException;
+import com.hp.hpl.jena.shared.PrefixMapping;
+import com.hp.hpl.jena.tdb.TDBFactory;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
@@ -28,6 +32,7 @@ import gr.athenainnovation.imis.fusion.gis.geotransformations.KeepRightTransform
 import gr.athenainnovation.imis.fusion.gis.geotransformations.KeepBothTransformation;
 import gr.athenainnovation.imis.fusion.gis.gui.FuserPanel;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
 import java.io.IOException;
@@ -1355,10 +1360,14 @@ public class BatchFusionServlet extends HttpServlet {
     private void metadataConcatenation(int idx) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
+        List<String> lstA = (List<String>)sess.getAttribute("property_patternsA");
+        List<String> lstB = (List<String>)sess.getAttribute("property_patternsB");
+
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
         else 
             domOnto = (String)sess.getAttribute("domB");
+        
         String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
@@ -1478,200 +1487,28 @@ public class BatchFusionServlet extends HttpServlet {
         }
         
         final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
-        if (leftPres.length > 1) {
-            StringBuilder q = null;
-            //final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
-            for (String leftProp : leftPres) {
-                String[] leftPreTokens = leftProp.split(",");
-                String[] rightPreTokens = leftProp.split(",");
-                
-                if (leftPreTokens.length == 1) {
-                    //metadataKeepRight(idx);
-                    //return;
-                }
-
-                q = new StringBuilder();
-                q.append("sparql SELECT ?s ?o" + (leftPreTokens.length - 1)+ " ?ot1 ?ot2 ?ot3");
-                q.append(" ?ot1 ?ot2 ?ot3 ");
-                String prev_s = "?s";
-                q.append(" WHERE {");
-                if (activeCluster > -1) {
-                    if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                    } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                    }
-                } else {
-                    if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                    } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                    }
-                }
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-                for (int i = 0; i < leftPreTokens.length; i++) {
-                    q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
-                    prev_s = "?o" + i;
-                }
-                q.append(" OPTIONAL { "+prev_s+" ?pt1 ?ot1 . ");
-                q.append(" OPTIONAL {?ot1 ?pt2 ?ot2 . ");
-                q.append(" OPTIONAL {?ot2 ?pt3 ?ot3 . } } }");
-                q.append("} }");
-                System.out.println(q.toString());
-                PreparedStatement stmt;
-                stmt = virt_conn.prepareStatement(q.toString());
-                ResultSet rs = stmt.executeQuery();
-
-                while (rs.next()) {
-                    //for (int i = 0; i < pres.length; i++) {
-                    String s = rs.getString(1);
-                    String o = rs.getString(2);
-                    String ot1 = rs.getString("ot1");
-                    String ot2 = rs.getString("ot2");
-                    String ot3 = rs.getString("ot3");
-                    StringBuilder concat_str;
-                    if (ot3 != null) {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(ot3 + " ");
-                    } else if (ot2 != null) {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(ot2 + " ");
-                    } else if (ot1 != null) {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(ot1 + " ");
-                    } else {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(o + " ");
-                    }
-                    System.out.println("Subject " + s);
-                    System.out.println("Object " + o);
-                    
-                    String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
-                    if (simplified.equals("")) {
-                        simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length - 1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
-                    }
-                }
-            }
-        } else {
-            String[] leftPreTokens = leftPre.split(",");
-            String[] rightPreTokens = rightPre.split(",");
-            if (leftPreTokens.length == 1) {
-                //metadataKeepRight(idx);
-                //return;
-            }
-
+        for (String rightProp : rightPres) {
+            //String[] leftPreTokens = leftPre.split(",");
+            //String[] rightPreTokens = rightPre.split(",");
+            String[] mainPattern = rightProp.split(",");
+            
+            List<String> patterns = findChains(rightProp, lstB);
+            
             StringBuilder q = new StringBuilder();
-            q.append("sparql SELECT ?s ?o" + (leftPreTokens.length - 1) + " ?ot1 ?ot2 ?ot3");
-            String prev_s = "?s";
-            q.append(" WHERE {");
-            if (activeCluster > -1) {
-                if (grConf.isDominantA()) {
-                    q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                } else {
-                    q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                }
-            } else {
-                if (grConf.isDominantA()) {
-                    q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                } else {
-                    q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                }
-            }
-            q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-            for (int i = 0; i < leftPreTokens.length; i++) {
-                q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
-                prev_s = "?o" + i;
-            }
-            q.append(" OPTIONAL { "+prev_s+" ?pt1 ?ot1 . ");
-            q.append(" OPTIONAL {?ot1 ?pt2 ?ot2 . ");
-            q.append(" OPTIONAL {?ot2 ?pt3 ?ot3 . } } }");
-            q.append("} }");
-            System.out.println(q.toString());
-            PreparedStatement stmt;
-            stmt = virt_conn.prepareStatement(q.toString());
-            ResultSet rs = stmt.executeQuery();
+            String prev_s = "";
+            System.out.println("Patterns " + patterns);
+            
+            for (String pattern : patterns) {
+                q.setLength(0);
 
-            //final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
-            while (rs.next()) {
-                //for (int i = 0; i < pres.length; i++) {
-                String o = rs.getString(2);
-                String s = rs.getString(1);
-                String ot1 = rs.getString("ot1");
-                    String ot2 = rs.getString("ot2");
-                    String ot3 = rs.getString("ot3");
-                             
-                StringBuilder concat_str;
-                if (ot3 != null) {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(ot3 + " ");
-                } else if (ot2 != null) {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(ot2 + " ");
-                } else if (ot1 != null) {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(ot1 + " ");
-                } else {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(o + " ");
-                }
-                System.out.println("Subject " + s);
-                System.out.println("Object " + o);
+                String[] rightPreTokens = pattern.split(",");
                 
-                String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
-                if (simplified.equals("")) {
-                    simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length - 1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
-                }
-            }
-        }
-        
-        if (rightPres.length > 1) {
-            StringBuilder q = null;
-            //final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
-            for (String rightProp : rightPres) {
-                String[] leftPreTokens = leftPre.split(",");
-                String[] rightPreTokens = rightProp.split(",");
+                System.out.println("Pattern : " + pattern);
+                System.out.println("Right Tokens : " + rightPreTokens.length);
+                System.out.println("Main Pattern : " + mainPattern.length);
                 
-                if (rightPreTokens.length == 1) {
-                    //metadataKeepRight(idx);
-                    //return;
-                }
-
-                q = new StringBuilder();
-                q.append("sparql SELECT ?s ?o" + (rightPreTokens.length - 1)+ " ?ot1 ?ot2 ?ot3");
-                q.append(" ?ot1 ?ot2 ?ot3 ");
-                String prev_s = "?s";
+                q.append("SPARQL SELECT ?s ?o" + (rightPreTokens.length - 1));
+                prev_s = "?s";
                 q.append(" WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
@@ -1691,9 +1528,76 @@ public class BatchFusionServlet extends HttpServlet {
                     q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
                 }
-                q.append(" OPTIONAL { "+prev_s+" ?pt1 ?ot1 . ");
-                q.append(" OPTIONAL {?ot1 ?pt2 ?ot2 . ");
-                q.append(" OPTIONAL {?ot2 ?pt3 ?ot3 . } } }");
+                q.append("FILTER isLiteral("+prev_s+")} }");
+                
+                System.out.println(q.toString());
+                PreparedStatement stmt;
+                stmt = virt_conn.prepareStatement(q.toString());
+                ResultSet rs = stmt.executeQuery();
+
+                while (rs.next()) {
+                    //for (int i = 0; i < pres.length; i++) {
+                    String o = rs.getString(2);
+                    String s = rs.getString(1);
+
+                    StringBuilder concat_str;
+                    
+                    concat_str = newObjs.get(s);
+                    if (concat_str == null) {
+                        concat_str = new StringBuilder();
+                        newObjs.put(s, concat_str);
+                    }
+                    concat_str.append(o + " ");
+                    
+                    System.out.println("Subject " + s);
+                    System.out.println("Object " + o);
+
+                }
+                System.out.println("Size " + newObjs.size());
+            }
+        }
+        
+        for (String leftProp : leftPres) {
+            //String[] leftPreTokens = leftPre.split(",");
+            //String[] rightPreTokens = rightPre.split(",");
+            String[] mainPattern = leftProp.split(",");
+            
+            List<String> patterns = findChains(leftProp, lstA);
+            
+            StringBuilder q = new StringBuilder();
+            String prev_s = "";
+            System.out.println("Patterns " + patterns);
+            for (String pattern : patterns) {
+                q.setLength(0);
+                String[] leftPreTokens = pattern.split(",");
+                
+                System.out.println("Pattern : " + pattern);
+                System.out.println("Right Tokens : " + leftPreTokens.length);
+                System.out.println("Main Pattern : " + mainPattern.length);
+                
+                q.append("SPARQL SELECT ?s ?o" + (leftPreTokens.length - 1));
+                prev_s = "?s";
+                q.append(" WHERE {");
+                if (activeCluster > -1) {
+                    if (grConf.isDominantA()) {
+                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                    } else {
+                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                    }
+                } else {
+                    if (grConf.isDominantA()) {
+                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                    } else {
+                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                    }
+                }
+                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                for (int i = 0; i < leftPreTokens.length; i++) {
+                    q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
+                    prev_s = "?o" + i;
+                }
+                q.append("FILTER isLiteral("+prev_s+")} }");
+                
                 q.append("} }");
                 System.out.println(q.toString());
                 PreparedStatement stmt;
@@ -1702,138 +1606,32 @@ public class BatchFusionServlet extends HttpServlet {
 
                 while (rs.next()) {
                     //for (int i = 0; i < pres.length; i++) {
+                    String o = rs.getString("o" + (leftPreTokens.length - 1));
                     String s = rs.getString(1);
-                    String o = rs.getString(2);
-                    String ot1 = rs.getString("ot1");
-                    String ot2 = rs.getString("ot2");
-                    String ot3 = rs.getString("ot3");
-                    StringBuilder concat_str;
-                    if (ot3 != null) {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(ot3 + " ");
-                    } else if (ot2 != null) {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(ot2 + " ");
-                    } else if (ot1 != null) {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(ot1 + " ");
-                    } else {
-                        concat_str = newObjs.get(s);
-                        if (concat_str == null) {
-                            concat_str = new StringBuilder();
-                            newObjs.put(s, concat_str);
-                        }
-                        concat_str.append(o + " ");
-                    }
-                    System.out.println("Subject " + s);
-                    System.out.println("Object " + o);
                     
-                    String simplified = StringUtils.substringAfter(rightPreTokens[rightPreTokens.length - 1], "#");
-                    if (simplified.equals("")) {
-                        simplified = StringUtils.substring(rightPreTokens[rightPreTokens.length - 1], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length - 1], "/") + 1);
-                    }
-                }
-            }
-        } else {
-            String[] leftPreTokens = leftPre.split(",");
-            String[] rightPreTokens = rightPre.split(",");
-            if (rightPreTokens.length == 1) {
-                //metadataKeepRight(idx);
-                //return;
-            }
-
-            StringBuilder q = new StringBuilder();
-            q.append("sparql SELECT ?s ?o" + (rightPreTokens.length - 1) + " ?ot1 ?ot2 ?ot3");
-            String prev_s = "?s";
-            q.append(" WHERE {");
-            if (activeCluster > -1) {
-                if (grConf.isDominantA()) {
-                    q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                } else {
-                    q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                }
-            } else {
-                if (grConf.isDominantA()) {
-                    q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                } else {
-                    q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                }
-            }
-            q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-            for (int i = 0; i < rightPreTokens.length; i++) {
-                q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
-                prev_s = "?o" + i;
-            }
-            q.append(" OPTIONAL { "+prev_s+" ?pt1 ?ot1 . ");
-            q.append(" OPTIONAL {?ot1 ?pt2 ?ot2 . ");
-            q.append(" OPTIONAL {?ot2 ?pt3 ?ot3 . } } }");
-            q.append("} }");
-            System.out.println(q.toString());
-            PreparedStatement stmt;
-            stmt = virt_conn.prepareStatement(q.toString());
-            ResultSet rs = stmt.executeQuery();
-
-            //final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
-            while (rs.next()) {
-                //for (int i = 0; i < pres.length; i++) {
-                String o = rs.getString(2);
-                String s = rs.getString(1);
-                String ot1 = rs.getString("ot1");
-                    String ot2 = rs.getString("ot2");
-                    String ot3 = rs.getString("ot3");
-                             
-                StringBuilder concat_str;
-                if (ot3 != null) {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(ot3 + " ");
-                } else if (ot2 != null) {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(ot2 + " ");
-                } else if (ot1 != null) {
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(ot1 + " ");
-                } else {
+                    //System.out.println("The object is " + o);
+                    StringBuilder concat_str;
+                    
                     concat_str = newObjs.get(s);
                     if (concat_str == null) {
                         concat_str = new StringBuilder();
                         newObjs.put(s, concat_str);
                     }
                     concat_str.append(o + " ");
+
+                    //System.out.println("Subject " + s);
+                    //System.out.println("Object " + o);
+
+                    String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
+                    if (simplified.equals("")) {
+                        simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length - 1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
+                    }
+
                 }
-                System.out.println("Subject " + s);
-                System.out.println("Object " + o);
-                
-                String simplified = StringUtils.substringAfter(rightPreTokens[rightPreTokens.length - 1], "#");
-                if (simplified.equals("")) {
-                    simplified = StringUtils.substring(rightPreTokens[rightPreTokens.length - 1], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length - 1], "/") + 1);
-                }
-                
             }
         }
+        
+        String[] path = leftPres[0].split(",");
         StringBuilder q = new StringBuilder();
         System.out.println("Size " + newObjs.size());
         for (Map.Entry<String, StringBuilder> entry : newObjs.entrySet()) {
@@ -1844,10 +1642,16 @@ public class BatchFusionServlet extends HttpServlet {
             q.append("INSERT { GRAPH <" + tGraph + "> { ");
             String prev_s = "<" + sub + ">";
             for (int i = 0; i < lcpIndex; i++) {
-                q.append(prev_s + " <" + lcpProperty + "> ?o" + i + " . ");
+                q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
                 prev_s = "?o" + i;
             }
             q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\" . ");
+            q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+            prev_s = "<" + sub + ">";
+            for (int i = 0; i < lcpIndex; i++) {
+                q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
+                prev_s = "?o" + i;
+            }
             q.append("} }");
             System.out.println("Last query " + q.toString());
             
@@ -2152,6 +1956,7 @@ public class BatchFusionServlet extends HttpServlet {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
                 }
+                q.append("FILTER isLiteral("+prev_s+")} }");
                 
                 q.append("} }");
                 System.out.println(q.toString());
