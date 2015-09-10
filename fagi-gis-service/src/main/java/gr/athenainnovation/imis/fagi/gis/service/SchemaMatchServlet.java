@@ -183,6 +183,7 @@ public class SchemaMatchServlet extends HttpServlet {
             System.out.println("Dom A "+sms.domOntoA+" Dom B "+sms.domOntoB);
             sess.setAttribute("domA", sms.domOntoA);
             sess.setAttribute("domB", sms.domOntoB);
+            
             //sms.foundA.put("lalalala"+sess.getCreationTime(), new HashSet<String>());
             matches.foundA = sms.foundA;
             matches.foundB = sms.foundB;
@@ -191,6 +192,8 @@ public class SchemaMatchServlet extends HttpServlet {
             matches.geomTransforms = sms.geomTransforms;
             matches.metaTransforms = sms.metaTransforms;
             
+            sess.setAttribute("property_patternsA", sms.getPropertyList("A"));
+            sess.setAttribute("property_patternsB", sms.getPropertyList("B"));
             sess.setAttribute("predicates_matches", sms);
             System.out.println("Problem");
             sb.append("{");

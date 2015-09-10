@@ -215,13 +215,6 @@ $('#addSchema').click(function(){
         return;
     }
     
-    if ( lastSelectedFromA === null && lastSelectedFromB === null ) {
-        //alert("tom");
-        alert("No matching selected");
-        //alert(lastSelectedFromB === null);
-        return;
-    }
-    
     var strA = "";
     var strB = "";
     var listA = document.getElementById("schemasA");
@@ -585,9 +578,31 @@ var clickCountB = 0;
 function linkPropSelectedA() {
     //alert(linkMatchesJSON);
     if (this.prev_selected === true) {      
-        
-        this.style.backgroundColor = linkBackColorA;
-        linkLastSelectedFromA = null;
+        var elems = linkMatchesJSON.m.foundA[this.long_name];
+        //alert(elems);
+        var list = document.getElementById("linkSchemasB");
+        var listItems = list.getElementsByTagName("li");
+        $.each(elems, function(index, element) {
+            $.each(listItems, function(index1, element1) {
+                //alert("enter");
+                if (element1.long_name == element.rep) {
+                    
+                    element1.match_count--;
+                    if ( element1.match_count == 0 && !element1.prev_selected )
+                        element1.style.backgroundColor = element1.backColor;
+                    
+                    var scoreLbl = element1.getElementsByTagName("label");
+                    scoreLbl[0].innerHTML = "";
+                }
+            });
+        });
+        //alert("as");
+        if (this.match_count > 0) 
+            this.style.backgroundColor = "yellow";
+        else
+            this.style.backgroundColor = this.backColor;
+        //alert("as");
+        //linkLastSelectedFromA = null;
         this.prev_selected = false;
     } else {        
         this.style.backgroundColor = "blueviolet";
@@ -663,10 +678,33 @@ function linkPropSelectedA() {
 
 function linkPropSelectedB() {
     if (this.prev_selected === true) {      
-        
-        this.style.backgroundColor = linkBackColorB;
-        linkLastSelectedFromB = null;
+        var elems = linkMatchesJSON.m.foundB[this.long_name];
+        //alert(elems);
+        var list = document.getElementById("linkSchemasB");
+        var listItems = list.getElementsByTagName("li");
+        $.each(elems, function(index, element) {
+            $.each(listItems, function(index1, element1) {
+                //alert("enter");
+                if (element1.long_name == element.rep) {
+                    
+                    element1.match_count--;
+                    if ( element1.match_count == 0 && !element1.prev_selected )
+                        element1.style.backgroundColor = element1.backColor;
+                    
+                    var scoreLbl = element1.getElementsByTagName("label");
+                    scoreLbl[0].innerHTML = "";
+                }
+            });
+        });
+        //alert("as");
+        if (this.match_count > 0) 
+            this.style.backgroundColor = "yellow";
+        else
+            this.style.backgroundColor = this.backColor;
+        //alert("as");
+        //linkLastSelectedFromB = null;
         this.prev_selected = false;
+                
     } else {
         this.style.backgroundColor = "blueviolet";
         

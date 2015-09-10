@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>gr.aueb.msc.cs.mds</groupId>
+    <artifactId>fagi-gis-common</artifactId>
+    <version>0.1-rev${project.version}</version>
+    
+    <packaging>pom</packaging>
+    
+    <name>fagi-gis-common</name>
+
+    <properties>
+        <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.version>241</project.version>
+    </properties>
+    
+    <build>
+        <finalName>fagi-gis-common</finalName>
+        <plugins>
+            <plugin>
+                <artifactId>jdeb</artifactId>
+                <groupId>org.vafer</groupId>
+                <version>1.4</version>
+                <executions>
+                    <execution>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>jdeb</goal>
+                        </goals>
+                        <configuration>
+                            <skipPOMs>false</skipPOMs>
+                            <changesIn>${basedir}/CHANGES.txt</changesIn>
+                            <!--<changesOut>${basedir}/changelog</changesOut>-->
+                            <!--<key>68269074</key>
+                            <signPackage>true</signPackage>-->
+                            <passphrase>geofagi</passphrase>
+                            <!-- expand "SNAPSHOT" to what is in the "USER" env variable -->
+                            <verbose>true</verbose>
+                            <controlDir>${basedir}/src/deb/control</controlDir>
+                            <dataSet>
+                                <data>
+                                    <excludes>**/control/**</excludes>
+                                    <src>${basedir}/src/deb</src>
+                                    <type>directory</type>
+                                    
+                                    <mapper>
+                                        <prefix>/usr/</prefix>
+                                    </mapper>
+                                </data>
+                            </dataSet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

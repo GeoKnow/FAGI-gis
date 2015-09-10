@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -e
+#set -x
+
+. /usr/share/debconf/confmodule
+. /usr/share/dbconfig-common/dpkg/postinst.pgsql 
+
+. /etc/dbconfig-common/fagi-gis-common.conf
+
+# you can set the default database encoding to something else
+dbc_pgsql_createdb_encoding="UTF8"
+dbc_go fagi-gis-common $@
+
+# echo "Please enter the Superuser of the PostgresSQL installation: "
+# read input_variable
+# echo "You entered: $input_variable"
+
+# read -e -p "Enter the name of the PostgreSQL Superuser: " -i "postgres" FILEPATH
+# echo $FILEPATH
+
+echo "Granting Superuser role to \`$dbc_dbuser' using $input_variable needed for creating extentions"
+
+sudo -u postgres psql -c "ALTER ROLE $dbc_dbuser SUPERUSER;"&
+
+wait
+
+echo "Superuser role granted"
+
+case "$1" in
+
+  configure)
+
+  ;;
+
+  abort-upgrade|abort-remove|abort-deconfigure)
+    exit 0
+  ;;
+
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+  ;;
+
+esac
+
+
+
+#DEBHELPER#

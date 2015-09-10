@@ -7,8 +7,8 @@ Standards-Version: 3.9.2
 Homepage: https://github.com/GeoKnow/FAGI-gis
 Distribution: ldstack-nightly
 Package: fagi-gis-service
-Version: 1.1+rev239
+Version: [[version]]
 Architecture: all
-Depends: wordnet, fagi-gis, tomcat7, openjdk-7-jdk | default-jdk
+Depends: fagi-gis, tomcat7
 Description: GeoData and Metadata fusion 
  A tool for fusing geodata and their metadata

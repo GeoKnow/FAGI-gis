@@ -704,7 +704,7 @@ public class BatchFindLinkServlet extends HttpServlet {
                                     }
                                     JSONGeomLink l = new JSONGeomLink(
                                             subA, geoA.toText(),
-                                            pa.getSub(), geoms.get(pa.getSub()),
+                                            pa.getSub(), geoms.get( pa.getSub() ),
                                             dist,
                                             JaccardIndex
                                     );
@@ -818,8 +818,12 @@ public class BatchFindLinkServlet extends HttpServlet {
             for ( String k : toBeRemovedLinked ) {
                 geoms.remove(k);
             }
-            
-            for (Map.Entry<String, Geometry> entry : geomsB.entrySet()) {
+                     
+            HashMap<String, Geometry> otherRef = geomsB;
+            if (countB < countA && countB > 0) {
+                otherRef = geomsA;
+            }
+            for (Map.Entry<String, Geometry> entry : otherRef.entrySet()) {
                 String key = entry.getKey();
                 Geometry val = entry.getValue();
                 geoms.put(

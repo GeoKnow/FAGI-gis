@@ -43,6 +43,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import virtuoso.jdbc4.VirtuosoException;
 import virtuoso.jena.driver.VirtGraph;
 
 /**
@@ -276,75 +277,93 @@ public class CreateLinkServlet extends HttpServlet {
             }
         }
         
-        StringBuilder getFromA = new StringBuilder();
-        String endpointLoc2 = grConf.getEndpointA();
-        //System.out.println("is local "+isLocalEndpoint(endpointA));
-        if (endpointLoc2.equals(grConf.getEndpointA())) {
-            getFromA.append("sparql INSERT\n");
-            getFromA.append("  { GRAPH <").append(tGraph).append("_"+dbConf.getDBName()+"A"+"> {\n");
-            if (grConf.isDominantA())
-                getFromA.append(" <"+nodeA+"> ?p ?o1 . \n");
-            else
-                getFromA.append(" <"+nodeB+"> ?p ?o1 . \n");
-            getFromA.append(" ?o1 ?p4 ?o3 .\n");
-            getFromA.append(" ?o3 ?p5 ?o4 .\n");
-            getFromA.append(" ?o4 ?p6 ?o5\n");
-            getFromA.append("} }\nWHERE\n");
-            getFromA.append("{\n");
-            getFromA.append(" GRAPH <").append(grConf.getGraphA()).append("> { {<"+nodeA+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
-            getFromA.append("\n");
-            getFromA.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
-            getFromA.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
-            getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
-            getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
-            getFromA.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
-            getFromA.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
-            getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
-            getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
-            getFromA.append("}");
-            System.out.println("Get from A "+getFromA);
-        }
-        
-        StringBuilder getFromB = new StringBuilder();
-        endpointLoc2 = grConf.getEndpointB();
-        //System.out.println("is local "+isLocalEndpoint(endpointA));
-        if (endpointLoc2.equals(grConf.getEndpointB())) {
-            getFromB.append("sparql INSERT\n");
-            getFromB.append("  { GRAPH <").append(tGraph).append("_"+dbConf.getDBName()+"B"+"> {\n");
-            if (grConf.isDominantA())
-                getFromB.append(" <"+nodeA+"> ?p ?o1 . \n");
-            else
-                getFromB.append(" <"+nodeB+"> ?p ?o1 . \n");
-            getFromB.append(" ?o1 ?p4 ?o3 .\n");
-            getFromB.append(" ?o3 ?p5 ?o4 .\n");
-            getFromB.append(" ?o4 ?p6 ?o5\n");
-            getFromB.append("} }\nWHERE\n");
-            getFromB.append("{\n");
-            getFromB.append(" GRAPH <").append(grConf.getGraphB()).append("> { { <"+nodeB+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
-            getFromB.append("\n");
-            getFromB.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
-            getFromB.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
-            getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
-            getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
-            getFromB.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
-            getFromB.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
-            getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
-            getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
-            getFromB.append("}");
-            System.out.println("Get from B "+getFromB);
-        }
-        
-        Connection virt_conn = vSet.getConnection();
-        
-        PreparedStatement stmt = virt_conn.prepareStatement(getFromA.toString());
-        stmt.executeUpdate();
+        boolean updated = false;
+        PreparedStatement stmt = null;
+        while (!updated) {
+            try {
+                StringBuilder getFromA = new StringBuilder();
+                String endpointLoc2 = grConf.getEndpointA();
+                //System.out.println("is local "+isLocalEndpoint(endpointA));
+                if (endpointLoc2.equals(grConf.getEndpointA())) {
+                    getFromA.append("sparql INSERT\n");
+                    getFromA.append("  { GRAPH <").append(tGraph).append("_" + dbConf.getDBName() + "A" + "> {\n");
+                    if (grConf.isDominantA()) {
+                        getFromA.append(" <" + nodeA + "> ?p ?o1 . \n");
+                    } else {
+                        getFromA.append(" <" + nodeB + "> ?p ?o1 . \n");
+                    }
+                    getFromA.append(" ?o1 ?p4 ?o3 .\n");
+                    getFromA.append(" ?o3 ?p5 ?o4 .\n");
+                    getFromA.append(" ?o4 ?p6 ?o5\n");
+                    getFromA.append("} }\nWHERE\n");
+                    getFromA.append("{\n");
+                    getFromA.append(" GRAPH <").append(grConf.getGraphA()).append("> { {<" + nodeA + "> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+                    getFromA.append("\n");
+                    getFromA.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+                    getFromA.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+                    getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+                    getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+                    getFromA.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+                    getFromA.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+                    getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+                    getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+                    getFromA.append("}");
+                    System.out.println("Get from A " + getFromA);
+                }
 
-        stmt.close();
-        
-        stmt = virt_conn.prepareStatement(getFromB.toString());
-        stmt.executeUpdate();
-        
-        stmt.close();
+                StringBuilder getFromB = new StringBuilder();
+                endpointLoc2 = grConf.getEndpointB();
+                //System.out.println("is local "+isLocalEndpoint(endpointA));
+                if (endpointLoc2.equals(grConf.getEndpointB())) {
+                    getFromB.append("sparql INSERT\n");
+                    getFromB.append("  { GRAPH <").append(tGraph).append("_" + dbConf.getDBName() + "B" + "> {\n");
+                    if (grConf.isDominantA()) {
+                        getFromB.append(" <" + nodeA + "> ?p ?o1 . \n");
+                    } else {
+                        getFromB.append(" <" + nodeB + "> ?p ?o1 . \n");
+                    }
+                    getFromB.append(" ?o1 ?p4 ?o3 .\n");
+                    getFromB.append(" ?o3 ?p5 ?o4 .\n");
+                    getFromB.append(" ?o4 ?p6 ?o5\n");
+                    getFromB.append("} }\nWHERE\n");
+                    getFromB.append("{\n");
+                    getFromB.append(" GRAPH <").append(grConf.getGraphB()).append("> { { <" + nodeB + "> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+                    getFromB.append("\n");
+                    getFromB.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+                    getFromB.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+                    getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+                    getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+                    getFromB.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+                    getFromB.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+                    getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+                    getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+                    getFromB.append("}");
+                    System.out.println("Get from B " + getFromB);
+                }
+
+                Connection virt_conn = vSet.getConnection();
+
+                stmt = virt_conn.prepareStatement(getFromA.toString());
+                stmt.executeUpdate();
+
+                stmt.close();
+
+                stmt = virt_conn.prepareStatement(getFromB.toString());
+                stmt.executeUpdate();
+
+                updated = true;
+            } catch (VirtuosoException ve) {
+                if (ve.getLocalizedMessage().contains("deadlock")) {
+                    System.out.println("Deadlocked " + ve.getMessage());
+                    updated = false;
+                } else {
+                    System.out.println(ve.getMessage());
+                }
+            }
+        }
+
+        if ( stmt != null )
+            stmt.close();
     }
     
     Connection initGeomConnection(DBConfig dbConf, PrintWriter out) {

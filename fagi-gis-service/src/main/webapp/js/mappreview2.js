@@ -149,6 +149,7 @@ var vectorsLinks = new OpenLayers.Layer.Vector('Links Layer', {isBaseLayer: fals
 //var vectorsLinks = new OpenLayers.Layer.Vector('Links Layer', {isBaseLayer: false, style: styleLinks});
 var vectorsLinksTemp = new OpenLayers.Layer.Vector('Links Layer Temp', {isBaseLayer: false, style: styleLinks});
 var bboxLayer = new OpenLayers.Layer.Vector('BBox Layer', {isBaseLayer: false, style: styleBBox});
+var linksPreviewed = false;
 
 // SPARQL Editors
 var sparqlEditorA = null;
@@ -835,6 +836,11 @@ $(document).ready(function () {
     map.events.register("click", map, function (e) {
         mselectActive = false;
         
+        //document.getElementById("fg-debug-popup").style.opacity = 0.8;
+            //document.getElementById("fg-debug-popup").style.display = 'inline';
+            //document.getElementById("fg-debug-popup").style.top = mouse.y;
+        //document.getElementById("fg-debug-popup").style.left = mouse.x; 
+        
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
 
@@ -983,8 +989,10 @@ function fetchContained() {
             //alert(responseJson);
             bboxLayer.destroyFeatures();
             addUnlinkedMapDataJson(responseJson);
+            
             document.getElementById("popupBBoxMenu").style.opacity = 0;
             document.getElementById("popupBBoxMenu").style.display = 'none';
+            
             disableSpinner();
             //$('#popupBBoxMenu').hide();
         },
@@ -1767,7 +1775,12 @@ function doDragA(feature, pixel) {
                 var otherEndLinkIdx;
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
                     if ( otherEnd.attributes.links[j] == selectedGeomA.attributes.links[i] ) {
+                        console.log('other end link' + otherEndLinkIdx);
+                        console.log('other end link' + (otherEnd.attributes.links[j] == selectedGeomA.attributes.links[i]));
+                        console.log('other end link' + (otherEnd.attributes.links[j].attributes.a == selectedGeomA.attributes.links[i].attributes.a));
                         otherEndLinkIdx = j;
+                        
+                        break;
                     } 
                 }
                 vectorsLinks.destroyFeatures([selectedGeomA.attributes.links[i]]);
@@ -1799,6 +1812,10 @@ function doDragA(feature, pixel) {
                     'opacity': selectedGeomA.attributes.links[i].attributes.opacity};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
+                if ( !validated ) {
+                    linkFeature.jIndex = selectedGeomA.attributes.links[i].jIndex;
+                    linkFeature.dist = selectedGeomA.attributes.links[i].dist;
+                }
                 selectedGeomA.attributes.links[i] = linkFeature;
                 otherEnd.attributes.links[otherEndLinkIdx] = linkFeature;
                 vectorsLinks.addFeatures([linkFeature]);
@@ -1893,10 +1910,14 @@ function doDragB(feature, pixel) {
             for (i = 0; i < selectedGeomB.attributes.links.length; i++) {
                 var validated = selectedGeomB.attributes.links[i].validated;
                 var otherEnd = selectedGeomB.attributes.links[i].attributes.la;
-                var otherEndLinkIdx;
+                var otherEndLinkIdx = 0;
+                
+                
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
                     if ( otherEnd.attributes.links[j] == selectedGeomB.attributes.links[i] ) {
                         otherEndLinkIdx = j;
+                        
+                        break;
                     } 
                 }
                 vectorsLinks.destroyFeatures([selectedGeomB.attributes.links[i]]);
@@ -1934,6 +1955,10 @@ function doDragB(feature, pixel) {
                     'cluster': selectedGeomB.attributes.links[i].attributes.cluster};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
+                if ( !validated ) {
+                    linkFeature.jIndex = selectedGeomB.attributes.links[i].jIndex;
+                    linkFeature.dist = selectedGeomB.attributes.links[i].dist;
+                }
                 selectedGeomB.attributes.links[i] = linkFeature;
                 otherEnd.attributes.links[otherEndLinkIdx] = linkFeature;
                 vectorsLinks.addFeatures([linkFeature]);
@@ -1951,13 +1976,7 @@ function doDragB(feature, pixel) {
 
 // Featrue stopped moving 
 function endDragB(feature, pixel) {
-    //console.log( "end drag B" );
      if (selectedGeomB != null) {
-        selectedGeomB.geometry.transform(map.getProjectionObject(), WGS84);
-        //alert('End drag '+wkt.write(selectedGeomB));
-        //alert('End drag '+wkt.write(selectedGeomB.linls[0]));
-        selectedGeomB.geometry.transform(WGS84, map.getProjectionObject());
-        //selectedGeomB.state = OpenLayers.State.UPDATE;
         selectedGeomB = null;
     }
 }
@@ -2459,7 +2478,7 @@ function onLinkFeatureSelect(event) {
             success: function (responseJson) {
                 //$('#connLabel').text(responseJson);
                 fusionPanel(event.feature, responseJson);
-                map.zoomToExtent(event.feature.geometry.getBounds());
+                //map.zoomToExtent(event.feature.geometry.getBounds());
             },
             // code to run if the request fails; the raw request and
             // status codes are passed to the function
@@ -2612,7 +2631,7 @@ function fusionPanel(event, val, node) {
         recommendation.owlClassB[recommendation.owlClassB.length] = element;
     });
     //alert(JSON.stringify(recommendation));
-    //classRecommendation
+    
     $.ajax({
         // request type
         type: "POST",
@@ -2805,6 +2824,13 @@ function performFusion() {
         shiftValuesJSON.rotateFact = $('#rotate_fac').val();
     }
     
+    //classRecommendation
+    var send = $('#classRecommendation').val();
+    
+    if ( send == null ) 
+        send = "";
+    
+    //alert(send);
     //alert(current_feature == null);
     var geomCells = tblRows[1].getElementsByTagName("td");
     var geomFuse = new Object();
@@ -2831,7 +2857,7 @@ function performFusion() {
     var teach = $('#fuseButton').prop("recommendation");
     teach.fusionAction = geomFuse.action;
     //alert(JSON.stringify(teach));
-    
+    /*
     $.ajax({
         // request type
         type: "POST",
@@ -2844,11 +2870,6 @@ function performFusion() {
         // code to run if the request succeeds;
         // the response is passed to the function
         success: function (responseJson) {
-            //alert(JSON.stringify(responseJson));
-            /*avail_classes = "";
-            $.each(responseJson.tag, function (index, element) {
-                avail_trans += "<option value=\"" + element + "\">" + element + "</option>";
-            });*/
         },
         // code to run if the request fails; the raw request and
         // status codes are passed to the function
@@ -2863,7 +2884,7 @@ function performFusion() {
             //$('#connLabel').text("connected");
         }
     });
-    
+    */
     current_feature.attributes.la.geometry.transform(WGS84, map.getProjectionObject());
     current_feature.attributes.lb.geometry.transform(WGS84, map.getProjectionObject());
 
@@ -2920,7 +2941,7 @@ function performFusion() {
         // the URL for the request
         url: "FuseLinkServlet",
         // the data to send (will be converted to a query string)
-        data: {props: sendData, propsJSON: sndJSON, factJSON: sndShiftJSON},
+        data: {props: sendData, propsJSON: sndJSON, factJSON: sndShiftJSON, classes: send},
         // the type of data we expect back
         dataType: "json",
         // code to run if the request succeeds;

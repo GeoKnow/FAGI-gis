@@ -1,3 +1,7 @@
+<%@page language="java"%>
+<%@page import="java.lang.*"%>
+<%@page import="java.util.*"%>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <html>
@@ -5,7 +9,10 @@
         <title>FAGI-gis</title>
         <meta name="description" content="website description" />
         <meta name="keywords" content="website keywords, website keywords" />
+        <link href='http://fonts.googleapis.com/css?family=Bree+Serif' rel='stylesheet' type='text/css'>
+        <!--
         <link href='http://fonts.googleapis.com/css?family=Indie+Flower' rel='stylesheet' type='text/css'>
+        -->
         <link rel="stylesheet" href="js/codemirror/theme/lesser-dark.css">
         <link rel="stylesheet" href="js/codemirror/theme/base16-light.css">
         <link rel="stylesheet" href="js/codemirror/lib/codemirror.css">
@@ -16,7 +23,91 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="css/stylesheet.css" />
 </head>
+    
     <body>
+        <%
+            String str = request.getParameter("dataset-a");
+            if ( str == null ) 
+                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+            else
+                request.setAttribute("dataset-a", request.getParameter("dataset-a"));
+            
+            str = request.getParameter("dataset-b");
+            if ( str == null ) 
+                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+            else
+                request.setAttribute("dataset-b", request.getParameter("dataset-b"));
+            
+            str = request.getParameter("endpoint-a");
+            if ( str == null ) 
+                request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
+            else
+                request.setAttribute("endpoint-a", request.getParameter("endpoint-a"));
+            
+            str = request.getParameter("endpoint-b");
+            if ( str == null ) 
+                request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
+            else
+                request.setAttribute("endpoint-b", request.getParameter("endpoint-b"));
+            
+            str = request.getParameter("postgis-username");
+            if ( str == null ) 
+                request.setAttribute("postgis-username", "postgres");
+            else
+                request.setAttribute("postgis-username", request.getParameter("postgis-username"));
+            
+            str = request.getParameter("postgis-password");
+            if ( str == null ) 
+                request.setAttribute("postgis-password", "1111");
+            else
+                request.setAttribute("postgis-password", request.getParameter("postgis-password"));
+            
+            str = request.getParameter("postgis-database");
+            if ( str == null ) 
+                request.setAttribute("postgis-database", "postgis1");
+            else
+                request.setAttribute("postgis-database", request.getParameter("postgis-database"));
+            
+            str = request.getParameter("postgis-host");
+            if ( str == null ) 
+                request.setAttribute("postgis-host", "localhost");
+            else
+                request.setAttribute("postgis-host", request.getParameter("postgis-host"));
+            
+            str = request.getParameter("postgis-port");
+            if ( str == null ) 
+                request.setAttribute("postgis-port", "1111");
+            else
+                request.setAttribute("postgis-port", request.getParameter("postgis-port"));
+            
+            str = request.getParameter("target-endpoint");
+            if ( str == null ) 
+                request.setAttribute("target-endpoint", "http://localhost:8890/sparql");
+            else
+                request.setAttribute("target-endpoint", request.getParameter("target-endpoint"));
+            
+            str = request.getParameter("target-dataset");
+            if ( str == null ) 
+                request.setAttribute("target-dataset", "http://localhost:8890/fused_dataset");
+            else
+                request.setAttribute("target-dataset", request.getParameter("target-dataset"));
+            
+            /*
+             $scope.service.serviceUrl +
+					'?endpoint-a=' + encodeURIComponent($scope.fagi.endpointA == $scope.endpoint? authEndpoint : $scope.fagi.endpointA ) +
+					'&endpoint-b=' + encodeURIComponent($scope.fagi.endpointB == $scope.endpoint? authEndpoint : $scope.fagi.endpointB ) +
+					'&dataset-a='  + encodeURIComponent($scope.fagi.datasetA!=""? $scope.fagi.datasetA.replace(':',ConfigurationService.getUriBase()):"") +
+					'&dataset-b='  + encodeURIComponent($scope.fagi.datasetB!=""? $scope.fagi.datasetB.replace(':',ConfigurationService.getUriBase()):"") +
+					'&postgis-username='+ encodeURIComponent($scope.fagi.database.dbUser) +
+					'&postgis-password='+ encodeURIComponent($scope.fagi.database.dbPassword) +
+					'&postgis-database='+ encodeURIComponent($scope.fagi.database.dbName) +
+					'&postgis-host='+ encodeURIComponent($scope.fagi.database.dbHost) +
+					'&postgis-port='+ encodeURIComponent($scope.fagi.database.dbPort) +
+					'&target-endpoint='+ encodeURIComponent(authEndpoint) +
+					'&target-dataset='+ encodeURIComponent($scope.fagi.targetGraph.replace(':',ConfigurationService.getUriBase())) ;
+            */
+        %>
+        
         <div id="fg-screen-dimmer"></div>
         <div id="fg-loading-spinner" class="loader">
             <svg xmlns=http://www.w3.org/2000/svg  viewBox="0 0 100 100" id=circle-middle>
@@ -59,6 +150,13 @@
                 <circle fill=#26A6D1 cx=50 cy=50 r="4.5" />
             </svg>
         </div>
+        
+        <!--
+        <div class="tooltip" style="top: 200px; left: 500px;" id="fg-debug-popup">
+            <button id="close-debug-menu-btn" type="button" class="btn btn-primary">X</button>
+            Debug Output
+        </div>
+        -->
         
         <div class="tooltip" id="popupFindLinkMenu">
             <button id="close-findlink-menu-btn" type="button" class="btn btn-primary">X</button>
@@ -105,7 +203,6 @@
             <div id="nav3">
                 <table style="width:100%; height:1%;">
                     <tr>
-
 
                         <td><a id="connectionMenu" href="#connection">connection</a></td>
                         <td><a id="datasetMenu" href="#datasets">datasets</a></td>
@@ -155,7 +252,7 @@
                             </form></td>
                     </tr>
                 </table> </div>
-            <div style="float:right; width:100%; height:95%;" id="map"></div>
+            <div style="float:right; width:100%; height:98%;" id="map"></div>
         </div>
 
         <!--
@@ -180,22 +277,30 @@
                 <div id="datasetPanel">
                     <form id="dataDiv" name="data_input">
                     <!-- Linux IMIS -->
-                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm" title="Named Graph for Dataset A"/>
+                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="<% out.println(request.getAttribute("dataset-a"));%>" title="Named Graph for Dataset A"/>
                         <!-- Windows IMIS 
                         Dataset A: <input type="text" name="da_name" id="idDatasetA" class="centered" value="http://localhost:8890/DAV/osm_berlin'"/> -->
                         <!-- Mac OS X 
                         Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm" title="Named Graph for Dataset A"/> -->
                         <datalist id="datalist1"></datalist>
-                        SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="http://localhost:8890/sparql" title="SPARQL Endpoint for Dataset A."/> 
+                        SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="<% out.println(request.getAttribute("endpoint-a"));%>" title="SPARQL Endpoint for Dataset A."/> 
                         <!-- Linux IMIS -->
-                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik" title="Named Graph for Dataset B"/>
+                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="<% out.println(request.getAttribute("dataset-b"));%>" title="Named Graph for Dataset B"/>
                         <!-- Windows IMIS 
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost/DAV/wik"/ title="We ask for your age only for statistical purposes."> -->
                         <!-- Mac OS X 
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik"/> -->
-                        SPARQL Endpoint B: <input type="text" name="db_end" class="centered" value="http://localhost:8890/sparql" title="SPARQL Endpoint for Dataset A."/>
-                        Target Graph: <input type="text" name="t_graph" class="centered" value="http://localhost:8890/fused_dataset" title="Name of the target Dataset"/>
-                        SPARQL Endpoint Target: <input type="text" name="t_end" class="centered" value="http://localhost:8890/sparql" title="SPARQL Endpoint of the target dataset."/>
+                        SPARQL Endpoint B: <input type="text" name="db_end" class="centered" value="<% out.println(request.getAttribute("endpoint-b"));%>" title="SPARQL Endpoint for Dataset A."/>
+                        Target Graph: <input type="text" name="t_graph" class="centered" value="<% out.println(request.getAttribute("target-dataset"));%>" title="Name of the target Dataset"/>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td style="padding-right: 20px;" align="left" valign="bottom">Preview geometries from target dataset:</td>
+                                    <td style="padding-right: 20px;"><div><input id="fg-fetch-fused-check" name="t" value="true" type="checkbox" checked="false"/></div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        SPARQL Endpoint Target: <input type="text" name="t_end" class="centered" value="<% out.println(request.getAttribute("target-endpoint"));%>" title="SPARQL Endpoint of the target dataset."/>
                         <!--Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/fagi/Desktop/"/>-->
                         <!-- Linux IMIS 
                         Bulk Insert Dir: <input type="text" name="bulk" class="centered" value="/home/nick/Projects/FAGI-gis-master/"/> -->
@@ -206,9 +311,9 @@
                         <table>
                             <tbody>
                                 <tr>
-                                    <td style="padding-right: 20px;" align="left" valign="bottom">Dominant Dataset:</td>
-                                    <td style="text-align: center; padding-right: 20px;"><div class="checkboxes" style="display:inline-block;"><label><input id="domA" name="d_dom" value="true" type="checkbox" checked="true"/>A</label></div></td>
-                                    <td style="text-align: center; padding-right: 20px;"><div class="checkboxes" style="display:inline-block;"><label><input id="domB" type="checkbox" />B</label></div></td>                                  
+                                    <td style="vertical-align: middle; text-align: center; padding-right: 20px;" align="left" valign="bottom">Dominant Dataset:</td>
+                                    <td style="vertical-align: middle;; text-align: center; padding-right: 20px;"><label><input id="domA" name="d_dom" value="true" type="checkbox" checked="true"/>A</label></td>
+                                    <td style="vertical-align: middle; text-align: center; padding-right: 20px;"><label><input id="domB" type="checkbox" />B</label></td>                                  
                                 </tr>
                             </tbody>
                         </table>
@@ -228,7 +333,7 @@
                 </div>
                 <div id="connectionPanel">
                     <form id="connDiv" name="conn_input"><p />
-                        Virtuoso URL: <input type="text" name="v_url" class="centered" value="localhost:1111"/>
+                        Virtuoso URL: <input type="text" name="v_url" class="centered" value="<% out.println(request.getAttribute("postgis-host")+":"+request.getAttribute("postgis-port"));%>"/>
                         Virtuoso Username: <input type="text" name="v_name" class="centered" value="dba"/>
                         Virtuoso Password: <input type="password" name="v_pass" class="centered" value="dba"/>
                         <!-- Linux IMIS 
@@ -236,9 +341,9 @@
                         <!-- Windows IMIS 
                         PostGIS Username: <input type="text" name="p_name" class="centered" value="postgres"/> -->
                         <!-- Mac OS X -->
-                        PostGIS Username: <input type="text" name="p_name" class="centered" value="nickvitsas"/> 
-                        PostGIS Database <input type="text" name="p_data" class="centered" value="postgis1"/>
-                        PostGIS Password: <input type="password" name="p_pass" class="centered" value="1111" title="Password for PostGIS instance"/>
+                        PostGIS Username: <input type="text" name="p_name" class="centered" value="<% out.println(request.getAttribute("postgis-username"));%>"/> 
+                        PostGIS Database <input type="text" name="p_data" class="centered" value="<% out.println(request.getAttribute("postgis-database"));%>"/>
+                        PostGIS Password: <input type="password" name="p_pass" class="centered" value="<% out.println(request.getAttribute("postgis-password"));%>" title="Password for PostGIS instance"/>
                         <label id="connLabel" for="male">Connection not established</label><input id="connButton" type="submit" value="Submit" style="float:right" onclick="return false;"/>
                     </form>
                 </div>
