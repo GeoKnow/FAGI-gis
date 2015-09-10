@@ -10,6 +10,7 @@ set -e
 
 # you can set the default database encoding to something else
 dbc_pgsql_createdb_encoding="UTF8"
+
 dbc_go fagi-gis-common $@
 
 # echo "Please enter the Superuser of the PostgresSQL installation: "
@@ -19,11 +20,20 @@ dbc_go fagi-gis-common $@
 # read -e -p "Enter the name of the PostgreSQL Superuser: " -i "postgres" FILEPATH
 # echo $FILEPATH
 
-echo "Granting Superuser role to \`$dbc_dbuser' using $input_variable needed for creating extentions"
+echo "Granting Superuser role to \`$dbc_dbuser' using 'postgres' user needed for creating extentions"
 
-sudo -u postgres psql -c "ALTER ROLE $dbc_dbuser SUPERUSER;"&
+2>/dev/null 1>/dev/null sudo -u postgres psql -c "ALTER ROLE $dbc_dbuser SUPERUSER;"&
+2>/dev/null 1>/dev/null sudo -u postgres psql -c "ALTER USER $dbc_dbuser VALID UNTIL 'infinity';"&
 
 wait
+
+echo "Creating PostGIS extentions"
+
+2>/dev/null 1>/dev/null sudo -u postgres psql -d $dbc_dbname -f /usr/share/dbconfig-common/data/fagi-gis-common/install/extend_schema &
+
+wait
+
+echo "PostGIS extentions created"
 
 echo "Superuser role granted"
 

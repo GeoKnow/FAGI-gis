@@ -5,9 +5,28 @@ set -e
 
 . /usr/share/debconf/confmodule
 
+if [ -f /usr/share/dbconfig-common/dpkg/config ]; then
+
+        # Source the dbconfig-common stuff
+        . /usr/share/dbconfig-common/dpkg/config
+
+        # Default use dbconfig-common
+        dbc_install="true"
+
+        # FAGI PostgreSQL user
+        dbc_dbuser="fagi"
+
+        # FAGI PostgreSQL database
+        dbc_dbname="fagi"
+
+        # Set authentication method to password
+        # dbc_authmethod_user="password"
+
+fi
+
 if [ -f /usr/share/dbconfig-common/dpkg/config.pgsql ]; then
-	. /usr/share/dbconfig-common/dpkg/config.pgsql 
+        . /usr/share/dbconfig-common/dpkg/config.pgsql 
 	#dbc_authmethod_user="password"
-        echo "running"
+        
 	dbc_go fagi-gis-common $@
 fi

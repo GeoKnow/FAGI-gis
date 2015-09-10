@@ -1,0 +1,24 @@
+--Database creation script for the importer PostGIS schema
+
+CREATE EXTENSION postgis;
+CREATE EXTENSION postgis_topology;
+
+SELECT AddGeometryColumn('dataset_a_geometries', 'geom', 4326, 'GEOMETRY', 2);
+CREATE INDEX idx_dataset_a_geometries_geom ON dataset_a_geometries USING gist (geom);
+CLUSTER dataset_a_geometries USING idx_dataset_a_geometries_geom;
+
+SELECT AddGeometryColumn('dataset_b_geometries', 'geom', 4326, 'GEOMETRY', 2);
+CREATE INDEX idx_dataset_b_geometries_geom ON dataset_b_geometries USING gist (geom);
+CLUSTER dataset_b_geometries USING idx_dataset_b_geometries_geom;
+
+SELECT AddGeometryColumn('fused_geometries', 'geom', 4326, 'GEOMETRY', 2);
+CREATE INDEX idx_fused_geometries_geom ON fused_geometries USING gist (geom);
+
+CREATE FUNCTION GeomResize(GEOMETRY, FLOAT) RETURNS GEOMETRY AS '
+SELECT ST_Translate(ST_Scale($1, $2, $2), ST_X(ST_Centroid($1))*(1 - 
+$2), ST_Y(ST_Centroid($1))*(1 - $2)) AS resized_geometry;
+' LANGUAGE 'sql';
+
+CREATE FUNCTION GeomRotate(GEOMETRY, FLOAT) RETURNS GEOMETRY AS '
+SELECT ST_Translate(ST_Rotate(ST_Translate(ST_Transform($1, 2249), -ST_X(ST_Centroid(ST_Transform($1, 2249))), -ST_Y(ST_Centroid(ST_Transform($1, 2249)))), radians($2)), ST_X(ST_Centroid(ST_Transform($1, 2249))), ST_Y(ST_Centroid(ST_Transform($1, 2249)))) AS rotated_geometry;
+' LANGUAGE 'sql';
