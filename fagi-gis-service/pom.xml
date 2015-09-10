@@ -76,6 +76,14 @@
                                         <prefix>/usr/share/doc/fagi-gis-service</prefix>
                                     </mapper>
                                 </data>
+                                <data>
+                                    <src>${project.basedir}/models</src>
+                                    <type>directory</type>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <prefix>/usr/share/fagi-gis-service/models</prefix>
+                                    </mapper>
+                                </data>
                             </dataSet>
                         </configuration>
                     </execution>
