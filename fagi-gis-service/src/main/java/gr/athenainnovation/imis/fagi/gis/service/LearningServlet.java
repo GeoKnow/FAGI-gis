@@ -37,6 +37,7 @@ import java.util.logging.Logger;
 //import java.util.logging.Level;
 //import java.util.logging.Logger;
 import javax.servlet.ServletConfig;
+import org.apache.commons.io.FileUtils;
 //import javax.servlet.http.HttpSession;
 
 /**
@@ -71,16 +72,21 @@ public class LearningServlet extends HttpServlet {
         private static final String WINDOWS_TRAIN_FILE = PATH_WIN + "\\FAGI_models\\trainFile.ser";   
     */
        
-    private static final String LINUX_TAG_MODEL = PATH + "/FAGI_models/best_model";   
+    private static final String LINUX_TAG_MODEL = PATH + "/FAGI-gis models/best_model";
+    
+    private static final String MODELS_USR = "/usr/share/fagi-gis-service/models";
+    
+    //private static final String LINUX_HOME = PATH + "/FAGI_models";
+    
     private static final String WINDOWS_TAG_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\best_model";   
-    private static final String LINUX_FUSIONS_MODEL = PATH + "/FAGI_models/model";
+    private static final String LINUX_FUSIONS_MODEL = PATH + "/FAGI-gis models/model";
     private static final String WINDOWS_FUSIONS_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\model";               
-    private static final String LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI_models/default_model";
+    private static final String LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI-gis models/default_model";
     private static final String WINDOWS_DEFAULT_FUSIONS_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\default_model";
-    private static final String LINUX_MAP_FILE = PATH + "/FAGI_models/Map";
+    private static final String LINUX_MAP_FILE = PATH + "/FAGI-gis models/Map";
     private static final String WINDOWS_MAP_FILE = PATH_WIN + "\\FAGI-gis\\files\\ontology\\Map";
     
-    private static final String LINUX_TRAIN_FILE = PATH + "/FAGI_models/trainFile.ser";
+    private static final String LINUX_TRAIN_FILE = PATH + "/FAGI-gis models/trainFile.ser";
     private static final String WINDOWS_TRAIN_FILE = PATH_DOC + "\\FAGI-gis\\SVM_models\\train_data\\trainFile.ser";      
     
     private static final int TAG_REC_SIZE = 6;
@@ -108,6 +114,18 @@ public class LearningServlet extends HttpServlet {
 //        System.out.println("base PATH linux = " + PATH);
 //        System.out.println("base PATH windows = " + PATH_WIN);
         System.out.println(FuserPanel.transformations);
+                      
+        File fagiModels = new File(MODELS_USR);
+        File pathToPaste = new File(PATH + "/FAGI-gis models");
+        System.out.println("fagiModels path: \n" + MODELS_USR);
+        System.out.println("user home path: \n" + PATH);
+        
+        try {
+            FileUtils.copyDirectory(fagiModels, pathToPaste);
+        } catch (IOException ex) {
+            Logger.getLogger(LearningServlet.class.getName()).log(Level.SEVERE, null, ex);
+        }        
+        
         
         isLinux = !OS.contains("win");
         
@@ -118,7 +136,8 @@ public class LearningServlet extends HttpServlet {
         entitiesCart = new EntitiesCart();
         mapPairFactory = new MapPairFactory(entitiesCart, fusionActions);
         //mapPairFactory.produceSomeTestEntities();
-
+        
+        
     }
     
     /**
