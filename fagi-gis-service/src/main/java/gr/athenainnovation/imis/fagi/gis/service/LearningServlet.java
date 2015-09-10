@@ -86,7 +86,7 @@ public class LearningServlet extends HttpServlet {
     private static final String LINUX_MAP_FILE = PATH + "/FAGI-gis models/Map";
     private static final String WINDOWS_MAP_FILE = PATH_WIN + "\\FAGI-gis\\files\\ontology\\Map";
     
-    private static final String LINUX_TRAIN_FILE = PATH + "/FAGI-gis models/trainFile.ser";
+    private static final String LINUX_TRAIN_FILE = PATH + "/FAGI-gis models/train/trainData.ser";
     private static final String WINDOWS_TRAIN_FILE = PATH_DOC + "\\FAGI-gis\\SVM_models\\train_data\\trainFile.ser";      
     
     private static final int TAG_REC_SIZE = 6;
