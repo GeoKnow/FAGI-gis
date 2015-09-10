@@ -1,0 +1,9 @@
+Package: [[name]]
+Version: [[version]]
+Section: misc
+Priority: optional
+Architecture: all
+Depends: dbconfig-common, openjdk-7-jdk | default-jdk, postgresql, postgis, postgresql-9.3-postgis-2.1
+Maintainer: Torsten Curdt <torsten@something.com>
+Description: jetty java servlet container
+Distribution: development

@@ -9,6 +9,6 @@ Distribution: ldstack-nightly
 Package: fagi-gis
 Version: [[version]]
 Architecture: all
-Depends: wordnet, openjdk-7-jdk | default-jdk, tomcat7, postgresql, postgis, virtuoso-opensource
+Depends: wordnet, fagi-gis-common
 Description: GeoData fusion
  A tool for fusing geodata

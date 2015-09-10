@@ -9,6 +9,6 @@ Distribution: ldstack-nightly
 Package: fagi-gis-service
 Version: [[version]]
 Architecture: all
-Depends: wordnet, fagi-gis, tomcat7, openjdk-7-jdk | default-jdk
+Depends: fagi-gis, tomcat7
 Description: GeoData and Metadata fusion 
  A tool for fusing geodata and their metadata
