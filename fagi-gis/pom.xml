@@ -4,7 +4,7 @@
 
     <groupId>gr.athena-innovation.imis</groupId>
     <artifactId>fagi-gis</artifactId>
-    <version>1.1+rev241</version>
+    <version>1.1+rev242</version>
     <packaging>jar</packaging>
     
     <url>http://maven.apache.org</url>

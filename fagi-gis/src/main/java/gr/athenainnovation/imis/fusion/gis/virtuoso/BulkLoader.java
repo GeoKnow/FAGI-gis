@@ -276,7 +276,7 @@ public class BulkLoader implements TripleHandler {
                         queryStr.append(" . ");
                     }
                     queryStr.append("}");
-                    //System.out.println("Print "+queryStr.toString());
+                    System.out.println("Print "+queryStr.toString());
 
                     UpdateRequest q = queryStr.asUpdate();
                     HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());

@@ -205,9 +205,11 @@ public class GraphConfig {
         HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
         //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
         QueryEngineHTTP qeh = new QueryEngineHTTP(s, geoQuery, authenticator);
+        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
         qeh.addDefaultGraph(g);
-        QueryExecution queryExecution = qeh;
-        final ResultSet resultSet = queryExecution.execSelect();
+        //QueryExecution queryExecution = qeh;
+        final ResultSet resultSet = qeh.execSelect();
         
         while(resultSet.hasNext()) {
             final QuerySolution querySolution = resultSet.next();
@@ -221,6 +223,6 @@ public class GraphConfig {
             }
         }
         
-        queryExecution.close();
+        qeh.close();
     }
 }
