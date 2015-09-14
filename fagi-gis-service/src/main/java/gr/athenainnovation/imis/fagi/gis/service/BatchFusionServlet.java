@@ -552,6 +552,10 @@ public class BatchFusionServlet extends HttpServlet {
             }
             
             for(int i = 1; i < selectedFusions.length; i++) {
+                eraseOldMetadata(selectedFusions[i].action, i);
+            }
+            
+            for(int i = 1; i < selectedFusions.length; i++) {
                 handleMetadataFusion(selectedFusions[i].action, i);
             }
             
@@ -666,6 +670,55 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
+    private void eraseOldMetadata(String action, int idx) throws SQLException, UnsupportedEncodingException {
+        String s2 = "SPARQL WITH <http://localhost:8890/DAV/osm_demo_asasas> INSERT { `iri(??)` `iri(??)` ?? }";
+        String s = "SPARQL SELECT * WHERE { ?? ?p ?o  FILTER ( isLiTERAL ( ?o ) ) } LIMIT 10";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement stmt = null;
+        
+        try {
+            stmt = (VirtuosoPreparedStatement) conn.prepareStatement(s);
+            stmt.setString(1, "http://linkedgeodata.org/triplify/way204488343");
+            
+            //stmt.
+            //stmt.setString(2, "<tom>");
+            //stmt.setString(3, "<tom>");
+            System.out.println(stmt.toString());
+            VirtuosoResultSet rs = (VirtuosoResultSet) stmt.executeQuery();
+        
+            while ( rs.next() ) {
+                System.out.println(rs.getString(1));
+                System.out.println(rs.getString(2));
+                //System.out.println(rs.getString(3));
+            }
+            
+            rs.close();
+            
+            stmt.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        try {
+            stmt = (VirtuosoPreparedStatement) conn.prepareStatement(s2);
+            
+            //stmt.setString(1, "http://localhost:8890/DAV/osm_demo_asasas");
+            for (int i = 10; i < 1000; i++ ) {
+                stmt.setString(1, "<osm " + ( i - 2 )  +">");
+                stmt.setString(2, "<demo " + ( i - 2)  +">");
+                stmt.setString(3, "osm " + i +"");
+                //stmt.setString(5, "<demo " + i +">");
+                //stmt.setString(6, "demo " + i +"");
+                
+                stmt.addBatch();
+            }
+            stmt.executeBatchUpdate();
+            
+        } catch (SQLException ex) {
+            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
     private void handleMetadataFusion(String action, int idx) throws SQLException, UnsupportedEncodingException {
         if (action.equals("Keep A")) {
             metadataKeepLeft(idx);
@@ -704,7 +757,7 @@ public class BatchFusionServlet extends HttpServlet {
     }
     
     private void clearPrevious(String[] l, String[] r) {
-        System.out.println("\n\n\nCLEARING\n\n\n\n");
+        /*System.out.println("\n\n\nCLEARING\n\n\n\n");
         //System.out.println("Left " + l);
         //System.out.println("Right " + r);
         
@@ -806,6 +859,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
         
         System.out.println("\n\n\nCLEARING\n\n\n\n");
+        */
 
     }
     

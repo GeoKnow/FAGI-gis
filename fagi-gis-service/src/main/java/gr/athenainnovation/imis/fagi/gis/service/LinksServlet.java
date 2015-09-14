@@ -9,6 +9,8 @@ import com.google.common.collect.Maps;
 import com.hp.hpl.jena.graph.BulkUpdateHandler;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
 import com.hp.hpl.jena.query.QueryExecution;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
+import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.RDFNode;
@@ -112,10 +114,12 @@ public class LinksServlet extends HttpServlet {
         
         HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
         //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-        QueryEngineHTTP qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
-        qeh.addDefaultGraph(grConf.getGraphA());
-        QueryExecution queryExecution = qeh;
-        com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
+        QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(grConf.getEndpointA(), QueryFactory.create(checkA), authenticator);
+        //qeh.addDefaultGraph(grConf.getGraphA());
+        //QueryExecution queryExecution = qeh;
+        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+        System.out.println(QueryEngineHTTP.supportedSelectContentTypes[3]);
+        com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
             
         boolean foundInA = false;
         boolean foundInB = false;
@@ -124,19 +128,21 @@ public class LinksServlet extends HttpServlet {
             break;
         }
         
-        queryExecution.close();
+        qeh.close();
         
-        qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
-        qeh.addDefaultGraph(grConf.getGraphA());
-        queryExecution = qeh;
-        resultSet = queryExecution.execSelect();
+        qeh =  QueryExecutionFactory.createServiceRequest(grConf.getEndpointB(), QueryFactory.create(checkB), authenticator);
+        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+        //qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
+        //qeh.addDefaultGraph(grConf.getGraphB());
+        //queryExecution = qeh;
+        resultSet = qeh.execSelect();
         
         while (resultSet.hasNext()) {
             foundInB = true;
             break;
         }
 
-        queryExecution.close();
+        qeh.close();
 
         System.out.println("Found in A : " + foundInA + " B : " + foundInB);
         if (foundInA) {

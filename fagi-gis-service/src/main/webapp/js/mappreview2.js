@@ -2193,7 +2193,7 @@ function onFusedSelect(event) {
         // code to run if the request fails; the raw request and
         // status codes are passed to the function
         error: function (xhr, status, errorThrown) {
-            alert("Sorry, there was a problem with the second AJAX");
+            //alert("Sorry, there was a problem with the second AJAX");
             console.log("Error: " + errorThrown);
             console.log("Status: " + status);
             console.dir(xhr);

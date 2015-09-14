@@ -1332,14 +1332,14 @@ function batchFusionPreview(geomsJSON) {
             var clusterLink = new Object();
             var geom = geomsJSON.fusedGeoms[element.attributes.a];
             addGeom(element, geom.geom);
-            console.log("Got " + geom.nb + " with geom " + geom.geom);
+            //console.log("Got " + geom.nb + " with geom " + geom.geom);
         });
     } else if ( cluster == 9999 ) {
         $.each(activeFeatureClusterA, function (index, element) {
             toDelFeatures[toDelFeatures.length] = element;
             var geom = geomsJSON.fusedGeoms[element.attributes.a];
             addGeom(element, geom.geom);
-            console.log("In Custom cluster Got " + geom.nb + " with geom " + geom.geom);
+            //console.log("In Custom cluster Got " + geom.nb + " with geom " + geom.geom);
         });
     } else {
         $.each(vectorsLinks.features, function (index, element) {
@@ -1347,7 +1347,7 @@ function batchFusionPreview(geomsJSON) {
                 toDelFeatures[toDelFeatures.length] = element;
                 var geom = geomsJSON.fusedGeoms[element.attributes.a];
                 addGeom(element, geom.geom);
-                console.log("Got " + geom.nb + " with geom " + geom.geom);
+                //console.log("Got " + geom.nb + " with geom " + geom.geom);
             } 
         });
     }
