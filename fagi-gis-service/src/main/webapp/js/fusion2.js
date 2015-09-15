@@ -1027,13 +1027,7 @@ $('#removeLinkSchema').click(function () {
     //alert($('#schemasB').text());
 });
 
-$('#buttonL').click(function () {
-    //var formData = new FormData(document.getElementById("linksDiv"));
-    var formData = new FormData();
-    formData.append('file', $('input[type=file]')[0].files[0]);
-    //alert('file', $('input[type=file]')[0].files[0]);
-    //alert($('#swapButton').is(":checked"));
-    //alert('hey');
+function loadLinkedEntities(formData) {
     enableSpinner();
     $.ajax({
         url: 'LinksServlet', //Server script to process data
@@ -1064,6 +1058,14 @@ $('#buttonL').click(function () {
         contentType: false,
         processData: false
     });
+}
+
+$('#buttonL').click(function () {
+    //var formData = new FormData(document.getElementById("linksDiv"));
+    var formData = new FormData();
+    formData.append('file', $('input[type=file]')[0].files[0]);
+    
+    loadLinkedEntities(formData);
 });
 
 function submitLinks(batchFusion) {
@@ -2549,6 +2551,8 @@ function setDatasets()
         // the response is passed to the function
         success: function (responseText) {
             //$('#dataLabel').text(responseText);
+            //alert(responseText);
+            //alert(responseText == 1);
             disableSpinner();
             $('#dataLabel').text("Datasets accepted");
             $('#datasetNameA').html($('#idDatasetA').val());
@@ -2560,9 +2564,18 @@ function setDatasets()
             $('#legendLinkSetA').html($('#idDatasetA').val());
             $('#legendLinkSetB').html($('#idDatasetB').val());
             
+            //Loaqd links through endpoint
+            if ( responseText == 1 )
+                loadLinkedEntities(null);
+            
+            //Scan target dataset for any already fused geometry
             if ( $('#fg-fetch-fused-check').prop('checked') )
                 scanGeometries();
             
+            // Disable file uploading if a SPARQL endpoint for links is provided
+            if ( $('#fg-links-graph').val() && $('#fg-links-endpoint').val() ) 
+                $("#buttonL").prop('disabled', true);
+                
             $("#linksMenu").trigger('click');
         },
         // code to run if the request fails; the raw request and

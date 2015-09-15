@@ -172,8 +172,6 @@ public class LinksServlet extends HttpServlet {
             //String ret = createBulkLoadDir((String)sess.getAttribute("bulk"));
             //dbConf.setBulkDir(ret);
 
-            System.out.println(dbConf.getDBName());
-
             try {
                 vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
                         dbConf.getUsername(),

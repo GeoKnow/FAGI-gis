@@ -26,7 +26,23 @@
     
     <body>
         <%
-            String str = request.getParameter("dataset-a");
+            String str = request.getParameter("dataset-b");
+            if ( str == null ) 
+                request.setAttribute("dataset-l", "http://localhost:8890/DAV/links_postgis1");
+                //request.setAttribute("dataset-l", "http://generator.geoknow.eu/resource/RdfImport_1441965089653");
+            else
+                request.setAttribute("dataset-l", request.getParameter("dataset-l"));
+            
+            str = request.getParameter("endpoint-l");
+            if ( str == null ) 
+                //request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
+                //request.setAttribute("endpoint-l", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
+                request.setAttribute("endpoint-l", "http://fagi.guests.ipsyp.dom:8891/sparql");
+            else
+                request.setAttribute("endpoint-l", request.getParameter("endpoint-l"));
+            
+            
+            str = request.getParameter("dataset-a");
             if ( str == null ) 
                 request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
                 //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1441965065689");
@@ -307,6 +323,8 @@
                             </tbody>
                         </table>
                         SPARQL Endpoint Target: <input type="text" name="t_end" class="centered" value="<% out.println(request.getAttribute("target-endpoint"));%>" title="SPARQL Endpoint of the target dataset."/>
+                        Links Graph: <input id="fg-links-graph" type="text" name="l_graph" class="centered" value="<% out.println(request.getAttribute("dataset-l"));%>" title="Name of the links Datase.t(Leave empty if provided through file)"/>
+                        SPARQL Endpoint Links <input id="fg-links-endpoint" type="text" name="l_end" class="centered" value="<% out.println(request.getAttribute("endpoint-l"));%>" title="SPARQL Endpoint of the links dataset.(Leave empty if provided through file)"/>
                         <!--Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/fagi/Desktop/"/>-->
                         <!-- Linux IMIS 
                         Bulk Insert Dir: <input type="text" name="bulk" class="centered" value="/home/nick/Projects/FAGI-gis-master/"/> -->

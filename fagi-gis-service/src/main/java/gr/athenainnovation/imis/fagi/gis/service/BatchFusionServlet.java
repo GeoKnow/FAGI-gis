@@ -552,7 +552,7 @@ public class BatchFusionServlet extends HttpServlet {
             }
             
             for(int i = 1; i < selectedFusions.length; i++) {
-                eraseOldMetadata(selectedFusions[i].action, i);
+                //eraseOldMetadata(selectedFusions[i].action, i);
             }
             
             for(int i = 1; i < selectedFusions.length; i++) {
@@ -670,6 +670,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
+    /*
     private void eraseOldMetadata(String action, int idx) throws SQLException, UnsupportedEncodingException {
         String s2 = "SPARQL WITH <http://localhost:8890/DAV/osm_demo_asasas> INSERT { `iri(??)` `iri(??)` ?? }";
         String s = "SPARQL SELECT * WHERE { ?? ?p ?o  FILTER ( isLiTERAL ( ?o ) ) } LIMIT 10";
@@ -718,6 +719,7 @@ public class BatchFusionServlet extends HttpServlet {
             Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    */
     
     private void handleMetadataFusion(String action, int idx) throws SQLException, UnsupportedEncodingException {
         if (action.equals("Keep A")) {
