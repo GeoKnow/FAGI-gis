@@ -16,7 +16,7 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
  * Keeps info about graph names and given endpoints.
  */
 public class GraphConfig {
-    private String graphA, graphB, endpointA, endpointB, endpointLoc, endpointT;
+    private String graphA, graphB, graphL, endpointA, endpointB, endpointL, endpointLoc, endpointT;
     private boolean dominantA;
     
     private List<String> geoPropertiesA;
@@ -81,6 +81,38 @@ public class GraphConfig {
         geoPropertiesB = new ArrayList<>();
         geoTypesA = new ArrayList<>();
         geoTypesB = new ArrayList<>();
+    }
+
+    public GraphConfig(String graphA, String graphB, String endpointA, String endpointB, String endLoc, String endL, String graphL){
+        this.graphA = checkNotNull(graphA, "graph name cannot be null.");
+        this.graphB = checkNotNull(graphB, "graph name cannot be null.");
+        this.endpointA = checkNotNull(endpointA, "endpoint cannot be null.");
+        this.endpointB = checkNotNull(endpointB, "endpoint cannot be null.");
+        this.endpointLoc = endLoc;
+        this.dominantA = true;
+        this.graphL = graphL;
+        this.endpointL = endL;
+        
+        geoPropertiesA = new ArrayList<>();
+        geoPropertiesB = new ArrayList<>();
+        geoTypesA = new ArrayList<>();
+        geoTypesB = new ArrayList<>();
+    }
+    
+    public String getGraphL() {
+        return graphL;
+    }
+
+    public void setGraphL(String graphL) {
+        this.graphL = graphL;
+    }
+
+    public String getEndpointL() {
+        return endpointL;
+    }
+
+    public void setEndpointL(String endpointL) {
+        this.endpointL = endpointL;
     }
 
     public String getEndpointLoc() {
