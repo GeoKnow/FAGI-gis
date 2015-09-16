@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoException;
 import virtuoso.jdbc4.VirtuosoPreparedStatement;
 import virtuoso.jdbc4.VirtuosoResultSet;
 import virtuoso.jena.driver.VirtGraph;
@@ -105,12 +106,17 @@ public class FusionGISCLI {
             Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
         }
         
+        try {
+            conn.setAutoCommit(false);
+        } catch (VirtuosoException ex) {
+            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
         try {
             stmt = (VirtuosoPreparedStatement) conn.prepareStatement(s2);
             
             //stmt.setString(1, "http://localhost:8890/DAV/osm_demo_asasas");
-            for (int i = 10; i < 1000; i++ ) {
+            for (int i = 10; i < 100000; i++ ) {
                 stmt.setString(1, "<osm " + ( i - 2 )  +">");
                 stmt.setString(2, "<demo " + ( i - 2)  +">");
                 stmt.setString(3, "osm " + i +"");
@@ -124,9 +130,13 @@ public class FusionGISCLI {
         } catch (SQLException ex) {
             Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-        //StreamRDF destination = null; 
-        //RDFDataMgr.parse(destination, "http://example/data.ttl") ;
+        try {
+            conn.commit();
+            //StreamRDF destination = null;
+            //RDFDataMgr.parse(destination, "http://example/data.ttl") ;
+        } catch (VirtuosoException ex) {
+            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
         return;*/
         
