@@ -1,4 +1,4 @@
-/*
+/* 
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
@@ -18,6 +18,7 @@ import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.shared.PrefixMapping;
 import com.hp.hpl.jena.tdb.TDBFactory;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
+import com.hp.hpl.jena.update.UpdateFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
@@ -35,13 +36,16 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
+import static gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter.isThisMyIpAddress;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -66,6 +70,8 @@ import javax.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoPreparedStatement;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoUpdateFactory;
 import virtuoso.jena.driver.VirtuosoUpdateRequest;
@@ -552,7 +558,7 @@ public class BatchFusionServlet extends HttpServlet {
             }
             
             for(int i = 1; i < selectedFusions.length; i++) {
-                //eraseOldMetadata(selectedFusions[i].action, i);
+                eraseOldMetadata(selectedFusions[i].action, i);
             }
             
             for(int i = 1; i < selectedFusions.length; i++) {
@@ -670,13 +676,299 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
-    /*
+    
+    private void sendEntities(GraphConfig gc) {
+        boolean isEndpointLocal = false;
+        
+        try
+        {
+            URL endAURL = new URL(gc.getEndpointT());
+            isEndpointLocal = isThisMyIpAddress(InetAddress.getByName(endAURL.getHost())); //"localhost" for localhost
+        } catch(UnknownHostException unknownHost) {
+            System.out.println("It is not");
+        } catch (MalformedURLException ex) {
+            System.out.println("Malformed URL");
+        }
+        
+        if ( isEndpointLocal ) 
+            return;
+        
+        
+    }
+    
     private void eraseOldMetadata(String action, int idx) throws SQLException, UnsupportedEncodingException {
-        String s2 = "SPARQL WITH <http://localhost:8890/DAV/osm_demo_asasas> INSERT { `iri(??)` `iri(??)` ?? }";
-        String s = "SPARQL SELECT * WHERE { ?? ?p ?o  FILTER ( isLiTERAL ( ?o ) ) } LIMIT 10";
+        //String s2 = "SPARQL WITH <http://localhost:8890/DAV/osm_demo_asasas> DELETE { `iri(??)` `iri(??)` ?? }";
+        //String s = "SPARQL SELECT * WHERE { ?? ?p ?o  FILTER ( isLiTERAL ( ?o ) ) } LIMIT 10";
         VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
         VirtuosoPreparedStatement stmt = null;
+        conn.setAutoCommit(false);
+        String domOnto = "";
+        List<String> lstA = (List<String>)sess.getAttribute("property_patternsA");
+        List<String> lstB = (List<String>)sess.getAttribute("property_patternsB");
+
+                
+        if ( grConf.isDominantA() ) 
+            domOnto = (String)sess.getAttribute("domA");
+        else 
+            domOnto = (String)sess.getAttribute("domB");
+        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        String longName = selectedFusions[idx].preL;
         
+        name = StringUtils.replace(name, "&gt;", ">");
+        longName = StringUtils.replace(longName, "&gt;", ">");
+        String[] newPredTokes = name.split("=>");
+        String newPred = "";
+        if ( newPredTokes.length == 2 ) {
+            newPred = newPredTokes[1];
+        } else {
+            newPred = newPredTokes[0];
+        }
+        newPred = newPred.replaceAll(",","_");
+        System.out.println("Long name : "+longName);
+        String[] predicates = longName.split("=>");
+        String leftPre = predicates[0];
+        String rightPre = predicates[1];
+        leftPre = StringUtils.removeEnd(leftPre, "|");
+        rightPre = StringUtils.removeEnd(rightPre, "|");
+        String[] leftPres = leftPre.split("\\|");
+        String[] rightPres = rightPre.split("\\|");
+        System.out.println("Left pres "+leftPre);
+        for ( String s : leftPres )
+            System.out.print(s + " ");
+        System.out.println();
+        System.out.println("Right pres "+rightPre);   
+        for ( String s : rightPres )
+            System.out.print(s + " ");
+        
+        List<Link> l = (List<Link>) sess.getAttribute("links_list");
+        
+        for (String leftProp : leftPres) {
+            //String[] leftPreTokens = rightProp.split(",");
+            String[] mainPattern = leftProp.split(",");
+
+            List<String> patterns = findChains(leftProp, lstA);
+
+            System.out.println("Patterns " + patterns);
+
+            for (String pattern : patterns) {
+                String[] leftPreTokens = pattern.split(",");
+                boolean updating = true;
+                int addIdx = 0;
+                int cSize = 1;
+                int sizeUp = 1;
+                StringBuilder queryStrWhere = new StringBuilder();
+                while (updating) {
+                    try {
+                        ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                        queryStrWhere.setLength(0);
+                        //queryStr.append("WITH <"+fusedGraph+"> ");
+                        queryStr.append("DELETE { ");
+                        queryStr.append("GRAPH <" + tGraph + "> { ");
+                        int top = 0;
+                        if (cSize >= l.size()) {
+                            top = l.size();
+                        } else {
+                            top = cSize;
+                        }
+                        for (int i = addIdx; i < top; i++) {
+                            final String subject = l.get(i).getNodeA();
+                            final String subjectB = l.get(i).getNodeB();
+                            
+                            
+                            String prev_s = "<" + subject + ">";
+                            for (int count = 0; count < leftPreTokens.length; count++) {
+                                queryStr.append(prev_s);
+                                queryStr.append(" ");
+                                queryStr.appendIri(leftPreTokens[count]);
+                                queryStr.append(" ");
+                                queryStr.append("?o"+i+""+count);
+                                queryStr.append(" ");
+                                queryStr.append(".");
+                                queryStr.append(" ");
+                                
+                                queryStrWhere.append(prev_s);
+                                queryStrWhere.append(" ");
+                                queryStrWhere.append("<"+leftPreTokens[count]+">");
+                                queryStrWhere.append(" ");
+                                queryStrWhere.append("?o"+i+""+count);
+                                queryStrWhere.append(" ");
+                                queryStrWhere.append(".");
+                                queryStrWhere.append(" ");
+                                prev_s = "?o"+i+""+count;
+                            }
+                            
+                        }
+                        queryStr.append("} } WHERE {");
+                        queryStr.append("GRAPH <" + tGraph + "> { ");
+                        queryStr.append(queryStrWhere.toString());
+                        queryStr.append("} } ");
+                        System.out.println("Print "+queryStr.toString());
+
+                        //UpdateRequest q = queryStr.asUpdate();
+                        UpdateRequest q = UpdateFactory.create(queryStr.toString());
+                        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                        UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                        insertRemoteB.execute();
+
+                        //VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(queryStr.toString(), set);
+
+                        //update_handler.addUpdate(updateQuery);
+                        //vur.exec();
+
+                        //System.out.println("Add at "+addIdx+" Size "+cSize);
+                        addIdx += (cSize - addIdx);
+                        sizeUp *= 2;
+                        cSize += sizeUp;
+                        if (cSize >= l.size()) {
+                            cSize = l.size();
+                        }
+                        if (cSize == addIdx) {
+                            updating = false;
+                        }
+                    } catch (org.apache.jena.atlas.web.HttpException ex) {
+                        System.out.println("Failed at " + addIdx + " Size " + cSize);
+                        System.out.println("Crazy Stuff");
+                        System.out.println(ex.getLocalizedMessage());
+                        ex.printStackTrace();
+                        ex.printStackTrace(System.out);
+                        sizeUp = 1;
+                        cSize = addIdx;
+                        cSize += sizeUp;
+                        if (cSize >= l.size()) {
+                            cSize = l.size();
+                        }
+                        //System.out.println("Going back at "+addIdx+" Size "+cSize);
+
+                        break;
+                        //System.out.println("Going back at "+addIdx+" Size "+cSize);
+                    } catch (Exception ex) {
+                        System.out.println(ex.getLocalizedMessage());
+                        break;
+                    }
+                }
+            }
+        }
+        
+        for (String rightProp : rightPres) {
+            //String[] leftPreTokens = rightProp.split(",");
+            String[] mainPattern = rightProp.split(",");
+
+            List<String> patterns = findChains(rightProp, lstB);
+
+            System.out.println("Patterns " + patterns);
+
+            for (String pattern : patterns) {
+                String[] rightPreTokens = pattern.split(",");
+                boolean updating = true;
+                int addIdx = 0;
+                int cSize = 1;
+                int sizeUp = 1;
+                StringBuilder queryStrWhere = new StringBuilder();
+                while (updating) {
+                    try {
+                        ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                        queryStrWhere.setLength(0);
+                        //queryStr.append("WITH <"+fusedGraph+"> ");
+                        queryStr.append("DELETE { ");
+                        queryStr.append("GRAPH <" + tGraph + "> { ");
+                        int top = 0;
+                        if (cSize >= l.size()) {
+                            top = l.size();
+                        } else {
+                            top = cSize;
+                        }
+                        for (int i = addIdx; i < top; i++) {
+                            final String subject = l.get(i).getNodeA();
+                            final String subjectB = l.get(i).getNodeB();
+                            
+                            
+                            String prev_s = "<" + subject + ">";
+                            for (int count = 0; count < rightPreTokens.length; count++) {
+                                queryStr.append(prev_s);
+                                queryStr.append(" ");
+                                queryStr.appendIri(rightPreTokens[count]);
+                                queryStr.append(" ");
+                                queryStr.append("?o"+i+""+count);
+                                queryStr.append(" ");
+                                queryStr.append(".");
+                                queryStr.append(" ");
+                                
+                                queryStrWhere.append(prev_s);
+                                queryStrWhere.append(" ");
+                                queryStrWhere.append("<"+rightPreTokens[count]+">");
+                                queryStrWhere.append(" ");
+                                queryStrWhere.append("?o"+i+""+count);
+                                queryStrWhere.append(" ");
+                                queryStrWhere.append(".");
+                                queryStrWhere.append(" ");
+                                prev_s = "?o"+i+""+count;
+                            }
+                            
+                        }
+                        queryStr.append("} } WHERE {");
+                        queryStr.append("GRAPH <" + tGraph + "> { ");
+                        queryStr.append(queryStrWhere.toString());
+                        queryStr.append("} } ");
+                        System.out.println("Print "+queryStr.toString());
+
+                        //UpdateRequest q = queryStr.asUpdate();
+                        UpdateRequest q = UpdateFactory.create(queryStr.toString());
+                        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                        UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                        insertRemoteB.execute();
+
+                        //VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(queryStr.toString(), set);
+
+                        //update_handler.addUpdate(updateQuery);
+                        //vur.exec();
+
+                        //System.out.println("Add at "+addIdx+" Size "+cSize);
+                        addIdx += (cSize - addIdx);
+                        sizeUp *= 2;
+                        cSize += sizeUp;
+                        if (cSize >= l.size()) {
+                            cSize = l.size();
+                        }
+                        if (cSize == addIdx) {
+                            updating = false;
+                        }
+                    } catch (org.apache.jena.atlas.web.HttpException ex) {
+                        System.out.println("Failed at " + addIdx + " Size " + cSize);
+                        System.out.println("Crazy Stuff");
+                        System.out.println(ex.getLocalizedMessage());
+                        ex.printStackTrace();
+                        ex.printStackTrace(System.out);
+                        sizeUp = 1;
+                        cSize = addIdx;
+                        cSize += sizeUp;
+                        if (cSize >= l.size()) {
+                            cSize = l.size();
+                        }
+                        //System.out.println("Going back at "+addIdx+" Size "+cSize);
+
+                        break;
+                        //System.out.println("Going back at "+addIdx+" Size "+cSize);
+                    } catch (Exception ex) {
+                        System.out.println(ex.getLocalizedMessage());
+                        break;
+                    }
+                }
+            }
+        }
+        
+        /*for (int i = 0; i < rightPreTokens.length; i++) {
+                    q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
+                    prev_s = "?o" + i;
+                }
+                q.append("FILTER isLiteral("+prev_s+")} }");
+           */     
+        //Commit changes
+        conn.commit();
+        // Return to auto commit for next actions
+        conn.setAutoCommit(true);
+        
+        /*
         try {
             stmt = (VirtuosoPreparedStatement) conn.prepareStatement(s);
             stmt.setString(1, "http://linkedgeodata.org/triplify/way204488343");
@@ -717,9 +1009,9 @@ public class BatchFusionServlet extends HttpServlet {
             
         } catch (SQLException ex) {
             Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        }*/
+        
     }
-    */
     
     private void handleMetadataFusion(String action, int idx) throws SQLException, UnsupportedEncodingException {
         if (action.equals("Keep A")) {
@@ -2012,7 +2304,7 @@ public class BatchFusionServlet extends HttpServlet {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
                 }
-                q.append("FILTER isLiteral("+prev_s+")} }");
+                q.append("FILTER isLiteral("+prev_s+")");
                 
                 q.append("} }");
                 System.out.println(q.toString());
@@ -2025,7 +2317,7 @@ public class BatchFusionServlet extends HttpServlet {
                     String o = rs.getString("o" + (leftPreTokens.length - 1));
                     String s = rs.getString(1);
                     
-                    //System.out.println("The object is " + o);
+                    System.out.println("The object is " + o);
                     StringBuilder concat_str;
                     
                     concat_str = newObjs.get(s);
@@ -2035,8 +2327,8 @@ public class BatchFusionServlet extends HttpServlet {
                     }
                     concat_str.append(o + " ");
 
-                    //System.out.println("Subject " + s);
-                    //System.out.println("Object " + o);
+                    System.out.println("Subject " + s);
+                    System.out.println("Object " + o);
 
                     String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
                     if (simplified.equals("")) {

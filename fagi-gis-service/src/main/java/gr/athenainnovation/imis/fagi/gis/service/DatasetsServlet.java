@@ -67,8 +67,8 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setGraphA(request.getParameter("da_name"));
             graphConf.setGraphB(request.getParameter("db_name"));
             graphConf.setEndpointT(request.getParameter("t_end"));
-            graphConf.setEndpointL(request.getParameter("l_graph"));
-            graphConf.setGraphL(request.getParameter("l_end"));
+            graphConf.setGraphL(request.getParameter("l_graph"));
+            graphConf.setEndpointL(request.getParameter("l_end"));
 
             //System.out.println(dbConf.getDBName());
             System.out.println("Endpoint " + graphConf.getEndpointL() + " ");

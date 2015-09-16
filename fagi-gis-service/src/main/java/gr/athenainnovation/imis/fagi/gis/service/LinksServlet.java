@@ -8,9 +8,11 @@ package gr.athenainnovation.imis.fagi.gis.service;
 import com.google.common.collect.Maps;
 import com.hp.hpl.jena.graph.BulkUpdateHandler;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
+import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
+import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.RDFNode;
@@ -37,12 +39,14 @@ import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -152,6 +156,40 @@ public class LinksServlet extends HttpServlet {
         }
     }
 
+    InputStream fetchLinkFromEndpoint(String e, String g) {
+        StringBuilder sb = new StringBuilder(1024);
+        sb.append("");
+        String q = "SELECT * WHERE { GRAPH <"+g+"> { ?s ?p ?o } }";
+        System.out.println(q);
+        final Query query = QueryFactory.create(q);
+        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+        QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(e, QueryFactory.create(query), authenticator);
+        //qeh.addDefaultGraph(grConf.getGraphA());
+        //QueryExecution queryExecution = qeh;
+        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+                final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+                
+        while ( resultSet.hasNext() ) {
+            final QuerySolution querySolution = resultSet.next();
+
+            final RDFNode subject = querySolution.get("?s");
+            final RDFNode objectNode1 = querySolution.get("?p"); //lat
+            final RDFNode objectNode2 = querySolution.get("?o"); //long
+            
+            System.out.println("Subject "+subject.toString());
+            System.out.println("Subject "+objectNode1.toString());
+            System.out.println("Subject "+objectNode2.toString());
+            sb.append("<"+subject+">");
+            sb.append(" ");
+            sb.append("<"+SAME_AS+">");
+            sb.append(" ");
+            sb.append("<"+objectNode2+">");
+            sb.append(" . ");
+        }
+        
+        return new ByteArrayInputStream(sb.toString().getBytes(StandardCharsets.UTF_8));
+    }
+    
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -184,10 +222,18 @@ public class LinksServlet extends HttpServlet {
                 return;
             }
 
-            Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
-            String filename = getFilename(filePart);
-            InputStream filecontent = filePart.getInputStream();
-
+            //System.out.println("Content Type : " + request.getContentType() );
+            
+            //Checking Content Type allows to know if there is a file provided
+            InputStream filecontent = null;
+            if (request.getContentType() != null) {
+                Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
+                String filename = getFilename(filePart);
+                filecontent = filePart.getInputStream();
+            } else {
+                filecontent = fetchLinkFromEndpoint(grConf.getEndpointL(), grConf.getGraphL());
+            }
+            
     //Scanner sc = new Scanner(filecontent);
             //System.out.println("Filename "+filename);
             List<Link> output = new ArrayList<Link>();
@@ -270,6 +316,7 @@ public class LinksServlet extends HttpServlet {
             fetchedGeomsB.clear();
             
             sess.setAttribute("links", linksHashed);
+            sess.setAttribute("links_list", output);
             int i = 0;
             for (Link l : output) {
                 fetchedGeomsB.add(l.getNodeB());
