@@ -225,7 +225,7 @@ public final class VirtuosoImporter {
             typeWeight = 1.0f;
             simThreshold = 1.0f;
         }
-        trh = new BulkLoader(fusedGraph, set, graphConfig.getEndpointT());
+        trh = new BulkLoader(fusedGraph,dbConfig.getDBName(), set, graphConfig.getEndpointT());
         trh.init();
     }
     

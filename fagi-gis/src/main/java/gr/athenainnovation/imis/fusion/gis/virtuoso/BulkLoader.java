@@ -13,10 +13,16 @@ import com.hp.hpl.jena.update.UpdateRequest;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoException;
+import virtuoso.jdbc4.VirtuosoPreparedStatement;
 import virtuoso.jena.driver.VirtGraph;
 
 /**
@@ -39,6 +45,7 @@ public class BulkLoader implements TripleHandler {
             
     private final String fusedGraph;
     private final VirtGraph set;
+    private final String dbName;
     private List<Triple> toAdd;
     private List<Triple> toDel;
     private List<GeomTriple> geoms;
@@ -54,10 +61,11 @@ public class BulkLoader implements TripleHandler {
         }
     }
     
-    BulkLoader(String graph, VirtGraph s, String endT) {
+    BulkLoader(String graph, String dbName,  VirtGraph s, String endT) {
         this.fusedGraph = graph;
         this.set = s;
         this.endpointT = endT;
+        this.dbName = dbName;
     }
     
     @Override
@@ -135,8 +143,46 @@ public class BulkLoader implements TripleHandler {
         geoms = new ArrayList<>();
     }
 
+    public void updateLocalStore() {
+        String s2 = "SPARQL WITH <"+fusedGraph+"_"+dbName+"_fagi"+"> INSERT { `iri(??)` <"+HAS_GEOMETRY+">  `iri(??)` . `iri(??)`  <"+WKT+"> ?? }";
+        VirtuosoConnection conn = (VirtuosoConnection) set.getConnection();
+        VirtuosoPreparedStatement stmt = null;
+        try {
+            conn.setAutoCommit(false);
+        } catch (VirtuosoException ex) {
+            System.out.println("Virtuoso SQL Exception - Commit to false failed");
+        }
+        
+        try {
+            stmt = (VirtuosoPreparedStatement) conn.prepareStatement(s2);
+            System.out.println("Testing batch insert");
+            //stmt.setString(1, "http://localhost:8890/DAV/osm_demo_asasas");
+            for (GeomTriple geom : geoms) {
+                final String link = geom.s + "_geom";
+                stmt.setString(1, geom.s);
+                stmt.setString(2, link);
+                stmt.setString(3, link);
+                stmt.setString(4, geom.g);
+                stmt.addBatch();
+            }
+            stmt.executeBatchUpdate();
+            
+        } catch (SQLException ex) {
+            System.out.println("SQL Exception");
+        }
+        try {
+            conn.commit();
+            conn.setAutoCommit(true);
+            //StreamRDF destination = null;
+            //RDFDataMgr.parse(destination, "http://example/data.ttl") ;
+        } catch (VirtuosoException ex) {
+            System.out.println("Virtuoso SQL Exception");
+        }
+    }
+    
     @Override
     public void finish() {
+        updateLocalStore();
         /*//GraphUtil.delete(set, toDel);
         //GraphUtil.add(set, toAdd);
         UpdateRequest request = UpdateFactory.create() ;
