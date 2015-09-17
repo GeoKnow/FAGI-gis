@@ -557,19 +557,37 @@ public class BatchFusionServlet extends HttpServlet {
                 break;
             }
             
-            for(int i = 1; i < selectedFusions.length; i++) {
-                eraseOldMetadata(selectedFusions[i].action, i);
+            // If the Target dataset is equal to one of the other two perform DELETEs
+            if ( ( grConf.getEndpointA().equalsIgnoreCase(grConf.getEndpointT())
+                    && grConf.getGraphA().equals(tGraph) )
+                    || ( grConf.getEndpointB().equalsIgnoreCase(grConf.getEndpointT())
+                    && grConf.getGraphB().equals(tGraph) ) ) {
+                for (int i = 1; i < selectedFusions.length; i++) {
+                    eraseOldMetadata(selectedFusions[i].action, i);
+                }
             }
             
+            // Create insertion statements
+            List<VirtuosoPreparedStatement> stmts = new ArrayList<>();
+            for ( int i = 0; i < 4; i++ ) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("SPARQL WITH <"+tGraph+"_"+dbConf.getDBName()+"_fagi"+"> INSERT {");
+                for ( int p = 0; p < i; p++ ) {
+                    sb.append("`iri(??)`  `iri(??)` `iri(??)` .");
+                }
+                sb.append("`iri(??)`  `iri(??)` ?? . } ");
+                System.out.println("Statement " + sb.toString());
+                VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+                VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
+                
+                stmts.add(vstmt);
+            }
+            
+            // Perform Metadata Fusion
             for(int i = 1; i < selectedFusions.length; i++) {
                 handleMetadataFusion(selectedFusions[i].action, i);
             }
             
-            if ( sFactors != null ) {
-                System.out.println(sFactors.shift);
-                System.out.println(sFactors.scaleFact);
-                System.out.println(sFactors.rotateFact);
-            }
             out.println(mapper.writeValueAsString(ret));
         }
     }
@@ -1240,191 +1258,64 @@ public class BatchFusionServlet extends HttpServlet {
         for (String leftProp : leftPres) {
             //String[] leftPreTokens = rightProp.split(",");
             String[] mainPattern = leftProp.split(",");
-            
+
             List<String> patterns = findChains(leftProp, lst);
-            
+
             StringBuilder q = new StringBuilder();
             String prev_s = "";
             Set<String> set = new HashSet<>();
             Set<String> setFlat = new HashSet<>();
-        
+
             System.out.println("Patterns " + patterns);
-            
+
             for (String pattern : patterns) {
                 String[] leftPreTokens = pattern.split(",");
 
-                /*q.setLength(0);
+                String simplified = "";
+                if (leftPreTokens.length > mainPattern.length) {
+                    simplified = "_" + StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
+                    if (simplified.equals("")) {
+                        simplified = "_" + StringUtils.substring(leftPreTokens[leftPreTokens.length - 1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
+                    }
+                }
+
+                StringBuilder insq = new StringBuilder();
+                insq.append("INSERT { GRAPH <" + tGraph + "> { ");
+
                 prev_s = "?s";
-                int loopMax = 1;
-                q.append("SPARQL SELECT ?s ?o" + (leftPreTokens.length - 1) + " ?pt" + (loopMax - 1) + " ?ot" + (loopMax - 1) + "");
-                prev_s = "?s";
-                q.append(" WHERE {\n");
+                for (int i = 0; i < leftPreTokens.length - 2; i++) {
+                    insq.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
+                    prev_s = "?o" + i;
+                }
+                insq.append(prev_s + " <" + domOnto + newPred + simplified + "> " + "?o" + (leftPreTokens.length - 1) + "");
+                insq.append(" } } WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 } else {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 }
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-                for (int i = 0; i < leftPreTokens.length; i++) {
-                    q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
+                insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                prev_s = "?s";
+                for (int i = 0; i < leftPreTokens.length - 1; i++) {
+                    insq.append(prev_s + " <" + leftPreTokens[i] + "> " + "?o" + i + " . ");
                     prev_s = "?o" + i;
                 }
-                q.append("} }");
+                insq.append(prev_s + " <" + leftPreTokens[leftPreTokens.length - 1] + "> " + "?o" + (leftPreTokens.length - 1) + " . ");
 
-                System.out.println(q.toString());
-                PreparedStatement stmt;
-                stmt = virt_conn.prepareStatement(q.toString());
-                ResultSet rs = stmt.executeQuery();
+                insq.append("} }");
 
-                while (rs.next()) {
-                    String o = rs.getString(2);
-                    String s = rs.getString(1);
-                    String ot0 = rs.getString("ot0");
-                    String pt0 = rs.getString("pt0");
+                System.out.println(insq);
 
-                    if (ot0 == null) {
-                        set.add(o);
-                    } else {
-                        setFlat.add(pt0);
-                    }
-                }
-                System.out.println("Flat SET : " + setFlat);
-                System.out.println("SET : " + set);
-*/
-                /*
-                for (String prop : setFlat) {
-                    String simplified = StringUtils.substringAfter(prop, "#");
-                    if (simplified.equals("")) {
-                        simplified = StringUtils.substring(prop, StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
-                    }
-
-                    StringBuilder insq = new StringBuilder();
-                    insq.append("INSERT { GRAPH <" + tGraph + "> { ");
-
-                    prev_s = "?s";
-                    for (int i = 0; i < leftPreTokens.length - 2; i++) {
-                        insq.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + domOnto + newPred + "_" + simplified + "> " + "?obj" + "");
-                    insq.append(" } } WHERE {");
-                    if (activeCluster > -1) {
-                        if (grConf.isDominantA()) {
-                            insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                        } else {
-                            insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                        }
-                    } else {
-                        if (grConf.isDominantA()) {
-                            insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                        } else {
-                            insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                        }
-                    }
-                    insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-                    //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                    prev_s = "?s";
-                    for (int i = 0; i < leftPreTokens.length; i++) {
-                        insq.append(prev_s + " <" + leftPreTokens[i] + "> " + "?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + prop + "> " + "?obj" + " . ");
-
-                    insq.append("} }");
-                    System.out.println(insq);
-
-                    VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
-                    vur.exec();
-
-                    insq = new StringBuilder();
-                    insq.append("INSERT { GRAPH <" + tGraph + "> { ");
-
-                    prev_s = "?s";
-                    insq.append(" ?obj ?p1 ?o1 . ");
-                    insq.append(" ?o1 ?p2 ?o2 . ");
-                    insq.append(" ?o2 ?p3 ?o3 . ");
-                    insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-                    prev_s = "?s";
-                    for (int i = 0; i < leftPreTokens.length; i++) {
-                        insq.append(prev_s + " <" + leftPreTokens[i] + "> " + "?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + prop + "> " + "?obj" + " . ");
-                    insq.append(" OPTIONAL { ?obj ?p1 ?o1 . ");
-                    insq.append(" OPTIONAL {?o1 ?p2 ?o2 . ");
-                    insq.append(" OPTIONAL {?o2 ?p3 ?o3 . } } }");
-                    insq.append("} }");
-                    System.out.println("Optional " + insq);
-
-                    vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
-                    vur.exec();
-                }
-                */
-                
-                //for (String o : set) {
-                    /*String normObject = "";
-                    try {
-                        URL url = new URL(o);
-                        normObject = "<" + o + ">";
-                    } catch (MalformedURLException e) {
-                        normObject = "\"" + o + "\"";
-                    }
-                    */
-                
-                    String simplified = "";
-                    if (leftPreTokens.length > mainPattern.length) {
-                        simplified = "_"+StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
-                        if (simplified.equals("")) {
-                            simplified = "_"+StringUtils.substring(leftPreTokens[leftPreTokens.length - 1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
-                        }
-                    }
-                    
-                    StringBuilder insq = new StringBuilder();
-                    insq.append("INSERT { GRAPH <" + tGraph + "> { ");
-
-                    prev_s = "?s";
-                    for (int i = 0; i < leftPreTokens.length - 2; i++) {
-                        insq.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + domOnto + newPred + simplified + "> " + "?o" + (leftPreTokens.length - 1) + "");
-                    insq.append(" } } WHERE {");
-                    if (activeCluster > -1) {
-                        if (grConf.isDominantA()) {
-                            insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                        } else {
-                            insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                        }
-                    } else {
-                        if (grConf.isDominantA()) {
-                            insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                        } else {
-                            insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                        }
-                    }
-                    insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-                    prev_s = "?s";
-                    for (int i = 0; i < leftPreTokens.length - 1; i++) {
-                        insq.append(prev_s + " <" + leftPreTokens[i] + "> " + "?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + leftPreTokens[leftPreTokens.length - 1] + "> " + "?o" + (leftPreTokens.length - 1) + " . ");
-                        
-                    insq.append("} }");
-                    
-                    System.out.println(insq);
-
-                    VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
-                    vur.exec();
-                //}
+                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
+                vur.exec();
             }
         }
     }
@@ -1512,195 +1403,65 @@ public class BatchFusionServlet extends HttpServlet {
         for (String rightProp : rightPres) {
             String[] leftPreTokens = rightProp.split(",");
             String[] mainPattern = rightProp.split(",");
-            
+
             List<String> patterns = findChains(rightProp, lst);
-            
+
             StringBuilder q = new StringBuilder();
             String prev_s = "";
             Set<String> set = new HashSet<>();
             Set<String> setFlat = new HashSet<>();
-        
+
             System.out.println("Patterns " + patterns);
-            
+
             for (String pattern : patterns) {
                 set.clear();
                 setFlat.clear();
                 String[] rightPreTokens = pattern.split(",");
-                
-                /*
-                q.setLength(0);
+
+                String simplified = "";
+                if (rightPreTokens.length > mainPattern.length) {
+                    simplified = "_" + StringUtils.substringAfter(rightPreTokens[rightPreTokens.length - 1], "#");
+                    if (simplified.equals("")) {
+                        simplified = "_" + StringUtils.substring(rightPreTokens[rightPreTokens.length - 1], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length - 1], "/") + 1);
+                    }
+                }
+                StringBuilder insq = new StringBuilder();
+                insq.append("INSERT { GRAPH <" + tGraph + "> { ");
+
                 prev_s = "?s";
-                int loopMax = 1;
-                q.append("SPARQL SELECT ?s ?o" + (rightPreTokens.length - 1) + " ?pt" + (loopMax - 1) + " ?ot" + (loopMax - 1) + "");
-                prev_s = "?s";
-                q.append(" WHERE {\n");
+                for (int i = 0; i < mainPattern.length - 2; i++) {
+                    insq.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
+                    prev_s = "?o" + i;
+                }
+                insq.append(prev_s + " <" + domOnto + newPred + simplified + "> " + "?o" + (rightPreTokens.length - 1) + "");
+                insq.append(" } } WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 } else {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 }
-                q.append(" \n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                for (int i = 0; i < rightPreTokens.length; i++) {
-                    q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
+                insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                prev_s = "?s";
+                for (int i = 0; i < rightPreTokens.length - 1; i++) {
+                    insq.append(prev_s + " <" + rightPreTokens[i] + "> " + "?o" + i + " . ");
                     prev_s = "?o" + i;
                 }
-                q.append("} }");
+                insq.append(prev_s + " <" + rightPreTokens[rightPreTokens.length - 1] + "> " + "?o" + (rightPreTokens.length - 1) + " . ");
 
-                System.out.println(q.toString());
-                PreparedStatement stmt;
-                stmt = virt_conn.prepareStatement(q.toString());
-                ResultSet rs = stmt.executeQuery();
+                insq.append("} }");
+                System.out.println(insq);
 
-                while (rs.next()) {
-                    String o = rs.getString(2);
-                    String s = rs.getString(1);
-                    String ot0 = rs.getString("ot0");
-                    String pt0 = rs.getString("pt0");
-
-                    if (ot0 == null) {
-                        set.add(o);
-                    } else {
-                        setFlat.add(pt0);
-                    }
-                }
-                
-                System.out.println("Flat SET : " + setFlat);
-                System.out.println("SET : " + set);
-                */
-                
-                /*
-                for (String prop : setFlat) {
-                    String simplified = StringUtils.substringAfter(prop, "#");
-                    if (simplified.equals("")) {
-                        simplified = StringUtils.substring(prop, StringUtils.lastIndexOf(mainPattern[mainPattern.length - 1], "/") + 1);
-                    }
-
-                    StringBuilder insq = new StringBuilder();
-                    insq.append("INSERT { GRAPH <" + tGraph + "> { ");
-
-                    prev_s = "?s";
-                    for (int i = 0; i < mainPattern.length - 2; i++) {
-                        insq.append(prev_s + " <" + mainPattern[i] + "> ?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + domOnto + newPred + "_" + simplified + "> " + "?obj" + "");
-                    insq.append(" } } WHERE {");
-                    if (activeCluster > -1) {
-                        if (grConf.isDominantA()) {
-                            insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                        } else {
-                            insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                        }
-                    } else {
-                        if (grConf.isDominantA()) {
-                            insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                        } else {
-                            insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                        }
-                    }
-                    insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                    //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                    prev_s = "?s";
-                    for (int i = 0; i < mainPattern.length; i++) {
-                        insq.append(prev_s + " <" + mainPattern[i] + "> " + "?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + prop + "> " + "?obj" + " . ");
-
-                    insq.append("} }");
-                    System.out.println(insq);
-
-                    VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
-                    vur.exec();
-
-                    insq = new StringBuilder();
-                    insq.append("INSERT { GRAPH <" + tGraph + "> { ");
-
-                    prev_s = "?s";
-                    insq.append(" ?obj ?p1 ?o1 . ");
-                    insq.append(" ?o1 ?p2 ?o2 . ");
-                    insq.append(" ?o2 ?p3 ?o3 . ");
-                    insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                    prev_s = "?s";
-                    for (int i = 0; i < mainPattern.length; i++) {
-                        insq.append(prev_s + " <" + mainPattern[i] + "> " + "?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + prop + "> " + "?obj" + " . ");
-                    insq.append(" OPTIONAL { ?obj ?p1 ?o1 . ");
-                    insq.append(" OPTIONAL {?o1 ?p2 ?o2 . ");
-                    insq.append(" OPTIONAL {?o2 ?p3 ?o3 . } } }");
-                    insq.append("} }");
-                    System.out.println("Optional " + insq);
-
-                    vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
-                    vur.exec();
-                }
-                */
-                
-                //for (String o : set) {
-                    /*String normObject = "";
-                    try {
-                        URL url = new URL(o);
-                        normObject = "<" + o + ">";
-                    } catch (MalformedURLException e) {
-                        normObject = "\"" + o + "\"";
-                    }
-                    */
-                
-                    String simplified = "";
-                    if (rightPreTokens.length > mainPattern.length) {
-                        simplified = "_"+StringUtils.substringAfter(rightPreTokens[rightPreTokens.length - 1], "#");
-                        if (simplified.equals("")) {
-                            simplified = "_"+StringUtils.substring(rightPreTokens[rightPreTokens.length - 1], StringUtils.lastIndexOf(rightPreTokens[rightPreTokens.length - 1], "/") + 1);
-                        }
-                    }
-                    StringBuilder insq = new StringBuilder();
-                    insq.append("INSERT { GRAPH <" + tGraph + "> { ");
-
-                    prev_s = "?s";
-                    for (int i = 0; i < mainPattern.length - 2; i++) {
-                        insq.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + domOnto + newPred + simplified + "> " + "?o" + (rightPreTokens.length - 1) + "");
-                    insq.append(" } } WHERE {");
-                    if (activeCluster > -1) {
-                        if (grConf.isDominantA()) {
-                            insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                        } else {
-                            insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                        }
-                    } else {
-                        if (grConf.isDominantA()) {
-                            insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                        } else {
-                            insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                        }
-                    }
-                    insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                    //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                    prev_s = "?s";
-                    for (int i = 0; i < rightPreTokens.length - 1; i++) {
-                        insq.append(prev_s + " <" + rightPreTokens[i] + "> " + "?o" + i + " . ");
-                        prev_s = "?o" + i;
-                    }
-                    insq.append(prev_s + " <" + rightPreTokens[rightPreTokens.length - 1] + "> " + "?o" + (rightPreTokens.length - 1) + " . ");
-                        
-                    insq.append("} }");
-                    System.out.println(insq);
-
-                    VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
-                    vur.exec();
-                //}
+                VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(insq.toString(), vSet);
+                vur.exec();
             }
         }
     }
