@@ -224,15 +224,18 @@ public class GeoClusterer {
                 options[2] = "-O";
             }
             
-            SimpleKMeans clusterer = new SimpleKMeans();   // new instance of clusterer
+            //SimpleKMeans clusterer = new SimpleKMeans();   // new instance of clusterer
+            EM clusterer = new EM();   // new instance of clusterer
             clusterer.setOptions(options);     // set the options
             clusterer.buildClusterer(data);    // build the clusterer
             System.out.println("Clustering.....");
             System.out.println(clusterer.toString());
             ClusteringResults ret = new ClusteringResults();
             for (int i = 0; i < data.size(); i++) {
-                System.out.println("Assignement "+orderedAttrList.get(i).nodeA+" : "+clusterer.getAssignments()[i]);
-                ClusteringResult res = new ClusteringResult(clusterer.getAssignments()[i]);
+                int ass_cluster = clusterer.clusterInstance(data.get(i));
+                System.out.println("Assignement "+orderedAttrList.get(i).nodeA+" : "+ass_cluster);
+                //System.out.println("Assignement "+orderedAttrList.get(i).nodeA+" : "+clusterer.getAssignments()[i]);
+                ClusteringResult res = new ClusteringResult(ass_cluster);
                 ret.getResults().put(orderedAttrList.get(i).nodeA, res);
             }
             ret.setNumOfClusters(clusterer.getNumClusters());
