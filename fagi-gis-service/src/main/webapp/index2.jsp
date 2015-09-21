@@ -173,10 +173,12 @@
             </svg>
         </div>
         
+        <!--
         <div class="tooltip"id="fg-info-popup">
             <button id="close-info-menu-btn" type="button" class="btn btn-primary">X</button>
             <label id="fg-info-label" style="font-size: 22px;">Debug Output</label>
         </div>
+        -->
         
         <div class="tooltip" id="popupFindLinkMenu">
             <button id="close-findlink-menu-btn" type="button" class="btn btn-primary">X</button>

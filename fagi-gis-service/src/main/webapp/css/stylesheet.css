@@ -659,7 +659,7 @@ label span {
 }
 
 .righted {
-    height: 100%;
+    height: 30%;
     overflow: auto !important;
     list-style-type: none;
 } 

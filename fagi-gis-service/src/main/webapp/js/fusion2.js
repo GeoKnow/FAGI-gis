@@ -86,6 +86,7 @@ function init() {
     $('#popupFindLinkMenu').hide();
     $('#fg-info-popup').hide();
     
+    /*
     document.getElementById("fg-info-popup").style.opacity = 0.7;
     document.getElementById("fg-info-popup").style.display = 'inline';
     document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
@@ -93,7 +94,8 @@ function init() {
         
     document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
     document.getElementById("fg-info-popup").style.left = $('#map').width() - ($('#fg-info-popup').width() + 100);
-    
+    */
+   
     $(".buttonset").buttonset();
     $('#connButton').click(setConnection);
     $('#dataButton').click(setDatasets);
