@@ -238,7 +238,6 @@ public class GraphConfig {
         //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
         QueryEngineHTTP qeh = new QueryEngineHTTP(s, geoQuery, authenticator);
         qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
-        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
         qeh.addDefaultGraph(g);
         //QueryExecution queryExecution = qeh;
         final ResultSet resultSet = qeh.execSelect();
@@ -246,7 +245,7 @@ public class GraphConfig {
         while(resultSet.hasNext()) {
             final QuerySolution querySolution = resultSet.next();
                     
-            final String geo = querySolution.getResource("?p").getURI();
+            final String geo = querySolution.getLiteral("?p").getString();
             final String geo_t = querySolution.getLiteral("?geo_t").getString();
             //System.out.println("Geo Type : "+geo_t);
             if ( geo.toLowerCase().contains("geometry") ) {

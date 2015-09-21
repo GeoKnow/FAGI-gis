@@ -19,6 +19,11 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.ImporterWorker;
 import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import static gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter.DATASET_A;
 import static gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter.DATASET_B;
+import static gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter.isThisMyIpAddress;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
@@ -180,7 +185,28 @@ public class Importer {
         final String restrictionForWgs = "?s ?p1 ?o1 . ?s ?p2 ?o2 FILTER(regex(?s, \"" + subjectRegex + "\", \"i\")) " + "FILTER(regex(?p1, \"" + LAT_REGEX + "\", \"i\"))" +
                 "FILTER(regex(?p2, \"" + LONG_REGEX + "\", \"i\"))";
         
-        final String queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
+        
+        boolean isEndpointLocal = false;
+        try
+        {
+            URL endURL = new URL(sourceEndpoint);
+            isEndpointLocal = isThisMyIpAddress(InetAddress.getByName(endURL.getHost())); //"localhost" for localhost
+        }
+        catch(UnknownHostException unknownHost)
+        {
+            System.out.println("It is not");
+        } catch (MalformedURLException ex) {
+            System.out.println("Malformed URL");
+        }
+        
+        String queryString1 = "";
+        if ( isEndpointLocal )
+            queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
+        else
+            queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} } }";
+
+        
+        //final String queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <http://localhost:8890/DAV/links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
         boolean countWgs = checkForWGS(sourceEndpoint, sourceGraph, restrictionForWgs, "?s");       
         final String restriction = "?os ?p1 _:a . _:a <"+AS_WKT_REGEX+"> ?g ";
         /*final String restriction = "?os ?p1 _:a . _:a ?p2 ?g FILTER(regex(?os, \"" + subjectRegex + "\", \"i\")) " + "" +
@@ -192,10 +218,17 @@ public class Importer {
         //int countWgs = 0;
         
         final String queryString;
-        if (datasetIdent == DATASET_A)
-            queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?os ?lp ?s} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
-        else 
-            queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
+        if (datasetIdent == DATASET_A) {
+            if ( isEndpointLocal )
+                queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?os ?lp ?s} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
+            else
+                queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?os ?lp ?s} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restriction + "} } }";
+        } else {
+            if ( isEndpointLocal )
+                queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
+            else
+                queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restriction + "} } }";
+        }
         
 //System.out.println("Query String "+queryString);
         for ( String s : QueryEngineHTTP.supportedAskContentTypes ) {
