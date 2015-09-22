@@ -78,7 +78,7 @@ After building the tools
   1. Add the produced *fagi-gis-service.war* in your _Apache Tomcat 7_ webapps directory.
   2. Open your browser at *"http://localhost:port/fagi-gis-service"* and use the FAGI-gis Interface!
 
-#FAGI-gis CLI version
+#FAGI-gis Command Line version
 
   1. Open the *fusion.conf* file and provide the appropriate configuration, 
   2. Go to fagi-gis/target from terminal and run:  
