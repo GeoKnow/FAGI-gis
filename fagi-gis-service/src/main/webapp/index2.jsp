@@ -35,9 +35,9 @@
             
             str = request.getParameter("endpoint-l");
             if ( str == null ) 
-                //request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
+                request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
                 //request.setAttribute("endpoint-l", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
-                request.setAttribute("endpoint-l", "http://fagi.guests.ipsyp.dom:8891/sparql");
+                //request.setAttribute("endpoint-l", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
                 request.setAttribute("endpoint-l", request.getParameter("endpoint-l"));
             
@@ -58,17 +58,17 @@
             
             str = request.getParameter("endpoint-a");
             if ( str == null ) 
-                //request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
+                request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
                 //request.setAttribute("endpoint-a", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
-                request.setAttribute("endpoint-a", "http://fagi.guests.ipsyp.dom:8891/sparql");
+                //request.setAttribute("endpoint-a", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
                 request.setAttribute("endpoint-a", request.getParameter("endpoint-a"));
             
             str = request.getParameter("endpoint-b");
             if ( str == null ) 
-                //request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
+                request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
                 //request.setAttribute("endpoint-b", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
-                request.setAttribute("endpoint-b", "http://fagi.guests.ipsyp.dom:8891/sparql");
+                //request.setAttribute("endpoint-b", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
                 request.setAttribute("endpoint-b", request.getParameter("endpoint-b"));
             
