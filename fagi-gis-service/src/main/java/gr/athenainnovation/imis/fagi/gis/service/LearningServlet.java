@@ -502,7 +502,8 @@ public class LearningServlet extends HttpServlet {
         }
         for(String line:lines){
             String username = line;
-            PATH = "/home" + username ;
+            PATH = "/home/" + username ;
+            System.out.println("HOME PATH: \n" + PATH);
         } 
     }
 
