@@ -106,6 +106,7 @@ public class LearningServlet extends HttpServlet {
 //        System.out.println("base PATH linux = " + PATH);
 //        System.out.println("base PATH windows = " + PATH_WIN);
         
+        System.out.println("NEW CODE sep23 \n");
         getUserHome();
         resolveLinuxPaths();
         
