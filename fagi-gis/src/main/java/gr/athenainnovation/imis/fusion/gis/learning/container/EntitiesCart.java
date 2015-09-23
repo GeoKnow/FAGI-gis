@@ -11,8 +11,8 @@ import java.util.List;
  
 public class EntitiesCart {
     
-    private static final int MAX_CAPACITY = 370;
-    private static final int clearAtSize = 375; //buffer slack
+    private static final int MAX_CAPACITY = 1000;
+    private static final int clearAtSize = 1010; //buffer slack
     private boolean isFull;
     private final List<MapPair> entitiesList = new ArrayList<>(); 
     
