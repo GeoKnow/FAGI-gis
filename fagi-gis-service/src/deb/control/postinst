@@ -4,6 +4,6 @@ set -e
 
 echo "Creating FAGI user configuration"
 
-2>/dev/null 1>/dev/null sudo echo $USER >> /usr/share/fagi-gis-service/config/user.conf&
+2>/dev/null 1>/dev/null sudo echo $SUDO_USER >> /usr/share/fagi-gis-service/config/user.conf&
 
 wait
