@@ -106,8 +106,8 @@ public class LearningServlet extends HttpServlet {
 //        System.out.println("base PATH linux = " + PATH);
 //        System.out.println("base PATH windows = " + PATH_WIN);
         
-        System.out.println("NEW CODE sep23 \n");
-        getUserHome();
+        System.out.println("NEW CODE chmod \n");
+        //getUserHome();
         resolveLinuxPaths();
         
         
@@ -509,12 +509,18 @@ public class LearningServlet extends HttpServlet {
     }
 
     private void resolveLinuxPaths() {
+        //MODELS_USR = "/usr/share/fagi-gis-service/models"
+//        LINUX_TAG_MODEL = PATH + "/FAGI-gis models/best_model";
+//        LINUX_FUSIONS_MODEL = PATH + "/FAGI-gis models/model";
+//        LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI-gis models/default_model";
+//        LINUX_MAP_FILE = PATH + "/FAGI-gis models/Map";
+//        LINUX_TRAIN_FILE = PATH + "/FAGI-gis models/train/trainData.ser";
         
-        LINUX_TAG_MODEL = PATH + "/FAGI-gis models/best_model";
-        LINUX_FUSIONS_MODEL = PATH + "/FAGI-gis models/model";
-        LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI-gis models/default_model";
-        LINUX_MAP_FILE = PATH + "/FAGI-gis models/Map";
-        LINUX_TRAIN_FILE = PATH + "/FAGI-gis models/train/trainData.ser";
+        LINUX_TAG_MODEL = MODELS_USR + "/best_model";
+        LINUX_FUSIONS_MODEL = MODELS_USR + "/model";
+        LINUX_DEFAULT_FUSIONS_MODEL = MODELS_USR + "/default_model";
+        LINUX_MAP_FILE = MODELS_USR + "/Map";
+        LINUX_TRAIN_FILE = MODELS_USR + "/train/trainData.ser";
     }
     
     private static class JSONPredictions {
