@@ -75,7 +75,7 @@ After building the tools
 
 #FAGI-gis Web Interface version
 
-  1. Add the produced *fagi-gis-service.war* in your _Apache Tomcat 7_ webapps directory.
+  1. Add the produced *fagi-gis-service.war* (available in FAGI-gis/bin) in your _Apache Tomcat 7_ webapps directory.
   2. Open your browser at *"http://localhost:port/fagi-gis-service"* and use the FAGI-gis Interface!
 
 #FAGI-gis Command Line version
