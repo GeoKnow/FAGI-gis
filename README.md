@@ -17,7 +17,7 @@ On Windows, there is an [installer](https://github.com/GeoKnow/FAGI-gis/releases
  2. A shortcut to start the provide Virtuoso triple store (Currently requires to be **Run As Administrator**)
  3. A shortcut to the FAGI-gis web interface
 
-Upon installation, FAGI-gis is available at http://localhost:port/fagi-gis-service.
+Upon installation, FAGI-gis will be available at *"http://localhost:port/fagi-gis-service"*.
 
 The main interface consists of a menu bar and a map preview. The user supplies his data sources and is presented with several options to control the fusion process. Geometric information is previewed on the map at all stages.
 
