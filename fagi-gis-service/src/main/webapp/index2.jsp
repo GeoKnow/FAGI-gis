@@ -26,7 +26,7 @@
     
     <body>
         <%
-            String str = request.getParameter("dataset-b");
+            String str = request.getParameter("dataset-l");
             if ( str == null ) 
                 request.setAttribute("dataset-l", "http://localhost:8890/DAV/links_postgis1");
                 //request.setAttribute("dataset-l", "http://generator.geoknow.eu/resource/RdfImport_1441965089653");
@@ -44,30 +44,30 @@
             
             str = request.getParameter("dataset-a");
             if ( str == null ) 
-                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
-                //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1441965065689");
+                //request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+                request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
             else
                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
             
             str = request.getParameter("dataset-b");
             if ( str == null ) 
-                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
-                //request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1441965089653");
+                //request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+                request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
             else
                 request.setAttribute("dataset-b", request.getParameter("dataset-b"));
             
             str = request.getParameter("endpoint-a");
             if ( str == null ) 
-                request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
-                //request.setAttribute("endpoint-a", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
+                //request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
+                request.setAttribute("endpoint-a", "http://generator.geoknow.eu:8080/generator/rest/session/8d631684-e4cc-4bae-bea7-656c07f78663");
                 //request.setAttribute("endpoint-a", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
                 request.setAttribute("endpoint-a", request.getParameter("endpoint-a"));
             
             str = request.getParameter("endpoint-b");
             if ( str == null ) 
-                request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
-                //request.setAttribute("endpoint-b", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
+                //request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
+                request.setAttribute("endpoint-b", "http://generator.geoknow.eu:8080/generator/rest/session/8d631684-e4cc-4bae-bea7-656c07f78663");
                 //request.setAttribute("endpoint-b", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
                 request.setAttribute("endpoint-b", request.getParameter("endpoint-b"));
