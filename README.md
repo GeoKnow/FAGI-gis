@@ -12,7 +12,7 @@ On Linux, FAGI-gis comes as part of the GeoKnow Generator and the latest stable 
 
 will install the tool on your local machine.  
 
-On Windows, there is an installer that comes with all the required components. The installer offers to create three shortcuts on the Desktop and it is **strongly** recommended to accept them for ease of use.
+On Windows, there is an [installer](https://github.com/GeoKnow/FAGI-gis/releases/download/1.1.0-beta/FAGI-gis-setup.exe) that comes with all the required components. The installer offers to create three shortcuts on the Desktop and it is **strongly** recommended to accept them for ease of use.
  1. A shortcut for starting tomcat7 (Currently requires to be **Run As Administrator**)
  2. A shortcut to start the provide Virtuoso triple store (Currently requires to be **Run As Administrator**)
  3. A shortcut to the FAGI-gis web interface
