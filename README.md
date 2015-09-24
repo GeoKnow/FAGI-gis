@@ -1,10 +1,10 @@
 ![](https://raw.githubusercontent.com/GeoKnow/FAGI-gis/develop/doc/fagi_logo.jpg)
 
-FAGI-gis is a tool developed, mainly, to facilitate the fusion of interlinked RDF entities containing spatial data. It is designed to retrieve data through SPARQL endpoints. This allows for FAGI-gis to operate on already existing and publicly available datasets without the need for any special formatting or input. It also supports the fusion and handling of other, non-spatial metadata related to these entities. 
+FAGI-gis is a tool developed, mainly, to facilitate the fusion of interlinked RDF entities containing spatial data. It is designed to retrieve data through SPARQL endpoints. This allows for FAGI-gis to operate on already existing and publicly available datasets without the need for any special formatting or input. It also supports the fusion and handling of other, non-spatial metadata related to these entities. A detailed [user guide](https://docs.google.com/document/d/1-AIWQvZMEYjPrxcjG03aH1KXolMafFv57v_oCPPpyAo/edit?usp=sharing) for FAGI-gis is also provided for further reference.   
 
 The user provides the tool with two source datasets and a list of linked entities between them, either in file format or through an available SPARQL endpoint. The tool analyzes the datasets, discovering how geometric information is stored along with their accompanied metadata. Knowing the data structure, FAGI-gis offers the user various options and recommendations for fusing each entity pair into a new, fused, richer entity.
 
-It consists of two components, namely, fagi-gis-cli and fagi-gis-service. The first offers a command line interface for basic fusion functionality and the latter provides a full fledged interactive user interface for advanced previewing and fusion actions on geometric data and their metadata.
+FAGI-gis consists of two components, namely, fagi-gis-cli and fagi-gis-service. The first offers a command line interface for basic fusion functionality and the latter provides a full fledged interactive user interface for advanced previewing and fusion actions on geometric data and their metadata.
 
 On Linux, FAGI-gis comes as part of the GeoKnow Generator and the latest stable version can be installed through the [ldstack repository](http://stack.linkeddata.org/getting-started/geoknow-generator/). After, setting up the generator' s repository, a simple 
 
