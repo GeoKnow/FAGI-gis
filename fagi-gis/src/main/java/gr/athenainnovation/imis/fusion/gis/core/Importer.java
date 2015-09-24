@@ -29,6 +29,10 @@ import java.util.logging.Level;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.log4j.Logger;
+import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoPreparedStatement;
+import virtuoso.jdbc4.VirtuosoResultSet;
+import virtuoso.jena.driver.VirtGraph;
 
 /**
  * Provides the infrastructure for the export of metadata and geometric triples from a dataset with a given SPARQL endpoint and 
@@ -177,7 +181,10 @@ public class Importer {
         final String sourceEndpoint = sourceDataset.getEndpoint();
         final String sourceGraph = sourceDataset.getGraph();
         final String subjectRegex = sourceDataset.getSubjectRegex();
-        checkIfValidRegexArgument(subjectRegex);                  
+        checkIfValidRegexArgument(subjectRegex);           
+        VirtGraph vSet = new VirtGraph ("jdbc:virtuoso://" + callback.getDbConfig().getDBURL() + "/CHARSET=UTF-8", callback.getDbConfig().getUsername(), callback.getDbConfig().getPassword());
+        VirtuosoConnection virt_conn = (VirtuosoConnection)vSet.getConnection();
+        VirtuosoPreparedStatement virt_stmt = null;
         //check the serialisation of the dataset with a count query. If it doesn t find WKT the serialisation, the serialisation is wgs84        
         
         //check which is the dataset to define triples format
@@ -236,7 +243,6 @@ public class Importer {
         }
         System.out.println("Count WKT " + countWKT+" Count WGS "+countWgs);
         int currentCount = 1;
-        
         QueryExecution queryExecution = null;
         if (!countWKT){ //if geosparql geometry doesn' t exist        
             try {
@@ -245,14 +251,19 @@ public class Importer {
                 HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
                 //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, authenticator);
                 //HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-        //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-        QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(sourceEndpoint, QueryFactory.create(query), authenticator);
-        //qeh.addDefaultGraph(grConf.getGraphA());
-        //QueryExecution queryExecution = qeh;
-        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
-                final ResultSet resultSet = qeh.execSelect();
-                long startTime =  System.nanoTime();
-                while(resultSet.hasNext()) {
+                //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
+                //QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, QueryFactory.create(query), authenticator);
+                //qeh.addDefaultGraph(grConf.getGraphA());
+                //QueryExecution queryExecution = qeh;
+                //qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+                //final ResultSet resultSet = qeh.execSelect();
+                virt_stmt = (VirtuosoPreparedStatement)virt_conn.prepareStatement("SPARQL " + query.toString());
+                VirtuosoResultSet rs = (VirtuosoResultSet) virt_stmt.executeQuery();
+                
+                long startTime = System.nanoTime();
+                
+                
+                /*while(resultSet.hasNext()) {
                     
                     
                     final QuerySolution querySolution = resultSet.next();
@@ -277,9 +288,10 @@ public class Importer {
                     //if (callback != null )
                         //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));                                       
                 }
+                */
                 postGISImporter.finishUpdates();
                 
-                qeh.close();
+                //qeh.close();
                 //System.out.println("PostGISImporter finishedUpdates");
                 long endTime =  System.nanoTime();
                 setElapsedTime((endTime-startTime)/1000000000f);
@@ -300,16 +312,36 @@ public class Importer {
                 System.out.println("Geosparql Query String "+queryString);
                 final Query query = QueryFactory.create(queryString);
                 HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, authenticator);
+                //queryExecution = QueryExecutionFactory.(sourceEndpoint, query, authenticator);
                 //System.out.println("query: \n" + query + "\nendpoint: " + sourceEndpoint + " sourceGraph: " + sourceGraph);
                 
-                QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(sourceEndpoint, QueryFactory.create(query), authenticator);
+                //QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(sourceEndpoint, QueryFactory.create(query), authenticator);
                 //qeh.addDefaultGraph(grConf.getGraphA());
                 //QueryExecution queryExecution = qeh;
-                qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
-                final ResultSet resultSet = qeh.execSelect();
+                //qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+                //final ResultSet resultSet = qeh.execSelect();
+                
+                virt_stmt = (VirtuosoPreparedStatement)virt_conn.prepareStatement("SPARQL " + queryString);
+                VirtuosoResultSet rs = (VirtuosoResultSet) virt_stmt.executeQuery();
                 
                 long startTime =  System.nanoTime();
+                while(rs.next()) {
+                    final String subject = rs.getString(1);                 
+                    //System.out.println(subject);
+                    final String geometry = rs.getString(2);
+                    //if(objectNode.isLiteral()) {
+                        //final String geometry = objectNode.asLiteral().getLexicalForm();
+                        //System.out.println("Virtuoso geometry objectNode.asLiteral().getLexicalForm():   "+ geometry);
+                        
+                        postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+                    //}
+                    //if (callback != null )
+                        //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWKT)));
+                }
+                
+                rs.close();
+                virt_stmt.close();
+                /*
                 while(resultSet.hasNext()) {
                     final QuerySolution querySolution = resultSet.next();
                     
@@ -332,7 +364,7 @@ public class Importer {
                 }
                 
                 qeh.close();
-                
+                */
                 postGISImporter.finishUpdates();
                 //System.out.println("Count : "+currentCount);
                 long endTime =  System.nanoTime();

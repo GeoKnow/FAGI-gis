@@ -157,4 +157,9 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
         
         setProgress(globalProgress);
     }
+
+    public DBConfig getDbConfig() {
+        return dbConfig;
+    }
+    
 }
