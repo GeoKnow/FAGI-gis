@@ -1,10 +1,13 @@
 package gr.athenainnovation.imis.fusion.gis.gui.workers;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
+import com.hp.hpl.jena.query.Syntax;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -229,22 +232,31 @@ public class GraphConfig {
     }
     
     private void fillGeoProperties(String g, String s, Set<String> l, Set<String> t) {
-        String geoQuery = "SELECT ?p\n" +
+        String geoQuery = "SELECT distinct ?pre bif:geometryType(?geo) AS ?geo_t \n" +
                           "WHERE { \n" +
                           "GRAPH <"+g+"> {\n" +
                           "  {\n" +
-                          "    ?s ?p ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n" +
+                          "    ?s ?pre ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n" +
                           "  } } }";
         System.out.println("Graph "+geoQuery);
         System.out.println("Graph "+g);
         System.out.println("Graph "+s);
         HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+        //Query query = QueryFactory.create();
         //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-        QueryEngineHTTP qeh = new QueryEngineHTTP(s, QueryFactory.create(geoQuery), authenticator);
+        //QueryFactory.parse(query, geoQuery, "", Syntax.syntaxSPARQL_11);
+        QueryEngineHTTP qeh = new QueryEngineHTTP(s, geoQuery, authenticator);
+
         System.out.println("Requesting " + QueryEngineHTTP.supportedSelectContentTypes[3]);
         System.out.println("Requesting " + QueryEngineHTTP.supportedSelectContentTypes[0]);
         System.out.println("Requesting " + QueryEngineHTTP.supportedSelectContentTypes[1]);
-        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+        String xmlType = "";
+        for (String type : QueryEngineHTTP.supportedSelectContentTypes) {
+            if (type.contains("xml")) {
+                xmlType = type;
+            }
+        }
+        qeh.setSelectContentType(xmlType);
         //qeh.addDefaultGraph(g);
         //QueryExecution queryExecution = qeh;
         final ResultSet resultSet = qeh.execSelect();
@@ -253,15 +265,6 @@ public class GraphConfig {
         */
         while(resultSet.hasNext()) {
             final QuerySolution querySolution = resultSet.next();
-            System.out.println(null == querySolution);
-            System.out.println(querySolution.varNames().next());
-            for (Iterator<String> flavoursIter = querySolution.varNames(); flavoursIter.hasNext();){
-                System.out.println(flavoursIter.next());
-            }
-            System.out.println(null == querySolution.get("?pre"));
-            System.out.println(null == querySolution.get("?p"));
-            System.out.println(null == querySolution.get("?geo_t"));
-            if ( null == querySolution.get("?p") ) continue;
             final String geo = querySolution.get("?pre").toString();
             final String geo_t = querySolution.get("?geo_t").toString();
             //System.out.println("Geo Type : "+geo_t);

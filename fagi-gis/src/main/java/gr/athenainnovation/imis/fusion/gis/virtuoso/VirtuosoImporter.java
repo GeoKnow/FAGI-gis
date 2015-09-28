@@ -632,7 +632,7 @@ public final class VirtuosoImporter {
         
         starttime =  System.nanoTime();
         //testThreads(links);
-        endtime =  System.nanoTime();
+        endtime = System.nanoTime();
         LOG.info(ANSI_YELLOW+"Thread test lasted "+((endtime-starttime)/1000000000f) +""+ANSI_RESET);
         
         URL endAURL = new URL(endpointA);
@@ -657,6 +657,9 @@ public final class VirtuosoImporter {
         {
             System.out.println("It is not");
         }
+        
+        //gr_c.setLocalA(isEndpointALocal);
+        //gr_c.setLocalB(isEndpointBLocal);
         System.out.println(isEndpointALocal);
         System.out.println(isEndpointBLocal);
         
