@@ -42,35 +42,22 @@ ___
     1. _Linux_ `sudo apt-get install postgresql-9.3-postgis-2.1 -f`.
     2. _Windows_: download PostgreSQL from [here](http://www.enterprisedb.com/products-services-training/pgdownload#windows) and install it along with the postgis extension.
    
-Both projects are maintained using MAVEN. fagi-gis-service depends on fagi-gis lib
+Both projects are maintained using MAVEN. fagi-gis-service depends on fagi-gis lib. This mean that you **first** need to build the fagi-gis project and then the fagi-gis-service project.
 
 * **Command line:**
   1. Download or checkout the FAGI-gis repo at a path of your choice:  
   `git clone https://github.com/GeoKnow/FAGI-gis targetDir`
-  2. Install in local maven repo the following two jars (not provided by maven repository).  
-    * Download:
-  Virtuoso Jena 2.10.x Provider JAR file and Virtuoso JDBC 4 Driver JAR file
-  that are provided [here] (https://github.com/GeoKnow/FAGI-gis/tree/develop/fagi-gis/lib)
- 
-    * Run:  
-`mvn install:install-file -Dfile=/path/to/virt_jena2.jar -DgroupId=virtuoso.jena.driver -DartifactId=virtjena -Dversion=2 -Dpackaging=jar`
-      * Run:  
-`mvn install:install-file -Dfile=/path/to/virtjdbc4.jar -DgroupId=virtuoso -DartifactId=vjdbc41 -Dversion=4.1 -Dpackaging=jar`  
-  3. Go to /path/to/targetDir/fagi-gis and build the project by running:  
+  2. Go to /path/to/targetDir/fagi-gis and build the project by running:  
 `mvn package`
-  4. Go to /path/to/targetDir/fagi-gis-service and build the project by running:  
+  3. Go to /path/to/targetDir/fagi-gis-service and build the project by running:  
 `mvn package`
 
 * **Netbeans:**
   1. Download or checkout the FAGI-gis repo at a path of your choice as above:  
 `git clone https://github.com/GeoKnow/FAGI-gis targetDir`  
   2. In Netbeans, File -> Open Project.  
-Browse and choose fagi-gis and fagi-gis-service and click OK. 
-  3. Install the missing jars locally:  
-    * Download the two jars from the links provided above.
-    * Click on the dependencies of the project, find the two missing jars, right click on them and then click *"Manually install artifact"*.
-    * Browse to the location of the jars and click OK.  
-  4. Click *"Build Project"*.
+Browse and choose fagi-gis and fagi-gis-service and click OK.
+  3. Click *"Build Project"*.
 
 After building the tools 
 
