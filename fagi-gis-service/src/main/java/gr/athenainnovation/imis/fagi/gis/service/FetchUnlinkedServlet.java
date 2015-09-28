@@ -319,8 +319,15 @@ public class FetchUnlinkedServlet extends HttpServlet {
         //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
         QueryEngineHTTP qeh = new QueryEngineHTTP(service, geoQuery.toString(), authenticator);
         qeh.addDefaultGraph(graph);
-        QueryExecution queryExecution = qeh;
-        final ResultSet resultSet = queryExecution.execSelect();
+        String xmlType = "";
+        for (String type : QueryEngineHTTP.supportedSelectContentTypes) {
+            if (type.contains("xml")) {
+                xmlType = type;
+            }
+        }
+        qeh.setSelectContentType(xmlType);
+        //QueryExecution queryExecution = qeh;
+        final ResultSet resultSet = qeh.execSelect();
         
         HashSet<String> fetchedGeomsA = (HashSet<String>) sess.getAttribute("fetchedGeomsA");
         HashSet<String> fetchedGeomsB = (HashSet<String>) sess.getAttribute("fetchedGeomsB");
@@ -355,7 +362,7 @@ public class FetchUnlinkedServlet extends HttpServlet {
             //System.out.println("Fetched "+geo);
         }
         
-        queryExecution.close();
+        qeh.close();
     }
     
     private String normalizeQuery(String q) {

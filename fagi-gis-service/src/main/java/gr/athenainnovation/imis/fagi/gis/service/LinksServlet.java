@@ -13,6 +13,8 @@ import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
+import static com.hp.hpl.jena.query.ResultSetFactory.result;
+import com.hp.hpl.jena.query.ResultSetFormatter;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.RDFNode;
@@ -106,7 +108,7 @@ public class LinksServlet extends HttpServlet {
         return s.hasNext() ? s.next() : "";
     }
 
-    private boolean validateLinking(String lsub, String rsub) throws SQLException {
+    private boolean validateLinking(HttpSession sess, String lsub, String rsub) throws SQLException {
         Connection virt_conn = vSet.getConnection();
         PreparedStatement stmt;
         ResultSet rs;
@@ -121,13 +123,21 @@ public class LinksServlet extends HttpServlet {
         QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(grConf.getEndpointA(), QueryFactory.create(checkA), authenticator);
         //qeh.addDefaultGraph(grConf.getGraphA());
         //QueryExecution queryExecution = qeh;
-        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
-        System.out.println(QueryEngineHTTP.supportedSelectContentTypes[3]);
+        qeh.setSelectContentType((String)sess.getAttribute("content-type"));
+        System.out.println((String)sess.getAttribute("content-type"));
         com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
             
         boolean foundInA = false;
         boolean foundInB = false;
+        for ( String s : resultSet.getResultVars())
+            System.out.println("Result : " + s);
+        
+        //System.out.println(ResultSetFormatter.asText(resultSet));
+        //ResultSetFormatter.outputAsRDF(System.out, "RDF/XML", resultSet);
+
         while (resultSet.hasNext()) {
+            QuerySolution qs = resultSet.nextSolution();
+            System.out.println("Link subject from A " + qs.getResource("?o").toString());
             foundInA = true;
             break;
         }
@@ -135,7 +145,7 @@ public class LinksServlet extends HttpServlet {
         qeh.close();
         
         qeh =  QueryExecutionFactory.createServiceRequest(grConf.getEndpointB(), QueryFactory.create(checkB), authenticator);
-        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+        qeh.setSelectContentType((String)sess.getAttribute("content-type"));
         //qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
         //qeh.addDefaultGraph(grConf.getGraphB());
         //queryExecution = qeh;
@@ -156,7 +166,7 @@ public class LinksServlet extends HttpServlet {
         }
     }
 
-    InputStream fetchLinkFromEndpoint(String e, String g) {
+    InputStream fetchLinkFromEndpoint(HttpSession sess, String e, String g) {
         StringBuilder sb = new StringBuilder(1024);
         sb.append("");
         String q = "SELECT * WHERE { GRAPH <"+g+"> { ?s ?p ?o } }";
@@ -166,8 +176,8 @@ public class LinksServlet extends HttpServlet {
         QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(e, QueryFactory.create(query), authenticator);
         //qeh.addDefaultGraph(grConf.getGraphA());
         //QueryExecution queryExecution = qeh;
-        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
-                final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+        qeh.setSelectContentType((String)sess.getAttribute("content-type"));
+        final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
                 
         while ( resultSet.hasNext() ) {
             final QuerySolution querySolution = resultSet.next();
@@ -207,6 +217,10 @@ public class LinksServlet extends HttpServlet {
             HttpSession sess = request.getSession(true);
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
+            for ( String s : QueryEngineHTTP.supportedSelectContentTypes) {
+                if ( s.contains("xml"))
+                    sess.setAttribute("content-type", s);
+            }
             //String ret = createBulkLoadDir((String)sess.getAttribute("bulk"));
             //dbConf.setBulkDir(ret);
 
@@ -231,7 +245,7 @@ public class LinksServlet extends HttpServlet {
                 String filename = getFilename(filePart);
                 filecontent = filePart.getInputStream();
             } else {
-                filecontent = fetchLinkFromEndpoint(grConf.getEndpointL(), grConf.getGraphL());
+                filecontent = fetchLinkFromEndpoint(sess, grConf.getEndpointL(), grConf.getGraphL());
             }
             
     //Scanner sc = new Scanner(filecontent);
@@ -255,7 +269,7 @@ public class LinksServlet extends HttpServlet {
                 if (object.isResource()) {
                     nodeB = object.asResource().getURI();
                 }
-                makeSwap = validateLinking(nodeA, nodeB);
+                makeSwap = validateLinking(sess, nodeA, nodeB);
 
                 break;
             }

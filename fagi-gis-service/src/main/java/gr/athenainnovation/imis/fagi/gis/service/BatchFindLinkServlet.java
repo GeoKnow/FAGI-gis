@@ -414,6 +414,7 @@ public class BatchFindLinkServlet extends HttpServlet {
             //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
             QueryEngineHTTP qeh = new QueryEngineHTTP(service, geoQuery.toString(), authenticator);
             qeh.addDefaultGraph(graph);
+            qeh.setSelectContentType((String)sess.getAttribute("content-type"));
             QueryExecution queryExecution = qeh;
             final com.hp.hpl.jena.query.ResultSet resultSetGeomsA = queryExecution.execSelect();
             
@@ -480,6 +481,7 @@ public class BatchFindLinkServlet extends HttpServlet {
             //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
             qeh = new QueryEngineHTTP(service, geoQuery.toString(), authenticator);
             qeh.addDefaultGraph(graph);
+            qeh.setSelectContentType((String)sess.getAttribute("content-type"));
             queryExecution = qeh;
             final com.hp.hpl.jena.query.ResultSet resultSetGeomsB = queryExecution.execSelect();
             

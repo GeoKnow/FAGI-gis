@@ -628,9 +628,10 @@
                 </div>
             </div>
         </div>
-        <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+        <!--sript src="//code.jquery.com/jquery-1.10.2.js"></script>-->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
-        <script src="//code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
+        <script src="https://code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
         <script type="text/javascript" src="js/jquery.autocomplete.min.js"></script>
         <script type="text/javascript" src="js/jquery.easing-sooper.js"></script>
         <script type="text/javascript" src="js/jquery.sooperfish.js"></script>
