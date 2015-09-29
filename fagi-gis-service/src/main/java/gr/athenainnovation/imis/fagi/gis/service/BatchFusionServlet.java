@@ -46,6 +46,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -71,6 +72,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoException;
 import virtuoso.jdbc4.VirtuosoPreparedStatement;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoUpdateFactory;
@@ -129,7 +131,8 @@ public class BatchFusionServlet extends HttpServlet {
     private static final String SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
     private static final String WKT = "http://www.opengis.net/ont/geosparql#asWKT";
     private static final String HAS_GEOMETRY = "http://www.opengis.net/ont/geosparql#hasGeometry";
-    
+    private static final double OFFSET_EPSILON = 0.000000000001;
+    private static final int BATCH_SIZE = 10000;
     private DBConfig dbConf;
     private GraphConfig grConf;
     private VirtGraph vSet = null;
@@ -148,6 +151,7 @@ public class BatchFusionServlet extends HttpServlet {
     private JSONClusterLink[] clusterLinks;
     private JSONFusionResults ret = null;
     private int activeCluster;
+    private String activeLinkTable = "links";
     
     private class JSONBatchFusions {
         List<JSONBatchPropertyFusion> fusions;
@@ -443,14 +447,14 @@ public class BatchFusionServlet extends HttpServlet {
             JSONShiftFactors sFactors = mapper.readValue(jp2, JSONShiftFactors.class );
             
             activeCluster = Integer.parseInt(request.getParameter("cluster"));
-            
             if ( activeCluster > -1 ) {
                 JsonParser jpCluster = factory.createJsonParser(clusterJSON);
                 clusterLinks = mapper.readValue(jpCluster, JSONClusterLink[].class );
                 System.out.println("Cluster size "+ clusterLinks.length);
                 
+                activeLinkTable = "cluster";
                 loadClusterLinks(clusterLinks);
-                createClusterGraph(clusterLinks);
+                createClusterGraph(clusterLinks, 0);
                 
                 dbConn.commit();
             }
@@ -458,6 +462,7 @@ public class BatchFusionServlet extends HttpServlet {
             System.out.println(selectedFusions[0].preL);
             
             AbstractFusionTransformation trans = null;
+            boolean skipFusion = false;
             for(;;) {
                 trans = FuserPanel.transformations.get(selectedFusions[0].action);
                 if ( trans instanceof ShiftAToB) {
@@ -478,7 +483,12 @@ public class BatchFusionServlet extends HttpServlet {
                     System.out.println(sFactors.getgOffsetBX());
                     System.out.println(sFactors.getgOffsetBY());
                     
-                    offsetGeometries("dataset_a_geometries", -sFactors.getgOffsetAX(), -sFactors.getgOffsetAY());
+                    if (Math.abs(sFactors.getgOffsetAX()) > OFFSET_EPSILON
+                            || Math.abs(sFactors.getgOffsetAY()) > OFFSET_EPSILON) {
+                        offsetGeometriesA("dataset_a_geometries", activeLinkTable, -sFactors.getgOffsetAX(), -sFactors.getgOffsetAY());
+                        
+                        skipFusion = true;
+                    }
                 }
                 
                 if ( trans instanceof KeepRightTransformation) {
@@ -487,7 +497,12 @@ public class BatchFusionServlet extends HttpServlet {
                     System.out.println(sFactors.getgOffsetBX());
                     System.out.println(sFactors.getgOffsetBY());
                     
-                    offsetGeometries("dataset_b_geometries", -sFactors.getgOffsetBX(), -sFactors.getgOffsetBY());
+                    if (Math.abs(sFactors.getgOffsetBX()) > OFFSET_EPSILON
+                            || Math.abs(sFactors.getgOffsetBY()) > OFFSET_EPSILON) {
+                        offsetGeometriesB("dataset_b_geometries", activeLinkTable, -sFactors.getgOffsetBX(), -sFactors.getgOffsetBY());
+                        
+                        skipFusion = true;
+                    }
                 }
                 
                 if ( trans instanceof KeepBothTransformation) {
@@ -496,18 +511,27 @@ public class BatchFusionServlet extends HttpServlet {
                     System.out.println(sFactors.getgOffsetBX());
                     System.out.println(sFactors.getgOffsetBY());
                     
-                    offsetGeometries("dataset_a_geometries", -sFactors.getgOffsetAX(), -sFactors.getgOffsetAY());
-                    offsetGeometries("dataset_b_geometries", -sFactors.getgOffsetBX(), -sFactors.getgOffsetBY());
+                    if (Math.abs(sFactors.getgOffsetBX()) > OFFSET_EPSILON
+                            || Math.abs(sFactors.getgOffsetBY()) > OFFSET_EPSILON
+                            || Math.abs(sFactors.getgOffsetAX()) > OFFSET_EPSILON
+                            || Math.abs(sFactors.getgOffsetAY()) > OFFSET_EPSILON) {
+                        offsetGeometriesA("dataset_a_geometries", activeLinkTable, -sFactors.getgOffsetAX(), -sFactors.getgOffsetAY());
+                        offsetGeometriesB("dataset_b_geometries", activeLinkTable, -sFactors.getgOffsetBX(), -sFactors.getgOffsetBY());
+                    
+                        skipFusion = true;
+                    }
                 }
                 System.out.println(trans == null);
                 
-                if (activeCluster > -1) {
-                    trans.fuseCluster(dbConn);
-                } else {
-                    //System.out.println("Fusing links");
-                    trans.fuseAll(dbConn);
+                if (!skipFusion) {
+                    if (activeCluster > -1) {
+                        trans.fuseCluster(dbConn);
+                    } else {
+                        //System.out.println("Fusing links");
+                        trans.fuseAll(dbConn);
+                    }
                 }
-            
+                
                 String queryGeoms = "SELECT b.subject_a, b.subject_b as lb, ST_asText(b.geom) as g\n" +
                                  "FROM fused_geometries AS b\n";
             
@@ -519,33 +543,11 @@ public class BatchFusionServlet extends HttpServlet {
                 String subject;
                 String subjectB;
                 StringBuilder geom = new StringBuilder();
-                //if (trans instanceof KeepBothTransformation) {
-                    /*
-                    geom.append("GEOMETRYCOLLECTION(");
-                    while (rs.next()) {
-                        subject = rs.getString(1);
-                        subjectB = rs.getString(2);
-                        geom.append(rs.getString(3)+",");
-                    }
-                    geom.setLength(geom.length() - 1);
-                    geom.append(")");
-                    JSONFusionResult res = new JSONFusionResult(geom.toString(), subjectB);
-                    ret.getFusedGeoms().put(subject, res);
-                    */
-                //} else {
-                    while (rs.next()) {
-                        JSONFusionResult res = new JSONFusionResult(rs.getString(3), rs.getString(2));
-                        ret.getFusedGeoms().put(rs.getString(1), res);
-                    }
-                //}
                 
-                System.out.println("Size "+ ret.getFusedGeoms().size());
-                System.out.println("Return GEOMS : "+mapper.writeValueAsString(ret));
-                /*
-                 for ( JSONFusionResult d : ret.getFusedGeoms() ) {
-                     //System.out.println("Value in Geoms : " + d.na + " = " +d.geom);
-                 }
-                */
+                while (rs.next()) {
+                    JSONFusionResult res = new JSONFusionResult(rs.getString(3), rs.getString(2));
+                    ret.getFusedGeoms().put(rs.getString(1), res);
+                }
                 
                 VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
                 virtImp.setTransformationID(trans.getID());
@@ -588,10 +590,11 @@ public class BatchFusionServlet extends HttpServlet {
                 handleMetadataFusion(selectedFusions[i].action, i);
             }
             
+            System.out.println(mapper.writeValueAsString(ret));
             out.println(mapper.writeValueAsString(ret));
         }
     }
-
+    
     private void loadClusterLinks(final JSONClusterLink[] links) throws SQLException {
         
         //delete old geometries from fused_geometries table. 
@@ -624,10 +627,34 @@ public class BatchFusionServlet extends HttpServlet {
         dbConn.commit();
     }
     
-    private void createClusterGraph(JSONClusterLink[] cluster) {
+    private void createClusterGraph(JSONClusterLink[] cluster, int startIndex) throws VirtuosoException, BatchUpdateException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SPARQL WITH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName()+"> INSERT {");
+        sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
+        System.out.println("Statement " + sb.toString());
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
+                
+        int start = startIndex;
+        int end = startIndex + BATCH_SIZE;
+        if ( end > cluster.length ) {
+            end = cluster.length;
+        }
         
-        boolean updating = true;
-        int addIdx = 0;
+        for ( int i = start; i < end; ++i ) {
+            JSONClusterLink link = cluster[i];
+            vstmt.setString(1, link.getNodeA());
+            vstmt.setString(2, link.getNodeB());
+            
+            vstmt.addBatch();
+        }
+        
+        vstmt.executeBatch();
+        
+        vstmt.close();
+        
+        /*boolean updating = true;
+        int addIdx = startIndex;
         int cSize = 1;
         int sizeUp = 1;
         while (updating) {
@@ -691,7 +718,31 @@ public class BatchFusionServlet extends HttpServlet {
                 System.out.println(ex.getLocalizedMessage());
                 break;
             }
+        }*/
+    }
+    
+    private void createClusterGraph(JSONClusterLink[] cluster) throws VirtuosoException, BatchUpdateException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SPARQL WITH <http://localhost:8890/DAV/all_cluster_" + dbConf.getDBName()+"> INSERT {");
+        sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
+        System.out.println("Statement " + sb.toString());
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
+                
+        int start = 0;
+        int end = cluster.length;
+        
+        for ( int i = start; i < end; ++i ) {
+            JSONClusterLink link = cluster[i];
+            vstmt.setString(1, link.getNodeA());
+            vstmt.setString(2, link.getNodeB());
+            
+            vstmt.addBatch();
         }
+        
+        vstmt.executeBatch();
+        
+        vstmt.close();
     }
     
     
@@ -2287,9 +2338,64 @@ public class BatchFusionServlet extends HttpServlet {
         return ret;
     }
     
-    private void offsetGeometries(String table, Float offx, Float offy) throws SQLException {
+    private void offsetGeometriesA(String table, String linkTable, Float offx, Float offy) throws SQLException {
+        // PGSQL Query
+        // Join LINKS with GEOM table and offset the geometry
+        // Result is stored inside FUSED GEOMETRIES table
+        final String queryString = "INSERT INTO fused_geometries (subject_A, subject_B, geom) "
+                + "SELECT "+linkTable+".nodea, "+linkTable+".nodeb, ST_Translate("+table+".geom, ?, ?) "
+                + "FROM "+linkTable+" INNER JOIN "+table+" "
+                + "ON ("+linkTable+".nodea = "+table+".subject)";
         
-        // PROBABLY DROP INDEX
+        System.out.println(queryString);
+        stmt = dbConn.prepareStatement(queryString);
+        stmt.setFloat(1, offx);
+        stmt.setFloat(2, offy);
+        stmt.executeUpdate();
+        
+        stmt.close();
+        
+        dbConn.commit();
+    }
+
+    private void offsetGeometriesB(String table, String linkTable, Float offx, Float offy) throws SQLException {
+        // PGSQL Query
+        // Join LINKS with GEOM table and offset the geometry
+        // Result is stored inside FUSED GEOMETRIES table
+        final String queryString = "INSERT INTO fused_geometries (subject_A, subject_B, geom) "
+                + "SELECT "+linkTable+".nodea, "+linkTable+".nodeb, ST_Translate("+table+".geom, ?, ?) "
+                + "FROM "+linkTable+" INNER JOIN "+table+" "
+                + "ON ("+linkTable+".nodeb = "+table+".subject)";
+        
+        stmt = dbConn.prepareStatement(queryString);
+        stmt.setFloat(1, offx);
+        stmt.setFloat(2, offy);
+        stmt.executeUpdate();
+        
+        stmt.close();
+        
+        dbConn.commit();
+        
+    }
+    
+    /*
+    private void offsetGeometries(String table, String linkTable, Float offx, Float offy) throws SQLException {
+        
+        final String queryString = "INSERT INTO fused_geometries (subject_A, subject_B, new_geom) "
+                + "SELECT cluster.nodea, cluster.nodeb, ST_Translate(dataset_a_geometries.geom, ?, ?) AS new_geom "
+                + "FROM cluster INNER JOIN dataset_a_geometries "
+                + "ON (cluster.nodea = dataset_a_geometries.subject)";
+        
+        String dropIndexQuery = "DROP INDEX IF EXISTS idx_"+table+"_geom  ";
+        String createIndexQuery = 
+                "CREATE INDEX idx_"+table+"_geom ON "+table+" USING gist (geom);\n" +
+                "CLUSTER "+table+" USING idx_"+table+"_geom; ";
+        
+        stmt = dbConn.prepareStatement(dropIndexQuery);
+        stmt.executeUpdate();
+        
+        stmt.close();
+        
         String updateQuery = "UPDATE "+table+" SET geom = ST_Translate(geom, ?, ?)";
         stmt = dbConn.prepareStatement(updateQuery);
         stmt.setFloat(1, offx);
@@ -2298,11 +2404,14 @@ public class BatchFusionServlet extends HttpServlet {
         
         stmt.close();
         
-        // PROBABLY CREATE INDEX
+        stmt = dbConn.prepareStatement(createIndexQuery);
+        stmt.executeUpdate();
+        
+        stmt.close();
         
         dbConn.commit();
     }
-    
+    */
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**
      * Handles the HTTP <code>GET</code> method.
