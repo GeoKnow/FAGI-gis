@@ -35,6 +35,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -75,6 +76,9 @@ import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.util.Version;
+import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoException;
+import virtuoso.jdbc4.VirtuosoPreparedStatement;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoUpdateFactory;
 import virtuoso.jena.driver.VirtuosoUpdateRequest;
@@ -102,7 +106,7 @@ public final class VirtuosoImporter {
     private static final String PATH_TO_WORDNET_OS_X = "/usr/local/WordNet-3.0/dict";
     private static final String PATH_TO_WORDNET_WINDOWS = "C:\\Program Files (x86)\\WordNet\\2.1\\dict";
     private static final int BATCH_SIZE = 10000;
-    private static final int SAMPLE_SIZE = 5;   
+    private static final int SAMPLE_SIZE = 20;   
     private final String graphB; 
     private final String graphA;
     private String bulkInsertDir;    
@@ -1974,6 +1978,12 @@ public final class VirtuosoImporter {
     }
        
     
+    /**
+     * Create a a graph holding a batch of links
+     * starting at nextIndex
+     * @param lst           A List of Link objects to be inserted.
+     * @param nextIndex     Offset in the list
+     */
     private void createLinksGraphBatch(List<Link> lst, int nextIndex) throws SQLException, IOException {
         final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+">";
         final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+">";
@@ -1998,11 +2008,15 @@ public final class VirtuosoImporter {
         SPARQLInsertLinksBatch(lst, nextIndex);
     }
     
+    /**
+     * Create a a graph holding all provided links
+     * @param lst  A List of Link objcts to be inserted.
+     */
     public void createLinksGraph(List<Link> lst) throws SQLException, IOException {
-        final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
-        final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
-        final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
-        
+        final String dropGraph = "SPARQL DROP SILENT GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
+        final String createGraph = "SPARQL CREATE GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
+        // SPARQL Endpoint description query. Works only for remote endpoints
+        final String endDesc = "SPARQL LOAD SERVICE <"+endpointA+"> DATA";
         PreparedStatement endStmt;
         endStmt = virt_conn.prepareStatement(endDesc);
         //endStmt.execute();
@@ -2019,7 +2033,15 @@ public final class VirtuosoImporter {
         //BulkInsertLinks(lst);
         SPARQLInsertLinks(lst);
     }
-    
+     
+    /**
+     * Insert Links thorugh files
+     * @deprecated
+     * Old insert API thorugh files. Required changes in Virtuoso INI
+     * @param lst  A List of Link objects.
+     * @param nextIndex Offset in the list
+     */
+    @Deprecated
     private void BulkInsertLinksBatch(List<Link> lst, int nextIndex) throws SQLException, IOException {  
         long starttime, endtime;
         set2 = getVirtuosoSet("http://localhost:8890/DAV/links_"+db_c.getDBName()+"", db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
@@ -2066,8 +2088,38 @@ public final class VirtuosoImporter {
         LOG.info(ANSI_YELLOW+"Links Graph created in "+((endtime-starttime)/1000000000f)+""+ANSI_RESET);
     }
         
-    private void SPARQLInsertLinksBatch(List<Link> l, int nextIndex) {
-        boolean updating = true;
+    /**
+     * Bulk Insert a batch of Links thrugh SPARQL
+     * @param lst  A List of Link objects.
+     * @param nextIndex Offset in the list
+     */
+    private void SPARQLInsertLinksBatch(List<Link> l, int nextIndex) throws VirtuosoException, BatchUpdateException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SPARQL WITH <http://localhost:8890/DAV/links_" + db_c.getDBName()+"> INSERT {");
+        sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
+        System.out.println("Statement " + sb.toString());
+        VirtuosoConnection conn = (VirtuosoConnection) set.getConnection();
+        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
+                
+        int start = nextIndex;
+        int end = nextIndex + BATCH_SIZE;
+        if ( end > l.size() ) {
+            end = l.size();
+        }
+        
+        for ( int i = start; i < end; ++i ) {
+            Link link = l.get(i);
+            vstmt.setString(1, link.getNodeA());
+            vstmt.setString(2, link.getNodeB());
+            
+            vstmt.addBatch();
+        }
+        
+        vstmt.executeBatch();
+        
+        vstmt.close();
+        
+        /*boolean updating = true;
         int addIdx = nextIndex;
         int cSize = 1;
         int sizeUp = 1;
@@ -2133,11 +2185,37 @@ public final class VirtuosoImporter {
                 System.out.println(ex.getLocalizedMessage());
                 break;
             }
-        }
+        }*/
     }
     
-    private void SPARQLInsertLinks(List<Link> l) {
-        boolean updating = true;
+    /**
+     * Bulk Insert ALL Links thrugh SPARQL
+     * @param lst  A List of Link objects.
+     */
+    private void SPARQLInsertLinks(List<Link> l) throws VirtuosoException, BatchUpdateException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SPARQL WITH <http://localhost:8890/DAV/all_links_" + db_c.getDBName()+"> INSERT {");
+        sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
+        System.out.println("Statement " + sb.toString());
+        VirtuosoConnection conn = (VirtuosoConnection) set.getConnection();
+        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
+                
+        int start = 0;
+        int end = l.size();
+        
+        for ( int i = start; i < end; ++i ) {
+            Link link = l.get(i);
+            vstmt.setString(1, link.getNodeA());
+            vstmt.setString(2, link.getNodeB());
+            
+            vstmt.addBatch();
+        }
+        
+        vstmt.executeBatch();
+        
+        vstmt.close();
+        
+        /*boolean updating = true;
         int addIdx = 0;
         int cSize = 1;
         int sizeUp = 1;
@@ -2208,9 +2286,16 @@ public final class VirtuosoImporter {
                 System.out.println(ex.getLocalizedMessage());
                 break;
             }
-        }
+        }*/
     }
     
+    /**
+     * Insert ALL Links thorugh files
+     * @deprecated
+     * Old insert API thorugh files. Required changes in Virtuoso INI
+     * @param lst  A List of Link objects.
+     */
+    @Deprecated
     private void BulkInsertLinks(List<Link> lst) throws SQLException, IOException {  
         set2 = getVirtuosoSet("http://localhost:8890/DAV/all_links_"+db_c.getDBName(), db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
         BulkUpdateHandler buh2 = set2.getBulkUpdateHandler();
@@ -2254,6 +2339,15 @@ public final class VirtuosoImporter {
     
     }
     
+    /**
+     * Create a a graph holding the subjects of entities
+     * that contained WGS Geometry and
+     * need to be deleted
+     * @deprecated
+     * Worked only on local graphs. Replaced with Updates through SPARQL and JDBC 
+     * @param lst  A List of String subjects to be removed.
+     */
+    @Deprecated
     private void createDelWGSGraph(List<String> lst) throws SQLException, IOException {
         final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/del_wgs>";
         final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/del_wgs>";
@@ -2292,6 +2386,15 @@ public final class VirtuosoImporter {
         LOG.info(ANSI_YELLOW+"Delete WGS Graph created in "+((endtime-starttime)/1000000000f)+""+ANSI_RESET);
     }
     
+    /**
+     * Create a a graph holding the subjects of entities
+     * that contained WKT Geometry and
+     * need to be deleted
+     * @deprecated
+     * Worked only on local graphs. Replaced with Updates through SPARQL and JDBC 
+     * @param lst  A List of String subjects to be removed.
+     */
+    @Deprecated
     private void createDelGeomGraph(List<String> lst) throws IOException, SQLException {
         final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/del_geom>";
         final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/del_geom>";
