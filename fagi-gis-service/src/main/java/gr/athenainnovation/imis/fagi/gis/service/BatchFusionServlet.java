@@ -745,7 +745,6 @@ public class BatchFusionServlet extends HttpServlet {
         vstmt.close();
     }
     
-    
     private void sendEntities(GraphConfig gc) {
         boolean isEndpointLocal = false;
         
