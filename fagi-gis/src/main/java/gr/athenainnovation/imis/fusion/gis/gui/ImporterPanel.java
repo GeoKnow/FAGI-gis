@@ -340,7 +340,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
             databaseInitialiser.initialise(dbConfig);
             
             
-            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
+            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, graphConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
             
             datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override public void propertyChange(PropertyChangeEvent evt) {
@@ -350,7 +350,7 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 }
             });
             
-            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_B, sourceDatasetB, datasetBStatusField, errorListener);
+            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConfig, graphConfig, PostGISImporter.DATASET_B, sourceDatasetB, datasetBStatusField, errorListener);
             
             datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override public void propertyChange(PropertyChangeEvent evt) {

@@ -13,6 +13,7 @@ import com.hp.hpl.jena.update.UpdateRequest;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +51,7 @@ public class BulkLoader implements TripleHandler {
     private List<Triple> toDel;
     private List<GeomTriple> geoms;
     private String endpointT;
+    private GraphConfig grConf;
     
     private class GeomTriple {
         public String s;
@@ -61,8 +63,9 @@ public class BulkLoader implements TripleHandler {
         }
     }
     
-    BulkLoader(String graph, String dbName,  VirtGraph s, String endT) {
+    BulkLoader(GraphConfig grConf, String graph, String dbName,  VirtGraph s, String endT) {
         this.fusedGraph = graph;
+        this.grConf = grConf;
         this.set = s;
         this.endpointT = endT;
         this.dbName = dbName;
@@ -144,7 +147,7 @@ public class BulkLoader implements TripleHandler {
     }
 
     public void updateLocalStore() {
-        String s2 = "SPARQL WITH <"+fusedGraph+"_"+dbName+"_fagi"+"> INSERT { `iri(??)` <"+HAS_GEOMETRY+">  `iri(??)` . `iri(??)`  <"+WKT+"> ?? }";
+        String s2 = "SPARQL WITH <"+this.grConf.getTargetTempGraph()+"> INSERT { `iri(??)` <"+HAS_GEOMETRY+">  `iri(??)` . `iri(??)`  <"+WKT+"> ?? }";
         VirtuosoConnection conn = (VirtuosoConnection) set.getConnection();
         VirtuosoPreparedStatement stmt = null;
         try {
@@ -167,6 +170,7 @@ public class BulkLoader implements TripleHandler {
             }
             stmt.executeBatchUpdate();
             
+            stmt.close();
         } catch (SQLException ex) {
             System.out.println("SQL Exception");
         }

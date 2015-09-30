@@ -229,7 +229,7 @@ public final class VirtuosoImporter {
             typeWeight = 1.0f;
             simThreshold = 1.0f;
         }
-        trh = new BulkLoader(fusedGraph,dbConfig.getDBName(), set, graphConfig.getEndpointT());
+        trh = new BulkLoader(graphConfig, fusedGraph,dbConfig.getDBName(), set, graphConfig.getEndpointT());
         trh.init();
     }
     
@@ -619,20 +619,24 @@ public final class VirtuosoImporter {
         //createDelGeomGraph(((FileBulkLoader)trh).getDelGeomList());
         StringBuilder getFromB = new StringBuilder();
         StringBuilder getFromA = new StringBuilder();
-        final String dropMetaAGraph = "sparql CLEAR GRAPH <"+targetGraph+"_"+db_c.getDBName()+"A"+">";
-        final String dropMetaBGraph = "sparql CLEAR GRAPH <"+targetGraph+"_"+db_c.getDBName()+"B"+">";
-        final String createMetaAGraph = "sparql CREATE GRAPH <"+targetGraph+"_"+db_c.getDBName()+"A"+">";
-        final String createMetaBGraph = "sparql CREATE GRAPH <"+targetGraph+"_"+db_c.getDBName()+"B"+">";
+        final String dropMetaAGraph = "SPARQL CLEAR GRAPH <"+gr_c.getMetadataGraphA()+">";
+        final String dropMetaBGraph = "SPARQL CLEAR GRAPH <"+gr_c.getMetadataGraphB()+">";
+        final String createMetaAGraph = "SPARQL CREATE GRAPH <"+gr_c.getMetadataGraphA()+">";
+        final String createMetaBGraph = "SPARQL CREATE GRAPH <"+gr_c.getMetadataGraphB()+">";
         
         PreparedStatement tempStmt;
         tempStmt = virt_conn.prepareStatement(dropMetaAGraph);
         tempStmt.execute();
+        tempStmt.close();
         tempStmt = virt_conn.prepareStatement(dropMetaBGraph);
         tempStmt.execute();
+        tempStmt.close();
         tempStmt = virt_conn.prepareStatement(createMetaAGraph);
         //tempStmt.execute();
+        //tempStmt.close();
         tempStmt = virt_conn.prepareStatement(createMetaBGraph);
         //tempStmt.execute();
+        //tempStmt.close();
         
         starttime =  System.nanoTime();
         //testThreads(links);
@@ -673,7 +677,7 @@ public final class VirtuosoImporter {
         //if (endpointLoc2.equals(endpointA)) {
             getFromA.append("sparql INSERT\n");
             if (scanProperties)
-                getFromA.append("  { GRAPH <").append(targetGraph).append("_"+db_c.getDBName()+"A"+"> {\n");
+                getFromA.append("  { GRAPH <").append(gr_c.getMetadataGraphA()).append("> {\n");
             else 
                 getFromA.append("  { GRAPH <").append(targetGraph).append(""+"> {\n");
             if (gr_c.isDominantA())
@@ -685,7 +689,7 @@ public final class VirtuosoImporter {
             getFromA.append(" ?o4 ?p6 ?o5\n");
             getFromA.append("} }\nWHERE\n");
             getFromA.append("{\n");
-            getFromA.append(" GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
+            getFromA.append(" GRAPH <"+ gr_c.getLinksGraph()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
             if ( isEndpointALocal ) 
                 getFromA.append(" GRAPH <").append(graphA).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
             else    
@@ -706,7 +710,7 @@ public final class VirtuosoImporter {
         //if (endpointLoc2.equals(endpointB)) {
             getFromB.append("sparql INSERT\n");
             if (scanProperties)
-                getFromB.append("  { GRAPH <").append(targetGraph).append("_"+db_c.getDBName()+"B"+"> {\n");
+                getFromB.append("  { GRAPH <").append(gr_c.getMetadataGraphB()).append("> {\n");
             else
                 getFromB.append("  { GRAPH <").append(targetGraph).append(""+"> {\n");
             if (gr_c.isDominantA())
@@ -718,7 +722,7 @@ public final class VirtuosoImporter {
             getFromB.append(" ?o4 ?p6 ?o5\n");
             getFromB.append("} }\nWHERE\n");
             getFromB.append("{\n");
-            getFromB.append(" GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
+            getFromB.append(" GRAPH <"+gr_c.getLinksGraph()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
             if ( isEndpointBLocal ) 
                 getFromB.append(" GRAPH <").append(graphB).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
             else 
@@ -1247,7 +1251,7 @@ public final class VirtuosoImporter {
                     int ind = j + 2;
                     query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
                 }
-                query.append("\nWHERE\n{\n" + " { GRAPH <").append(targetGraph).append("_" + db_c.getDBName() + "A> { {<" + link + "> ?pa1 ?oa1} ");
+                query.append("\nWHERE\n{\n" + " { GRAPH <").append(gr_c.getMetadataGraphA()).append("> { {<" + link + "> ?pa1 ?oa1} ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
@@ -1256,7 +1260,7 @@ public final class VirtuosoImporter {
                 for (int j = 0; j < i; j++) {
                     query.append(" } ");
                 }
-                query.append("}\n } UNION { \n" + "   GRAPH <").append(targetGraph).append("_" + db_c.getDBName() + "B> { {<" + link + "> ?pb1 ?ob1} ");
+                query.append("}\n } UNION { \n" + "   GRAPH <").append(gr_c.getMetadataGraphB()).append("> { {<" + link + "> ?pb1 ?ob1} ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
@@ -1347,17 +1351,17 @@ public final class VirtuosoImporter {
                 fetchProperties.close();
             }
         } else {
-            final String dropSamplesGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + ">";
-            final String createSamplesGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + ">";
+            final String dropSamplesGraph = "sparql DROP SILENT GRAPH <"+gr_c.getSampleLinksGraph()+ ">";
+            final String createSamplesGraph = "sparql CREATE GRAPH <"+gr_c.getSampleLinksGraph()+  ">";
             final String createLinksSample = "SPARQL INSERT\n"
-                    + " { GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + "> {\n"
+                    + " { GRAPH <"+gr_c.getSampleLinksGraph()+  "> {\n"
                     + " ?s ?p ?o\n"
                     + "} }\n"
                     + "WHERE\n"
                     + "{\n"
                     + "{\n"
                     + "SELECT ?s ?p ?o WHERE {\n"
-                    + " GRAPH <http://localhost:8890/DAV/links_" + db_c.getDBName() + "> { ?s ?p ?o }\n"
+                    + " GRAPH <"+gr_c.getLinksGraph()+ "> { ?s ?p ?o }\n"
                     + "} limit " + SAMPLE_SIZE + "\n"
                     + "}}";
 
@@ -1408,11 +1412,11 @@ public final class VirtuosoImporter {
                     query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
                 }
                 if (gr_c.isDominantA()) {
-                    query.append("\nWHERE\n{\n  GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + "> { ?s ?p ?o }\n");
+                    query.append("\nWHERE\n{\n  GRAPH <"+gr_c.getSampleLinksGraph()+  "> { ?s ?p ?o }\n");
                 } else {
-                    query.append("\nWHERE\n{\n  GRAPH <http://localhost:8890/DAV/links_sample_" + db_c.getDBName() + "> { ?o ?p ?s }\n");
+                    query.append("\nWHERE\n{\n  GRAPH <"+gr_c.getSampleLinksGraph()+  "> { ?o ?p ?s }\n");
                 }
-                query.append(" { GRAPH <").append(targetGraph).append("_" + db_c.getDBName() + "A> { {?s ?pa1 ?oa1} ");
+                query.append(" { GRAPH <").append(gr_c.getMetadataGraphA()).append("> { {?s ?pa1 ?oa1} ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
@@ -1421,7 +1425,7 @@ public final class VirtuosoImporter {
                 for (int j = 0; j < i; j++) {
                     query.append(" ");
                 }
-                query.append("}\n } UNION { \n" + "   GRAPH <").append(targetGraph).append("_" + db_c.getDBName() + "B> { {?s ?pb1 ?ob1} ");
+                query.append("}\n } UNION { \n" + "   GRAPH <").append(gr_c.getMetadataGraphB()).append("> { {?s ?pb1 ?ob1} ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
@@ -1916,7 +1920,7 @@ public final class VirtuosoImporter {
                     + " ?o3 ?p5 ?o4\n"
                     + "} }\nWHERE\n"
                     + "{\n"
-                    + " GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n"
+                    + " GRAPH <"+gr_c.getLinksGraph() +"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n"
                     + " GRAPH <"+graphB+"> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3. } OPTIONAL { ?o3 ?p5 ?o4 .} }\n"
                     + "\n"
                     + "  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n"
@@ -1928,7 +1932,7 @@ public final class VirtuosoImporter {
             getFromB = "SELECT ?s ?p ?o1 ?p4 ?o3 ?p5 ?o4\n"
                 + "WHERE\n"
                 + "{\n"
-                + " SERVICE <"+endpointLoc+"> { GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } }\n"
+                + " SERVICE <"+endpointLoc+"> { GRAPH <"+gr_c.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } }\n"
                 + " GRAPH <"+graphB+"> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3. } OPTIONAL { ?o3 ?p5 ?o4 .} }\n"
                 + "\n"
                 + "  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n"
@@ -1985,18 +1989,20 @@ public final class VirtuosoImporter {
      * @param nextIndex     Offset in the list
      */
     private void createLinksGraphBatch(List<Link> lst, int nextIndex) throws SQLException, IOException {
-        final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+">";
-        final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/links_"+db_c.getDBName()+">";
+        final String dropGraph = "sparql DROP SILENT GRAPH <"+gr_c.getLinksGraph()+ ">";
+        final String createGraph = "sparql CREATE GRAPH <"+gr_c.getLinksGraph()+ ">";
         final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
         
         PreparedStatement endStmt;
-        endStmt = virt_conn.prepareStatement(endDesc);
+        //endStmt = virt_conn.prepareStatement(endDesc);
         //endStmt.execute();
         
         PreparedStatement dropStmt;
         long starttime, endtime;
         dropStmt = virt_conn.prepareStatement(dropGraph);
         dropStmt.execute();
+        
+        dropStmt.close();
         
         PreparedStatement createStmt;
         createStmt = virt_conn.prepareStatement(createGraph);
@@ -2013,8 +2019,8 @@ public final class VirtuosoImporter {
      * @param lst  A List of Link objcts to be inserted.
      */
     public void createLinksGraph(List<Link> lst) throws SQLException, IOException {
-        final String dropGraph = "SPARQL DROP SILENT GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
-        final String createGraph = "SPARQL CREATE GRAPH <http://localhost:8890/DAV/all_links_"+db_c.getDBName()+">";
+        final String dropGraph = "SPARQL DROP SILENT GRAPH <"+ gr_c.getAllLinksGraph()+">";
+        final String createGraph = "SPARQL CREATE GRAPH <"+ gr_c.getAllLinksGraph()+">";
         // SPARQL Endpoint description query. Works only for remote endpoints
         final String endDesc = "SPARQL LOAD SERVICE <"+endpointA+"> DATA";
         PreparedStatement endStmt;
@@ -2044,7 +2050,7 @@ public final class VirtuosoImporter {
     @Deprecated
     private void BulkInsertLinksBatch(List<Link> lst, int nextIndex) throws SQLException, IOException {  
         long starttime, endtime;
-        set2 = getVirtuosoSet("http://localhost:8890/DAV/links_"+db_c.getDBName()+"", db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
+        set2 = getVirtuosoSet(""+gr_c.getLinksGraph()+ "", db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
         BulkUpdateHandler buh2 = set2.getBulkUpdateHandler();
         LOG.info(ANSI_YELLOW+"Loaded "+lst.size()+" links"+ANSI_RESET);
         
@@ -2057,7 +2063,7 @@ public final class VirtuosoImporter {
         //f.mkdirs();
         //f.getParentFile().mkdirs();
         PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f)));
-        links_graph = "http://localhost:8890/DAV/links_"+db_c.getDBName();
+        links_graph = gr_c.getAllLinksGraph();
         String dir = bulkInsertDir.replace("\\", "/");
         //System.out.println("DIRECTORY "+dir);
         final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('"+dir+"bulk_inserts/selected_links.nt'), '', "+"'"+links_graph+"')";
@@ -2095,7 +2101,7 @@ public final class VirtuosoImporter {
      */
     private void SPARQLInsertLinksBatch(List<Link> l, int nextIndex) throws VirtuosoException, BatchUpdateException {
         StringBuilder sb = new StringBuilder();
-        sb.append("SPARQL WITH <http://localhost:8890/DAV/links_" + db_c.getDBName()+"> INSERT {");
+        sb.append("SPARQL WITH <"+gr_c.getLinksGraph()+ "> INSERT {");
         sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
         System.out.println("Statement " + sb.toString());
         VirtuosoConnection conn = (VirtuosoConnection) set.getConnection();
@@ -2118,74 +2124,6 @@ public final class VirtuosoImporter {
         vstmt.executeBatch();
         
         vstmt.close();
-        
-        /*boolean updating = true;
-        int addIdx = nextIndex;
-        int cSize = 1;
-        int sizeUp = 1;
-        while (updating) {
-            try {
-                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
-                //queryStr.append("WITH <"+fusedGraph+"> ");
-                queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <http://localhost:8890/DAV/links_" + db_c.getDBName() + "> { ");
-                int top = 0;
-                if (cSize >= l.size()) {
-                    top = l.size();
-                } else {
-                    top = cSize;
-                }
-                for (int i = addIdx; i < top; i++) {
-                    final String subject = l.get(i).getNodeA();
-                    final String subjectB = l.get(i).getNodeB();
-                    queryStr.appendIri(subject);
-                    queryStr.append(" ");
-                    queryStr.appendIri(SAME_AS);
-                    queryStr.append(" ");
-                    queryStr.appendIri(subjectB);
-                    queryStr.append(" ");
-                    queryStr.append(".");
-                    queryStr.append(" ");
-                }
-                queryStr.append("} }");
-                //System.out.println("Print "+queryStr.toString());
-
-                UpdateRequest q = queryStr.asUpdate();
-                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, endpointT, authenticator);
-                insertRemoteB.execute();
-                
-                //System.out.println("Add at "+addIdx+" Size "+cSize);
-                addIdx += (cSize - addIdx);
-                sizeUp *= 2;
-                cSize += sizeUp;
-                if (cSize >= l.size()) {
-                    cSize = l.size();
-                }
-                if (cSize == addIdx) {
-                    updating = false;
-                }
-            } catch (org.apache.jena.atlas.web.HttpException ex) {
-                System.out.println("Failed at " + addIdx + " Size " + cSize);
-                System.out.println("Crazy Stuff");
-                System.out.println(ex.getLocalizedMessage());
-                ex.printStackTrace();
-                ex.printStackTrace(System.out);
-                sizeUp = 1;
-                cSize = addIdx;
-                cSize += sizeUp;
-                if (cSize >= l.size()) {
-                    cSize = l.size();
-                }
-                    //System.out.println("Going back at "+addIdx+" Size "+cSize);
-
-                break;
-                //System.out.println("Going back at "+addIdx+" Size "+cSize);
-            } catch (Exception ex) {
-                System.out.println(ex.getLocalizedMessage());
-                break;
-            }
-        }*/
     }
     
     /**
@@ -2194,7 +2132,7 @@ public final class VirtuosoImporter {
      */
     private void SPARQLInsertLinks(List<Link> l) throws VirtuosoException, BatchUpdateException {
         StringBuilder sb = new StringBuilder();
-        sb.append("SPARQL WITH <http://localhost:8890/DAV/all_links_" + db_c.getDBName()+"> INSERT {");
+        sb.append("SPARQL WITH <"+ gr_c.getAllLinksGraph()+"> INSERT {");
         sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
         System.out.println("Statement " + sb.toString());
         VirtuosoConnection conn = (VirtuosoConnection) set.getConnection();
@@ -2224,7 +2162,7 @@ public final class VirtuosoImporter {
                 ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
                 //queryStr.append("WITH <"+fusedGraph+"> ");
                 queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <http://localhost:8890/DAV/all_links_" + db_c.getDBName() + "> { ");
+                queryStr.append("GRAPH <h"+ gr_c.getAllLinksGraph()+"> { ");
                 int top = 0;
                 if (cSize >= l.size()) {
                     top = l.size();
@@ -2297,7 +2235,7 @@ public final class VirtuosoImporter {
      */
     @Deprecated
     private void BulkInsertLinks(List<Link> lst) throws SQLException, IOException {  
-        set2 = getVirtuosoSet("http://localhost:8890/DAV/all_links_"+db_c.getDBName(), db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
+        set2 = getVirtuosoSet(gr_c.getAllLinksGraph(), db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
         BulkUpdateHandler buh2 = set2.getBulkUpdateHandler();
         LOG.info(ANSI_YELLOW+"Loaded "+lst.size()+" links"+ANSI_RESET);
         long starttime, endtime;
@@ -2310,7 +2248,7 @@ public final class VirtuosoImporter {
         String dir = bulkInsertDir.replace("\\", "/");
         //System.out.println("DIRECTORY "+dir);
         final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('"+dir+"bulk_inserts/selected_links.nt'), '', "
-                +"'"+"http://localhost:8890/DAV/all_links_"+db_c.getDBName()+"')";
+                +"'"+ gr_c.getAllLinksGraph()+"')";
         //int stop = 0;
         if ( lst.size() > 0 ) {
             

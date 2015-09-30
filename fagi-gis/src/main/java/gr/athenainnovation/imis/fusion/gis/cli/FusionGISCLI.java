@@ -261,7 +261,7 @@ public class FusionGISCLI {
             
                 //final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
                 Dataset sourceADataset = new Dataset(st.getGraphConf().getEndpointA(), st.getGraphConf().getGraphA(), "");
-                final ImporterWorker datasetAImportWorker = new ImporterWorker(st.getDbConf(), 
+                final ImporterWorker datasetAImportWorker = new ImporterWorker(st.getDbConf(), st.getGraphConf(),
                         PostGISImporter.DATASET_A, sourceADataset, null, errListen);
                 datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                     @Override public void propertyChange(PropertyChangeEvent evt) {
@@ -272,7 +272,7 @@ public class FusionGISCLI {
                 });
             
                 Dataset sourceBDataset = new Dataset(st.getGraphConf().getEndpointB(), st.getGraphConf().getGraphB(), "");
-                final ImporterWorker datasetBImportWorker = new ImporterWorker(st.getDbConf(), 
+                final ImporterWorker datasetBImportWorker = new ImporterWorker(st.getDbConf(), st.getGraphConf(),
                         PostGISImporter.DATASET_B, sourceBDataset, null, errListen);
             
                 datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
@@ -380,8 +380,8 @@ public class FusionGISCLI {
     
     private static void createLinksGraph(List<Link> lst, FusionState st) {
         try {
-            final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/all_links_"+st.getDbConf().getDBName()+">";
-            final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_"+st.getDbConf().getDBName()+">";
+            final String dropGraph = "sparql DROP SILENT GRAPH <"+ st.getGraphConf().getAllLinksGraph() + ">";
+            final String createGraph = "sparql CREATE GRAPH <"+ st.getGraphConf().getAllLinksGraph() + ">";
             VirtGraph set = getVirtuosoSet(st.getDbConf().getDBURL(), st.getDbConf().getUsername(), st.getDbConf().getPassword());
             //long endTime = System.nanoTime();
             //System.out.println("Time to connect : "+(endTime-startTime)/1000000000f);
@@ -399,7 +399,7 @@ public class FusionGISCLI {
             //f.getParentFile().mkdirs();
             PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f)));
             final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('"+st.getDbConf().getBulkDir()+"bulk_inserts/selected_links.nt'), '', "
-                    +"'"+"http://localhost:8890/DAV/all_links_"+st.getDbConf().getDBName()+"')";
+                    +"'"+ st.getGraphConf().getAllLinksGraph() + "')";
             //int stop = 0;
             if ( lst.size() > 0 ) {
                 

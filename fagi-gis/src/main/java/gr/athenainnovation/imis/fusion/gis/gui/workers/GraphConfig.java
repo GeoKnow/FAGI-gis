@@ -22,6 +22,9 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
  */
 public class GraphConfig {
     private String graphA, graphB, graphL, endpointA, endpointB, endpointL, endpointLoc, endpointT;
+    private String metadataGraphA, metadataGraphB, targetGraph, targetTempGraph;
+    private String allLinksGraph, allClusterGraph, clusterGraph, linksGraph, sampleLinksGraph;
+    
     private boolean dominantA;
     
     private List<String> geoPropertiesA;
@@ -102,6 +105,78 @@ public class GraphConfig {
         geoPropertiesB = new ArrayList<>();
         geoTypesA = new ArrayList<>();
         geoTypesB = new ArrayList<>();
+    }
+
+    public String getSampleLinksGraph() {
+        return sampleLinksGraph;
+    }
+
+    public void setSampleLinksGraph(String sampleLinksGraph) {
+        this.sampleLinksGraph = sampleLinksGraph;
+    }
+
+    public String getAllLinksGraph() {
+        return allLinksGraph;
+    }
+
+    public void setAllLinksGraph(String allLinksGraph) {
+        this.allLinksGraph = allLinksGraph;
+    }
+
+    public String getAllClusterGraph() {
+        return allClusterGraph;
+    }
+
+    public void setAllClusterGraph(String allClusterGraph) {
+        this.allClusterGraph = allClusterGraph;
+    }
+
+    public String getClusterGraph() {
+        return clusterGraph;
+    }
+
+    public void setClusterGraph(String clusterGraph) {
+        this.clusterGraph = clusterGraph;
+    }
+
+    public String getLinksGraph() {
+        return linksGraph;
+    }
+
+    public void setLinksGraph(String linksGraph) {
+        this.linksGraph = linksGraph;
+    }
+
+    public String getMetadataGraphA() {
+        return metadataGraphA;
+    }
+
+    public void setMetadataGraphA(String metadataGraphA) {
+        this.metadataGraphA = metadataGraphA;
+    }
+
+    public String getMetadataGraphB() {
+        return metadataGraphB;
+    }
+
+    public void setMetadataGraphB(String metadataGraphB) {
+        this.metadataGraphB = metadataGraphB;
+    }
+
+    public String getTargetGraph() {
+        return targetGraph;
+    }
+
+    public void setTargetGraph(String targetGraph) {
+        this.targetGraph = targetGraph;
+    }
+
+    public String getTargetTempGraph() {
+        return targetTempGraph;
+    }
+
+    public void setTargetTempGraph(String targetTempGraph) {
+        this.targetTempGraph = targetTempGraph;
     }
     
     public String getGraphL() {

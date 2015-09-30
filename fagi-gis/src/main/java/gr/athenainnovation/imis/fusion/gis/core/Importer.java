@@ -15,6 +15,7 @@ import gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI;
 //import static gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI.st;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.ImporterWorker;
 import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import static gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter.DATASET_A;
@@ -54,6 +55,8 @@ public class Importer {
     private float elapsedTime = 0f;
     private int importedTripletsCount = 0;
     
+    private GraphConfig grConf;
+    
     public float getElapsedTime() {
         return elapsedTime;
     }
@@ -81,14 +84,16 @@ public class Importer {
      * @throws SQLException 
      * @throws RuntimeException in case of an unrecoverable error. The cause of the error will be encapsulated by the thrown RuntimeException
      */
-    public Importer(final DBConfig dBConfig, final ImporterWorker callback) throws SQLException {
+    public Importer(final DBConfig dBConfig, final ImporterWorker callback, final GraphConfig grConf) throws SQLException {
         this.callback = callback;
         this.postGISImporter = new PostGISImporter(dBConfig);
+        this.grConf = grConf;
     }
     
-    public Importer(final DBConfig dBConfig) throws SQLException {
+    public Importer(final DBConfig dBConfig, final GraphConfig grConf) throws SQLException {
         this.callback = null;
         this.postGISImporter = new PostGISImporter(dBConfig);
+        this.grConf = grConf;
     }
     
     /**
@@ -208,12 +213,12 @@ public class Importer {
         
         String queryString1 = "";
         if ( isEndpointLocal )
-            queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
+            queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <"+ this.grConf.getAllLinksGraph() + "> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
         else
-            queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} } }";
+            queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?s ?lp ?os} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} } }";
 
         
-        //final String queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <http://localhost:8890/DAV/links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
+        //final String queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
         boolean countWgs = checkForWGS(sourceEndpoint, sourceGraph, restrictionForWgs, "?s");       
         final String restriction = "?os ?p1 _:a . _:a <"+AS_WKT_REGEX+"> ?g ";
         /*final String restriction = "?os ?p1 _:a . _:a ?p2 ?g FILTER(regex(?os, \"" + subjectRegex + "\", \"i\")) " + "" +
@@ -227,14 +232,14 @@ public class Importer {
         final String queryString;
         if (datasetIdent == DATASET_A) {
             if ( isEndpointLocal )
-                queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?os ?lp ?s} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
+                queryString = "SELECT ?os ?g WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?os ?lp ?s} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
             else
-                queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?os ?lp ?s} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restriction + "} } }";
+                queryString = "SELECT ?os ?g WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?os ?lp ?s} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restriction + "} } }";
         } else {
             if ( isEndpointLocal )
-                queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
+                queryString = "SELECT ?os ?g WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
             else
-                queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restriction + "} } }";
+                queryString = "SELECT ?os ?g WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?s ?lp ?os} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restriction + "} } }";
         }
         
 //System.out.println("Query String "+queryString);
