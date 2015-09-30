@@ -817,7 +817,7 @@ public class FuseLinkServlet extends HttpServlet {
                 q.append(" ?ot1 ?ot2 ?ot3 ");
                 String prev_s = "<"+nodeA+">";
                 q.append(" WHERE {");
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                q.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -885,7 +885,7 @@ public class FuseLinkServlet extends HttpServlet {
             q.append("sparql SELECT ?o" + (leftPreTokens.length - 1) + " ?ot1 ?ot2 ?ot3");
             String prev_s = "<"+nodeA+">";
             q.append(" WHERE {");
-            q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+            q.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
             for (int i = 0; i < leftPreTokens.length; i++) {
                 q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                 prev_s = "?o" + i;
@@ -965,7 +965,7 @@ public class FuseLinkServlet extends HttpServlet {
                 q.append(" ?ot1 ?ot2 ?ot3 ");
                 String prev_s = "<"+nodeA+">";
                 q.append(" WHERE {");
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                q.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -1037,7 +1037,7 @@ public class FuseLinkServlet extends HttpServlet {
             q.append("sparql SELECT ?o" + (rightPreTokens.length - 1) + " ?ot1 ?ot2 ?ot3");
             String prev_s = "<"+nodeA+">";
             q.append(" WHERE {");
-            q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+            q.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
             for (int i = 0; i < rightPreTokens.length; i++) {
                 q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                 prev_s = "?o" + i;
@@ -1216,7 +1216,7 @@ public class FuseLinkServlet extends HttpServlet {
                 String prev_s = "<"+nodeA+">";
                 int loopMax = 1;
                 q.append("sparql SELECT ?o" + (leftPreTokens.length - 1) + " ?pt" + (loopMax - 1) + " ?ot" + (loopMax - 1) + "");
-                q.append(" WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                q.append(" WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -1264,12 +1264,12 @@ public class FuseLinkServlet extends HttpServlet {
                     prev_s = "<"+nodeA+">";
                     insq.append(" WHERE {");
                     if (grConf.isDominantA()) {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
-                    insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-                    //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                    insq.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
+                    //insq.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                     for (int i = 0; i < leftPreTokens.length; i++) {
                         insq.append(prev_s + " <" + leftPreTokens[i] + "> " + "?o" + i + " . ");
                         prev_s = "?o" + i;
@@ -1322,7 +1322,7 @@ public class FuseLinkServlet extends HttpServlet {
                 prev_s = "?o" + i;
             }
             q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
-            q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
             prev_s = "<" + nodeA + ">";
             for (int i = 0; i < leastCommonPath.length; i++) {
                 q.append(prev_s + " <" + leastCommonPath[i] + "> ?o" + i + " . ");
@@ -1344,7 +1344,7 @@ public class FuseLinkServlet extends HttpServlet {
             int loopMax = 1;
             q.append("sparql SELECT ?o" + (leftPreTokens.length - 1) + " ?pt" + (loopMax - 1) + " ?ot" + (loopMax - 1) + "");
             prev_s = "<" + nodeA + ">";
-            q.append(" WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+            q.append(" WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
             for (int i = 0; i < leftPreTokens.length; i++) {
                 q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                 prev_s = "?o" + i;
@@ -1395,13 +1395,12 @@ public class FuseLinkServlet extends HttpServlet {
                 insq.append(" } } WHERE {");
                 
                 if (grConf.isDominantA()) {
-                    insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                    insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                 } else {
-                    insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                    insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                 }
 
-                insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-                //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                insq.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 prev_s = "<" + nodeA + ">";
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     insq.append(prev_s + " <" + leftPreTokens[i] + "> " + "?o" + i + " . ");
@@ -1422,7 +1421,7 @@ public class FuseLinkServlet extends HttpServlet {
                 insq.append(" ?obj ?p1 ?o1 . ");
                 insq.append(" ?o1 ?p2 ?o2 . ");
                 insq.append(" ?o2 ?p3 ?o3 . ");
-                insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                insq.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     insq.append(prev_s + " <" + leftPreTokens[i] + "> " + "?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -1459,13 +1458,12 @@ public class FuseLinkServlet extends HttpServlet {
                 insq.append(" } } WHERE {");
                 
                 if (grConf.isDominantA()) {
-                    insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                    insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                 } else {
-                    insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                    insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                 }
 
-                insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
-                //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                insq.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 prev_s = "<" + nodeA + ">";
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     insq.append(prev_s + " <" + leftPreTokens[i] + "> " + normObject + " . ");
@@ -1574,7 +1572,7 @@ public class FuseLinkServlet extends HttpServlet {
                 String prev_s = "<"+nodeA+">";
                 int loopMax = 1;
                 q.append("sparql SELECT ?o" + (rightPreTokens.length - 1) + " ?pt" + (loopMax - 1) + " ?ot" + (loopMax - 1) + "");
-                q.append(" WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                q.append(" WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -1622,12 +1620,11 @@ public class FuseLinkServlet extends HttpServlet {
                     prev_s = "<"+nodeA+">";
                     insq.append(" WHERE {");
                     if (grConf.isDominantA()) {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
-                    insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                    //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                    insq.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                     for (int i = 0; i < rightPreTokens.length; i++) {
                         insq.append(prev_s + " <" + rightPreTokens[i] + "> " + "?o" + i + " . ");
                         prev_s = "?o" + i;
@@ -1680,7 +1677,7 @@ public class FuseLinkServlet extends HttpServlet {
                 prev_s = "?o" + i;
             }
             q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
-            q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
             prev_s = "<" + nodeA + ">";
             for (int i = 0; i < leastCommonPath.length; i++) {
                 q.append(prev_s + " <" + leastCommonPath[i] + "> ?o" + i + " . ");
@@ -1702,7 +1699,7 @@ public class FuseLinkServlet extends HttpServlet {
             int loopMax = 1;
             q.append("sparql SELECT ?o" + (rightPreTokens.length - 1) + " ?pt" + (loopMax - 1) + " ?ot" + (loopMax - 1) + "");
             prev_s = "<" + nodeA + ">";
-            q.append(" WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+            q.append(" WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
             for (int i = 0; i < rightPreTokens.length; i++) {
                 q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                 prev_s = "?o" + i;
@@ -1753,13 +1750,12 @@ public class FuseLinkServlet extends HttpServlet {
                 insq.append(" } } WHERE {");
                 
                 if (grConf.isDominantA()) {
-                    insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                    insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                 } else {
-                    insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                    insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                 }
 
-                insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                insq.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 prev_s = "<" + nodeA + ">";
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     insq.append(prev_s + " <" + rightPreTokens[i] + "> " + "?o" + i + " . ");
@@ -1780,7 +1776,7 @@ public class FuseLinkServlet extends HttpServlet {
                 insq.append(" ?obj ?p1 ?o1 . ");
                 insq.append(" ?o1 ?p2 ?o2 . ");
                 insq.append(" ?o2 ?p3 ?o3 . ");
-                insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                insq.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     insq.append(prev_s + " <" + rightPreTokens[i] + "> " + "?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -1817,13 +1813,12 @@ public class FuseLinkServlet extends HttpServlet {
                 insq.append(" } } WHERE {");
                 
                 if (grConf.isDominantA()) {
-                    insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                    insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                 } else {
-                    insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                    insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                 }
 
-                insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                insq.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 prev_s = "<" + nodeA + ">";
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     insq.append(prev_s + " <" + rightPreTokens[i] + "> " + normObject + " . ");
@@ -1935,7 +1930,7 @@ public class FuseLinkServlet extends HttpServlet {
                 q.append(" ?ot1 ?ot2 ?ot3 ");
                 String prev_s = "<"+nodeA+">";
                 q.append(" WHERE {");
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                q.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -2026,7 +2021,7 @@ public class FuseLinkServlet extends HttpServlet {
             q.append("sparql SELECT ?s ?o" + (leftPreTokens.length - 1) + " ?ot1 ?ot2 ?ot3");
             String prev_s = "<"+nodeA+">";
             q.append(" WHERE {");
-            q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+            q.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
             for (int i = 0; i < leftPreTokens.length; i++) {
                 q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                 prev_s = "?o" + i;
@@ -2101,7 +2096,7 @@ public class FuseLinkServlet extends HttpServlet {
                     prev_s = "?o" + i;
                 }
                 q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
-                q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 prev_s = sub;
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
@@ -2216,7 +2211,7 @@ public class FuseLinkServlet extends HttpServlet {
                 q.append(" ?ot1 ?ot2 ?ot3 ");
                 String prev_s = "<"+nodeA+">";
                 q.append(" WHERE {");
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                q.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -2307,7 +2302,7 @@ public class FuseLinkServlet extends HttpServlet {
             q.append("sparql SELECT ?o" + (rightPreTokens.length - 1) + " ?ot1 ?ot2 ?ot3");
             String prev_s = "<"+nodeA+">";
             q.append(" WHERE {");
-            q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+            q.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
             for (int i = 0; i < rightPreTokens.length; i++) {
                 q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                 prev_s = "?o" + i;
@@ -2382,7 +2377,7 @@ public class FuseLinkServlet extends HttpServlet {
                     prev_s = "?o" + i;
                 }
                 q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
-                q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 prev_s = sub;
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
@@ -2451,7 +2446,7 @@ public class FuseLinkServlet extends HttpServlet {
             }
             q.append(prev_s+" <"+domOnto+newPred+"> ?o"+(leftPreTokens.length-1)+" . ");
             prev_s = "<"+nodeA+">";
-            q.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
             for (int i = 0; i < leftPreTokens.length; i++) {
                 q.append(prev_s+" <"+leftPreTokens[i]+"> ?o"+i+" . ");
                 prev_s = "?o"+i;
@@ -2474,7 +2469,7 @@ public class FuseLinkServlet extends HttpServlet {
                 prev_s = "?o"+i;
             }
             prev_s = "<"+nodeA+">";
-            q.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
             for (int i = 0; i < pres.length; i++) {
                 q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
                 prev_s = "?o"+i;
@@ -2495,7 +2490,7 @@ public class FuseLinkServlet extends HttpServlet {
                 prev_s = "?o"+i;
             }
             prev_s = "<"+nodeA+">";
-            q.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
             for (int i = 0; i < pres.length; i++) {
                 q.append(prev_s+" <"+pres[i]+"> ?o"+i+" . ");
                 prev_s = "?o"+i;
@@ -2560,7 +2555,7 @@ public class FuseLinkServlet extends HttpServlet {
             }
             q.append(prev_s+" <"+domOnto+newPred+"> ?o"+(rightPreTokens.length-1)+" . ");
             prev_s = "<"+nodeA+">";
-            q.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
             for (int i = 0; i < rightPreTokens.length; i++) {
                 q.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
                 prev_s = "?o"+i;
@@ -2570,23 +2565,6 @@ public class FuseLinkServlet extends HttpServlet {
             VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
             vur.exec();
             
-            /*
-            q.setLength(0);
-            ParameterizedSparqlString pss = new ParameterizedSparqlString();
-            q.append("SELECT * WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"B> {");
-            for (int i = 0; i < rightPreTokens.length; i++) {
-                q.append(prev_s+" <"+rightPreTokens[i]+"> ?o"+i+" . ");
-                prev_s = "?o"+i;
-            }
-            q.append("} }");
-            
-            System.out.println(q.toString());
-            
-            final Query query = QueryFactory.create(q.toString());
-            VirtuosoQueryExecution queryExecution = VirtuosoQueryExecutionFactory.create(query, vSet);
-            
-            final com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
-            */
         }
     }
     

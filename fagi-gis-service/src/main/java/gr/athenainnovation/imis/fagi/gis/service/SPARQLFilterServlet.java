@@ -168,8 +168,8 @@ public class SPARQLFilterServlet extends HttpServlet {
             System.out.println(queryB);
             
             String queryAll = "";
-            queryANormalized = queryA.replace("fagi-gis:links", "http://localhost:8890/DAV/all_links_" + dbConf.getDBName());
-            queryBNormalized = queryA.replace("fagi-gis:links", "http://localhost:8890/DAV/all_links_" + dbConf.getDBName());
+            queryANormalized = queryA.replace("fagi-gis:links", grConf.getAllLinksGraph() );
+            queryBNormalized = queryA.replace("fagi-gis:links", grConf.getAllLinksGraph() );
             
             if ( !queryANormalized.contains( "fagi-gis:metadata" ) ) {
                 queryAll = queryANormalized;

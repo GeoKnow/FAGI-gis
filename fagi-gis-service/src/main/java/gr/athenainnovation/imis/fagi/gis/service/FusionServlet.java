@@ -451,9 +451,9 @@ public class FusionServlet extends HttpServlet {
             System.out.println("Geom JSON "+mapper.writeValueAsString(ret));
             String getLink = "";
             if (grConf.isDominantA()) {
-                getLink = "sparql select ?o where { GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+"> {<"+reg+"> ?p ?o} }";
+                getLink = "sparql select ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> {<"+reg+"> ?p ?o} }";
             } else {
-                getLink = "sparql select ?o where { GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+"> {?o ?p <"+reg+">} }";
+                getLink = "sparql select ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> {?o ?p <"+reg+">} }";
             }
             
             stmt = null;
@@ -471,14 +471,14 @@ public class FusionServlet extends HttpServlet {
             stmt.close();
             
             String getClassA = "sparql SELECT ?owlClass"
-                    + "  WHERE {GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+">"
+                    + "  WHERE {GRAPH <"+ grConf.getAllLinksGraph()+ ">"
                     + " { <"+reg+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n" +
-                      " GRAPH <"+(String)sess.getAttribute("t_graph")+"_"+dbConf.getDBName()+"A> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
+                      " GRAPH <" + grConf.getMetadataGraphA() + "> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
             
             String getClassB = "sparql SELECT ?owlClass"
-                    + "  WHERE {GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+">"
+                    + "  WHERE {GRAPH <"+ grConf.getAllLinksGraph()+ ">"
                     + " { <"+reg+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n" +
-                      " GRAPH <"+(String)sess.getAttribute("t_graph")+"_"+dbConf.getDBName()+"B> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
+                      " GRAPH <"+ grConf.getMetadataGraphB() + "> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
             
             
             stmt = null;

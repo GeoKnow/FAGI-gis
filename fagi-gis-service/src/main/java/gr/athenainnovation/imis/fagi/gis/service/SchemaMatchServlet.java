@@ -220,8 +220,8 @@ public class SchemaMatchServlet extends HttpServlet {
     }
 
     public void createLinksGraph(List<Link> lst, Connection virt_conn, String bulkInsertDir) throws SQLException, IOException {
-        final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/links_" + dbConf.getDBName() + ">";
-        final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/links_" + dbConf.getDBName() + ">";
+        final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getLinksGraph()+  ">";
+        final String createGraph = "sparql CREATE GRAPH <"+ grConf.getLinksGraph()+ ">";
         //final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
 
         //PreparedStatement endStmt;
@@ -250,7 +250,7 @@ public class SchemaMatchServlet extends HttpServlet {
                 ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
                 //queryStr.append("WITH <"+fusedGraph+"> ");
                 queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <http://localhost:8890/DAV/links_" + dbConf.getDBName() + "> { ");
+                queryStr.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ");
                 int top = 0;
                 if (cSize >= l.size()) {
                     top = l.size();

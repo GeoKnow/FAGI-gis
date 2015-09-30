@@ -47,8 +47,11 @@ public class DatasetsServlet extends HttpServlet {
             throws ServletException, IOException {
         PrintWriter out = response.getWriter();
         try {
-            GraphConfig graphConf = new GraphConfig("", "", "", "");
+            HttpSession sess = request.getSession(true);
 
+            GraphConfig graphConf = new GraphConfig("", "", "", "");
+            DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
+            
             System.out.println("Dominant A " + request.getParameter("d_dom"));
 
             if (request.getParameter("d_dom") != null) {
@@ -70,13 +73,31 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setGraphL(request.getParameter("l_graph"));
             graphConf.setEndpointL(request.getParameter("l_end"));
 
-            //System.out.println(dbConf.getDBName());
+            final String allLinksGraph = "http://localhost:8890/DAV/all_links_" + dbConf.getDBName()+"_fagi" ;
+            final String linksGraph = "http://localhost:8890/DAV/links_" + dbConf.getDBName()+"_fagi" ;
+            final String sampleLinksGraph = "http://localhost:8890/DAV/links_sample_" + dbConf.getDBName()+"_fagi" ;
+            final String allClusterGraph = "http://localhost:8890/DAV/all_cluster_" + dbConf.getDBName()+"_fagi" ;
+            final String clusterGraph = "http://localhost:8890/DAV/cluster_" + dbConf.getDBName()+"_fagi" ;
+            final String targetGraph = request.getParameter("t_graph") ;
+            final String metadataGraphA = targetGraph + "_" + dbConf.getDBName() + "A_fagi" ;
+            final String metadataGraphB = targetGraph + "_" + dbConf.getDBName() + "B_fagi" ;
+            final String targetTempGraph = targetGraph+"_"+dbConf.getDBName()+"_fagi" ;
+            
+            graphConf.setTargetGraph(targetGraph);
+            graphConf.setTargetTempGraph(targetTempGraph);
+            graphConf.setAllLinksGraph(allLinksGraph);
+            graphConf.setLinksGraph(linksGraph);
+            graphConf.setSampleLinksGraph(sampleLinksGraph);
+            graphConf.setAllClusterGraph(allClusterGraph);
+            graphConf.setClusterGraph(clusterGraph);
+            graphConf.setMetadataGraphA(metadataGraphA);
+            graphConf.setMetadataGraphB(metadataGraphB);
+            
             System.out.println("Endpoint " + graphConf.getEndpointL() + " ");
             System.out.println("Graph " + graphConf.getGraphL() + " ");
 
-            HttpSession sess = request.getSession(true);
             sess.setAttribute("gr_conf", graphConf);
-            sess.setAttribute("t_graph", request.getParameter("t_graph"));
+            sess.setAttribute("t_graph", targetGraph);
             sess.setAttribute("t_end", request.getParameter("t_end"));
             sess.setAttribute("bulk", request.getParameter("bulk"));
             sess.setAttribute("dom", graphConf.isDominantA());

@@ -245,16 +245,15 @@ public class LinkSchemasServlet extends HttpServlet {
 
         String s = request.getParameter("subject");
         String targetGraph = (String) sess.getAttribute("t_graph");
+        GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
+        
         response.setContentType("application/json");
         try (PrintWriter out = response.getWriter()) {
 
             matches = new JSONMatches();
             VirtGraph vSet = null;
             DBConfig dbConf = (DBConfig) sess.getAttribute("db_conf");
-            //dbConf.setBulkDir((String)sess.getAttribute("bulk"));
-            GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
-            //System.out.println(dbConf.getDBName());
-
+            
             try {
                 vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
                         dbConf.getUsername(),
@@ -306,7 +305,7 @@ public class LinkSchemasServlet extends HttpServlet {
                     query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
                 }
                 query.append("\nWHERE\n{\n\n"
-                        + " { GRAPH <").append(targetGraph).append("_" + dbConf.getDBName() + "A> {<" + s + "> ?pa1 ?oa1 ");
+                        + " { GRAPH <").append(grConf.getMetadataGraphA()).append("> {<" + s + "> ?pa1 ?oa1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
@@ -315,7 +314,7 @@ public class LinkSchemasServlet extends HttpServlet {
                 for (int j = 0; j < i; j++) {
                     query.append(" } ");
                 }
-                query.append("}\n } UNION { \n" + "   GRAPH <").append(targetGraph).append("_" + dbConf.getDBName() + "B> {<" + s + "> ?pb1 ?ob1 ");
+                query.append("}\n } UNION { \n" + "   GRAPH <").append(grConf.getMetadataGraphB()).append("> {<" + s + "> ?pb1 ?ob1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;

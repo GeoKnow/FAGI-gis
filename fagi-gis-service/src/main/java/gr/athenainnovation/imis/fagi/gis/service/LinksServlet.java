@@ -333,7 +333,6 @@ public class LinksServlet extends HttpServlet {
             sess.setAttribute("links_list", output);
             int i = 0;
             for (Link l : output) {
-                fetchedGeomsB.add(l.getNodeB());
                 fetchedGeomsA.add(l.getNodeA());
                 fetchedGeomsA.add(l.getNodeB());
                 String check = "chk" + i;
@@ -358,7 +357,7 @@ public class LinksServlet extends HttpServlet {
 
             //final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
             Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
-            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, PostGISImporter.DATASET_A, sourceADataset, null, errListen);
+            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, errListen);
             datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override
                 public void propertyChange(PropertyChangeEvent evt) {
@@ -369,7 +368,7 @@ public class LinksServlet extends HttpServlet {
             });
 
             Dataset sourceBDataset = new Dataset(grConf.getEndpointB(), grConf.getGraphB(), "");
-            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, PostGISImporter.DATASET_B, sourceBDataset, null, errListen);
+            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_B, sourceBDataset, null, errListen);
             datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override
                 public void propertyChange(PropertyChangeEvent evt) {
@@ -396,16 +395,16 @@ public class LinksServlet extends HttpServlet {
 
             //virtImp.importGeometriesToVirtuoso((String) sess.getAttribute("t_graph"));
             virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true);
-            final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + ">";
+            final String createGraph = "sparql CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
 
             String fetchFiltersA = "";
             String fetchFiltersB = "";
             if (grConf.isDominantA()) {
-                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + (String) sess.getAttribute("t_graph") + "_" + dbConf.getDBName() + "A> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + (String) sess.getAttribute("t_graph") + "_" + dbConf.getDBName() + "B> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() +"> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
             } else {
-                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + (String) sess.getAttribute("t_graph") + "_" + dbConf.getDBName() + "A> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + (String) sess.getAttribute("t_graph") + "_" + dbConf.getDBName() + "B> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
             }
 
             System.out.println(fetchFiltersA);
@@ -429,10 +428,10 @@ public class LinksServlet extends HttpServlet {
                     }
                 }
             }
+            
             rs.close();
             filtersStmt.close();
-            System.out.println("Printing out");
-            System.out.println(out.toString());
+            
             out.print("+>>>+");
 
             filtersStmt = virt_conn.prepareStatement(fetchFiltersB);
@@ -516,8 +515,8 @@ public class LinksServlet extends HttpServlet {
     }
 
     public void createLinksGraph(List<Link> lst, Connection virt_conn, String bulkInsertDir) throws SQLException, IOException {
-        final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + ">";
-        final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + ">";
+        final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getAllLinksGraph()+  ">";
+        final String createGraph = "sparql CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
         //final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
 
         //PreparedStatement endStmt;
@@ -528,9 +527,13 @@ public class LinksServlet extends HttpServlet {
         dropStmt = virt_conn.prepareStatement(dropGraph);
         dropStmt.execute();
 
+        dropStmt.close();
+        
         PreparedStatement createStmt;
         createStmt = virt_conn.prepareStatement(createGraph);
         createStmt.execute();
+        
+        createStmt.close();
         
         //bulkInsertLinks(lst, virt_conn, bulkInsertDir);
         SPARQLInsertLink(lst);
@@ -546,7 +549,7 @@ public class LinksServlet extends HttpServlet {
                 ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
                 //queryStr.append("WITH <"+fusedGraph+"> ");
                 queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ");
+                queryStr.append("GRAPH <"+ grConf.getAllLinksGraph()+ "> { ");
                 int top = 0;
                 if (cSize >= l.size()) {
                     top = l.size();
@@ -608,7 +611,7 @@ public class LinksServlet extends HttpServlet {
     private void bulkInsertLinks(List<Link> lst, Connection virt_conn, String bulkInsertDir) throws FileNotFoundException, SQLException {
         long starttime, endtime;
         /*
-         set2 = getVirtuosoSet("http://localhost:8890/DAV/all_links", db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
+         set2 = getVirtuosoSet("+ grConf.getAllLinksGraph()+ , db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
          BulkUpdateHandler buh2 = set2.getBulkUpdateHandler();*/
         LOG.info(ANSI_YELLOW + "Loaded " + lst.size() + " links" + ANSI_RESET);
 
@@ -624,7 +627,7 @@ public class LinksServlet extends HttpServlet {
         //dir = dir.replace(":","");
         PrintWriter out = new PrintWriter(bulkInsertDir + "bulk_inserts/selected_links.nt");
         final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('" + dir + "bulk_inserts/selected_links.nt'), '', "
-                + "'" + "http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "')";
+                + "'" + grConf.getAllLinksGraph()+ "')";
         //int stop = 0;
         if (lst.size() > 0) {
 

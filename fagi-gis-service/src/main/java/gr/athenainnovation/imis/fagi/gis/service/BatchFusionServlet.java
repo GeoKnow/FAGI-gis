@@ -132,7 +132,7 @@ public class BatchFusionServlet extends HttpServlet {
     private static final String WKT = "http://www.opengis.net/ont/geosparql#asWKT";
     private static final String HAS_GEOMETRY = "http://www.opengis.net/ont/geosparql#hasGeometry";
     private static final double OFFSET_EPSILON = 0.000000000001;
-    private static final int BATCH_SIZE = 10000;
+    private static final int BATCH_SIZE = 1;
     private DBConfig dbConf;
     private GraphConfig grConf;
     private VirtGraph vSet = null;
@@ -454,12 +454,12 @@ public class BatchFusionServlet extends HttpServlet {
                 
                 activeLinkTable = "cluster";
                 loadClusterLinks(clusterLinks);
-                createClusterGraph(clusterLinks, 0);
                 
                 dbConn.commit();
             }
             
             System.out.println(selectedFusions[0].preL);
+            
             
             AbstractFusionTransformation trans = null;
             boolean skipFusion = false;
@@ -549,10 +549,14 @@ public class BatchFusionServlet extends HttpServlet {
                     ret.getFusedGeoms().put(rs.getString(1), res);
                 }
                 
+                rs.close();
+                stmt.close();
+                
                 VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
                 virtImp.setTransformationID(trans.getID());
             
-                virtImp.importGeometriesToVirtuoso((String)sess.getAttribute("t_graph"));
+                //virtImp.importGeometriesToVirtuoso((String)sess.getAttribute("t_graph"));
+                virtImp.importGeometriesToVirtuoso(grConf.getTargetTempGraph());
             
                 virtImp.trh.finish();
                 
@@ -585,14 +589,84 @@ public class BatchFusionServlet extends HttpServlet {
                 stmts.add(vstmt);
             }
             
-            // Perform Metadata Fusion
-            for(int i = 1; i < selectedFusions.length; i++) {
-                handleMetadataFusion(selectedFusions[i].action, i);
-            }
+            List<Link> linkList = (List<Link>) sess.getAttribute("links_list");
+            int lastIndex = 0;
+            do {
+               System.out.println("Running link creation loop " + linkList.size());
+                if ( activeCluster > -1 ) 
+                    lastIndex = createClusterGraph(clusterLinks, lastIndex);
+                else 
+                    lastIndex = createLinksGraphBatch(linkList, lastIndex);
+                // Perform Metadata Fusion
+                for (int i = 1; i < selectedFusions.length; i++) {
+                    handleMetadataFusion(selectedFusions[i].action, i);
+                }
+
+            } while ( lastIndex != 0);
             
             System.out.println(mapper.writeValueAsString(ret));
             out.println(mapper.writeValueAsString(ret));
         }
+    }
+    
+    private int createLinksGraphBatch(List<Link> lst, int nextIndex) throws SQLException, IOException {
+        final String dropGraph = "sparql DROP SILENT GRAPH <"+grConf.getLinksGraph()+ ">";
+        final String createGraph = "sparql CREATE GRAPH <"+grConf.getLinksGraph()+ ">";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+
+        VirtuosoPreparedStatement dropStmt;
+        long starttime, endtime;
+        dropStmt = (VirtuosoPreparedStatement) conn.prepareStatement(dropGraph);
+        dropStmt.execute();
+        
+        dropStmt.close();
+        
+        VirtuosoPreparedStatement createStmt;
+        createStmt = (VirtuosoPreparedStatement) conn.prepareStatement(createGraph);
+        createStmt.execute();
+        
+        createStmt.close();
+        
+        //BulkInsertLinksBatch(lst, nextIndex);
+        return SPARQLInsertLinksBatch(lst, nextIndex);
+    }
+    
+    /**
+     * Bulk Insert a batch of Links thrugh SPARQL
+     * @param lst  A List of Link objects.
+     * @param nextIndex Offset in the list
+     */
+    private int SPARQLInsertLinksBatch(List<Link> l, int nextIndex) throws VirtuosoException, BatchUpdateException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SPARQL WITH <"+grConf.getLinksGraph()+ "> INSERT {");
+        sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
+        System.out.println("Statement " + sb.toString());
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
+                
+        int start = nextIndex;
+        int end = nextIndex + BATCH_SIZE;
+        if ( end > l.size() ) {
+            end = l.size();
+        }
+        
+        for ( int i = start; i < end; ++i ) {
+            Link link = l.get(i);
+            vstmt.setString(1, link.getNodeA());
+            vstmt.setString(2, link.getNodeB());
+            
+            vstmt.addBatch();
+        }
+        
+        vstmt.executeBatch();
+        
+        vstmt.close();
+        
+        if ( end == l.size() )
+            return 0;
+        else 
+            return end;
+            
     }
     
     private void loadClusterLinks(final JSONClusterLink[] links) throws SQLException {
@@ -603,6 +677,8 @@ public class BatchFusionServlet extends HttpServlet {
            String deleteLinksTable = "DELETE FROM cluster";
            PreparedStatement statement = dbConn.prepareStatement(deleteLinksTable); 
            statement.executeUpdate(); //jan 
+           
+           statement.close();
            
            dbConn.commit();
            
@@ -624,15 +700,33 @@ public class BatchFusionServlet extends HttpServlet {
             insertLinkStmt.addBatch();
         }    
         insertLinkStmt.executeBatch();
+        
+        insertLinkStmt.close();
+        
         dbConn.commit();
     }
     
-    private void createClusterGraph(JSONClusterLink[] cluster, int startIndex) throws VirtuosoException, BatchUpdateException {
+    private int createClusterGraph(JSONClusterLink[] cluster, int startIndex) throws VirtuosoException, BatchUpdateException {
         StringBuilder sb = new StringBuilder();
-        sb.append("SPARQL WITH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName()+"> INSERT {");
+        final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getClusterGraph()+  ">";
+        final String createGraph = "sparql CREATE GRAPH <"+ grConf.getClusterGraph()+ ">";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+
+        VirtuosoPreparedStatement dropStmt;
+        dropStmt = (VirtuosoPreparedStatement)conn.prepareStatement(dropGraph);
+        dropStmt.execute();
+
+        dropStmt.close();
+        
+        VirtuosoPreparedStatement createStmt;
+        createStmt = (VirtuosoPreparedStatement)conn.prepareStatement(createGraph);
+        createStmt.execute();
+        
+        createStmt.close();
+        
+        sb.append("SPARQL WITH <"+ grConf.getClusterGraph()+"> INSERT {");
         sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
         System.out.println("Statement " + sb.toString());
-        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
         VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
                 
         int start = startIndex;
@@ -653,6 +747,11 @@ public class BatchFusionServlet extends HttpServlet {
         
         vstmt.close();
         
+        if ( end == cluster.length )
+            return 0;
+        else 
+            return end;
+
         /*boolean updating = true;
         int addIdx = startIndex;
         int cSize = 1;
@@ -662,7 +761,7 @@ public class BatchFusionServlet extends HttpServlet {
                 ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
                 //queryStr.append("WITH <"+fusedGraph+"> ");
                 queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ");
+                queryStr.append("GRAPH <"+ grConf.getClusterGraph()+""> { ");
                 int top = 0;
                 if (cSize >= cluster.length) {
                     top = cluster.length;
@@ -1341,18 +1440,18 @@ public class BatchFusionServlet extends HttpServlet {
                 insq.append(" } } WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
-                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 } else {
                     if (grConf.isDominantA()) {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <"+ grConf.getLinksGraph()+  "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <"+ grConf.getLinksGraph()+  "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 }
-                insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                insq.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 prev_s = "?s";
                 for (int i = 0; i < leftPreTokens.length - 1; i++) {
                     insq.append(prev_s + " <" + leftPreTokens[i] + "> " + "?o" + i + " . ");
@@ -1487,19 +1586,19 @@ public class BatchFusionServlet extends HttpServlet {
                 insq.append(" } } WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
-                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        insq.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 } else {
                     if (grConf.isDominantA()) {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        insq.append("GRAPH <"+ grConf.getLinksGraph()+  "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        insq.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        insq.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 }
-                insq.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
-                //insq.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                insq.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
+                //insq.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 prev_s = "?s";
                 for (int i = 0; i < rightPreTokens.length - 1; i++) {
                     insq.append(prev_s + " <" + rightPreTokens[i] + "> " + "?o" + i + " . ");
@@ -1671,18 +1770,18 @@ public class BatchFusionServlet extends HttpServlet {
                 q.append(" WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        q.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        q.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 } else {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        q.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        q.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 }
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                q.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -1739,18 +1838,18 @@ public class BatchFusionServlet extends HttpServlet {
                 q.append(" WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        q.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        q.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 } else {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        q.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        q.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 }
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                q.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -1805,7 +1904,7 @@ public class BatchFusionServlet extends HttpServlet {
                 prev_s = "?o" + i;
             }
             q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\" . ");
-            q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
             prev_s = "<" + sub + ">";
             for (int i = 0; i < lcpIndex; i++) {
                 q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
@@ -1925,18 +2024,18 @@ public class BatchFusionServlet extends HttpServlet {
                 q.append(" WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        q.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        q.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 } else {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        q.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        q.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 }
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                q.append("\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -1983,7 +2082,7 @@ public class BatchFusionServlet extends HttpServlet {
                 prev_s = "?o" + i;
             }
             q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
-            q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
             prev_s = "<" + sub + ">";
             for (int i = 0; i < lcpIndex; i++) {
                 q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
@@ -2099,18 +2198,18 @@ public class BatchFusionServlet extends HttpServlet {
                 q.append(" WHERE {");
                 if (activeCluster > -1) {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        q.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/cluster_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        q.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 } else {
                     if (grConf.isDominantA()) {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                        q.append("GRAPH <"+ grConf.getLinksGraph()+  "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
                     } else {
-                        q.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                        q.append("GRAPH <"+ grConf.getLinksGraph()+  "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
                     }
                 }
-                q.append("\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+                q.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -2163,7 +2262,7 @@ public class BatchFusionServlet extends HttpServlet {
                 prev_s = "?o" + i;
             }
             q.append(prev_s + " <" + domOnto + newPred + "> \"" + newObj + "\"");
-            q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "A> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
             prev_s = "<" + sub + ">";
             for (int i = 0; i < lcpIndex; i++) {
                 q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
@@ -2229,7 +2328,7 @@ public class BatchFusionServlet extends HttpServlet {
             }
             q.append(prev_s+" <"+domOnto+newPred+"> ?o"+(leftPreTokens.length-1)+" . ");
             prev_s = "?s ";
-            q.append("} } WHERE {\n GRAPH <"+tGraph+"_"+dbConf.getDBName()+"A> {");
+            q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
             for (int i = 0; i < leftPreTokens.length; i++) {
                 q.append(prev_s+" <"+leftPreTokens[i]+"> ?o"+i+" . ");
                 prev_s = "?o"+i;
@@ -2312,7 +2411,7 @@ public class BatchFusionServlet extends HttpServlet {
                 }
                 
                 prev_s = "?s ";
-                q.append("} } WHERE {\n GRAPH <" + tGraph + "_" + dbConf.getDBName() + "B> {");
+                q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
                 for (int i = 0; i < rightPreTokens.length; i++) {
                     q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;

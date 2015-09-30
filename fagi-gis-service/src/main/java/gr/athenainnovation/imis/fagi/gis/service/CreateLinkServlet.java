@@ -186,7 +186,7 @@ public class CreateLinkServlet extends HttpServlet {
             ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
             //queryStr.append("WITH <"+fusedGraph+"> ");
             queryStr.append("INSERT DATA { ");
-            queryStr.append("GRAPH <http://localhost:8890/DAV/links_" + dbConf.getDBName() + "> { ");
+            queryStr.append("GRAPH <"+ grConf.getAllLinksGraph()+ "> { ");
 
             boolean makeSwap = validateLinking(grConf, vSet, nodeA, nodeB);
             
@@ -238,7 +238,7 @@ public class CreateLinkServlet extends HttpServlet {
             queryStr = new ParameterizedSparqlString();
             //queryStr.append("WITH <"+fusedGraph+"> ");
             queryStr.append("INSERT DATA { ");
-            queryStr.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ");
+            queryStr.append("GRAPH <"+ grConf.getAllLinksGraph()+ "> { ");
             
             queryStr.appendIri(subject);
             queryStr.append(" ");
@@ -286,7 +286,7 @@ public class CreateLinkServlet extends HttpServlet {
                 //System.out.println("is local "+isLocalEndpoint(endpointA));
                 if (endpointLoc2.equals(grConf.getEndpointA())) {
                     getFromA.append("sparql INSERT\n");
-                    getFromA.append("  { GRAPH <").append(tGraph).append("_" + dbConf.getDBName() + "A" + "> {\n");
+                    getFromA.append("  { GRAPH <").append(grConf.getMetadataGraphA()).append("> {\n");
                     if (grConf.isDominantA()) {
                         getFromA.append(" <" + nodeA + "> ?p ?o1 . \n");
                     } else {
@@ -316,7 +316,7 @@ public class CreateLinkServlet extends HttpServlet {
                 //System.out.println("is local "+isLocalEndpoint(endpointA));
                 if (endpointLoc2.equals(grConf.getEndpointB())) {
                     getFromB.append("sparql INSERT\n");
-                    getFromB.append("  { GRAPH <").append(tGraph).append("_" + dbConf.getDBName() + "B" + "> {\n");
+                    getFromB.append("  { GRAPH <").append(grConf.getMetadataGraphB()).append("> {\n");
                     if (grConf.isDominantA()) {
                         getFromB.append(" <" + nodeA + "> ?p ?o1 . \n");
                     } else {
@@ -351,6 +351,8 @@ public class CreateLinkServlet extends HttpServlet {
                 stmt = virt_conn.prepareStatement(getFromB.toString());
                 stmt.executeUpdate();
 
+                stmt.close();
+                
                 updated = true;
             } catch (VirtuosoException ve) {
                 if (ve.getLocalizedMessage().contains("deadlock")) {
