@@ -163,8 +163,7 @@ public class GeoClusterer {
                     
                 }
             }
-            //atts.addElement(new Attribute("att3", (FastVector) null));
-            //System.out.println(Double.MAX_VALUE);
+            
             // Data
             int distIdx = 0, dirXIdx = 0, dirYIdx = 0, covIdx = 0;
             int nextIdx = 0;
@@ -184,6 +183,7 @@ public class GeoClusterer {
                     
                 }
             }
+            
             data = new Instances("Geo Relation", atts, 0);
             List<ClusteringVector> orderedAttrList = new ArrayList<>();
             for (Map.Entry<String, ClusteringVector> entry : attrData.entrySet()) {
