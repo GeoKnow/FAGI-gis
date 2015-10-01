@@ -56,12 +56,6 @@ import virtuoso.jena.driver.VirtGraph;
 public class SchemaMatchServlet extends HttpServlet {
     private static final String SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
     
-    JSONMatches matches = null;
-    private DBConfig dbConf;
-    private GraphConfig grConf;
-    private Connection virt_conn;
-    private VirtGraph vSet = null;
-    
     private class JSONMatches {
         HashMap<String, HashSet<ScoredMatch>> foundA;
         HashMap<String, HashSet<ScoredMatch>> foundB;
@@ -135,6 +129,13 @@ public class SchemaMatchServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException, JWNLException, FileNotFoundException, ParseException {
         response.setContentType("application/json");
+        
+        JSONMatches matches = null;
+        DBConfig dbConf;
+        GraphConfig grConf;
+        Connection virt_conn;
+        VirtGraph vSet = null;
+    
         try (PrintWriter out = response.getWriter()) {
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -148,12 +149,12 @@ public class SchemaMatchServlet extends HttpServlet {
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
             
             matches = new JSONMatches();
-            System.out.println(sess.getAttribute("links"));
+            //System.out.println(sess.getAttribute("links"));
             //System.out.println(virtImp.scanProperties(2));
-            System.out.println(request.getParameter("links"));
+            //System.out.println(request.getParameter("links"));
             String[] selectedLinks = request.getParameterValues("links[]");
             List<Link> lst = new ArrayList<>();
-            System.out.println(request.getParameterMap());
+            //System.out.println(request.getParameterMap());
             for(String s : selectedLinks) {
                 String subs[] = s.split("<-->");
                 Link l = new Link(subs[0], subs[1]);
@@ -173,7 +174,7 @@ public class SchemaMatchServlet extends HttpServlet {
             }
             
             virt_conn = vSet.getConnection();
-            createLinksGraph(lst, virt_conn, "");
+            createLinksGraph(lst, virt_conn, grConf, "");
             
             System.out.println(request.getParameterMap());
             StringBuilder sb = new StringBuilder();
@@ -197,50 +198,40 @@ public class SchemaMatchServlet extends HttpServlet {
             sess.setAttribute("predicates_matches", sms);
             System.out.println("Problem");
             sb.append("{");
-            /*Iterator it = sms.foundA.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry pairs = (Map.Entry)it.next();
-                sb.append("\""+pairs.getKey()+"\" : [");
-                HashSet<String> set = (HashSet<String>)pairs.getValue();
-                for(String s : set) {
-                    sb.append("\""+s+"\",");
-                }
-                int newLength = sb.length();
-                sb.setLength(newLength - 1);
-                sb.append(" ],");
-            }
-            int newLength = sb.length();
-            sb.setLength(newLength - 1);
-            sb.append("}");*/
-            //JSONArray ja;
-            System.out.println("Matches : "+mapper.writeValueAsString(matches));
+            
+            //System.out.println("Matches : "+mapper.writeValueAsString(matches));
             //System.out.println(sb);
             out.println(mapper.writeValueAsString(matches));
+        } finally {
+            if ( vSet != null ) {
+                vSet.close();
+            }
         }
     }
 
-    public void createLinksGraph(List<Link> lst, Connection virt_conn, String bulkInsertDir) throws SQLException, IOException {
+    public void createLinksGraph(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) throws SQLException, IOException {
         final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getLinksGraph()+  ">";
         final String createGraph = "sparql CREATE GRAPH <"+ grConf.getLinksGraph()+ ">";
         //final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
 
-        //PreparedStatement endStmt;
-        //endStmt = virt_conn.prepareStatement(endDesc);
-        //endStmt.execute();
         PreparedStatement dropStmt;
         long starttime, endtime;
         dropStmt = virt_conn.prepareStatement(dropGraph);
         dropStmt.execute();
 
+        dropStmt.close();
+        
         PreparedStatement createStmt;
         createStmt = virt_conn.prepareStatement(createGraph);
         createStmt.execute();
         
+        createStmt.close();
+        
         //bulkInsertLinks(lst, virt_conn, bulkInsertDir);
-        SPARQLInsertLink(lst);
+        SPARQLInsertLink(lst, grConf);
     }
 
-    private void SPARQLInsertLink(List<Link> l) {
+    private void SPARQLInsertLink(List<Link> l, GraphConfig grConf) {
         boolean updating = true;
         int addIdx = 0;
         int cSize = 1;

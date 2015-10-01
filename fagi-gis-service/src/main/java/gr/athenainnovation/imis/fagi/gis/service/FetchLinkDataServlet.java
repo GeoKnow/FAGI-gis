@@ -109,6 +109,16 @@ public class FetchLinkDataServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
+        
+        HttpSession sess = request.getSession(true);
+        GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
+        DBConfig dbConf = (DBConfig) sess.getAttribute("db_conf");
+        JSONTriples ret = new JSONTriples();
+        String subject = request.getParameter("subject");
+        System.out.println("Subject : " + subject);
+
+        VirtGraph vSet = null;
+        
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
             ObjectMapper mapper = new ObjectMapper();
@@ -118,14 +128,6 @@ public class FetchLinkDataServlet extends HttpServlet {
             mapper.setDateFormat(outputFormat);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             
-            HttpSession sess = request.getSession(true);
-            GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
-            DBConfig dbConf = (DBConfig) sess.getAttribute("db_conf");
-            JSONTriples ret = new JSONTriples();
-            String subject = request.getParameter("subject");
-            System.out.println("Subject : " + subject);
-
-            VirtGraph vSet = null;
             try {
                 vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
                         dbConf.getUsername(),
@@ -139,7 +141,7 @@ public class FetchLinkDataServlet extends HttpServlet {
             }
 
             final String selectAll = "SELECT * where "
-                    + "{ GRAPH <" + (String) sess.getAttribute("t_graph") + "> { "
+                    + "{ GRAPH <" + grConf.getTargetGraph() + "> { "
                     + "<" + subject + "> ?p ?o ."
                     + " OPTIONAL { ?o ?p1 ?o1 ."
                     + " OPTIONAL { ?o1 ?p2 ?o2 ."
@@ -178,8 +180,13 @@ public class FetchLinkDataServlet extends HttpServlet {
                 
             }
             
+            
             System.out.println(mapper.writeValueAsString(ret));
             out.println(mapper.writeValueAsString(ret));
+        } finally {
+            if ( vSet != null ) {
+                vSet.close();
+            }
         }
     }
 

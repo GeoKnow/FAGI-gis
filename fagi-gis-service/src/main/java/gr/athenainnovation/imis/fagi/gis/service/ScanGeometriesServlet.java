@@ -59,9 +59,6 @@ public class ScanGeometriesServlet extends HttpServlet {
     private static final String LONG_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#long";
     private static final String LAT_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#lat";
     
-    JSONFusedGeometries ret = null;
-    GraphConfig grConf = null;
-    
     private class JSONFusedGeometries {
         List<JSONFusedGeometry> geoms;
         String message;
@@ -144,39 +141,45 @@ public class ScanGeometriesServlet extends HttpServlet {
         try (PrintWriter out = response.getWriter()) {
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            
-            HttpSession sess = request.getSession(true);
-            grConf = (GraphConfig)sess.getAttribute("gr_conf");
-            
-            ret = new JSONFusedGeometries();
-            
-            final String restriction = "?s ?p1 _:a . _:a <"+AS_WKT_REGEX+"> ?g";
-        final String geoQuery = "SELECT ?s ?g WHERE { " + restriction + " }";
 
-        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-        //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-        QueryEngineHTTP qeh = new QueryEngineHTTP(grConf.getEndpointT(), geoQuery, authenticator);
-        qeh.addDefaultGraph((String)sess.getAttribute("t_graph"));
-        QueryExecution queryExecution = qeh;
-        final com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
-        
-        //geomColl.append("GEOMETRYCOLLECTION(");
-        while(resultSet.hasNext()) {
-            final QuerySolution querySolution = resultSet.next();
-            //final String predicate = querySolution.getResource("?p").getURI();
-            RDFNode s, p1, g, p2;
-            s = querySolution.get("?s");
-            g = querySolution.get("?g");
-            
-            String geo = g.asLiteral().getString();
-            int ind = geo.indexOf("^^");
-            if ( ind > 0 ) {
-                geo = geo.substring(0, ind);
+            HttpSession sess = request.getSession(true);
+            GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
+            JSONFusedGeometries ret = new JSONFusedGeometries();
+
+            final String restriction = "?s ?p1 _:a . _:a <" + AS_WKT_REGEX + "> ?g";
+            final String geoQuery = "SELECT ?s ?g WHERE { " + restriction + " }";
+
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
+            QueryEngineHTTP qeh = new QueryEngineHTTP(grConf.getEndpointT(), geoQuery, authenticator);
+            String reqType = "";
+            for ( String s : QueryEngineHTTP.supportedSelectContentTypes) {
+                if ( s.contains("xml"))
+                    reqType = s;
             }
-            String sub = s.toString();
-            ret.geoms.add(new JSONFusedGeometry(geo, sub));
-        }
-        
+            qeh.setSelectContentType(reqType);
+            qeh.addDefaultGraph((String) sess.getAttribute("t_graph"));
+            final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+
+            //geomColl.append("GEOMETRYCOLLECTION(");
+            while (resultSet.hasNext()) {
+                final QuerySolution querySolution = resultSet.next();
+                //final String predicate = querySolution.getResource("?p").getURI();
+                RDFNode s, p1, g, p2;
+                s = querySolution.get("?s");
+                g = querySolution.get("?g");
+
+                String geo = g.asLiteral().getString();
+                int ind = geo.indexOf("^^");
+                if (ind > 0) {
+                    geo = geo.substring(0, ind);
+                }
+                String sub = s.toString();
+                ret.geoms.add(new JSONFusedGeometry(geo, sub));
+            }
+
+            qeh.close();
+            
             if (ret.geoms.size() > 0) {
                 ret.setMessage("Datasets accepted!(Found fused geometries)");
                 ret.setStatusCode(0);
@@ -184,8 +187,7 @@ public class ScanGeometriesServlet extends HttpServlet {
                 ret.setMessage("Datasets accepted!(Found NO fused geometries)");
                 ret.setStatusCode(1);
             }
-        
-            System.out.println(mapper.writeValueAsString(ret));
+
             out.println(mapper.writeValueAsString(ret));
         }
     }

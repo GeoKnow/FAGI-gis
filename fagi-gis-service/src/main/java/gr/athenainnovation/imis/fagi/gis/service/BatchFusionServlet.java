@@ -74,6 +74,7 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import virtuoso.jdbc4.VirtuosoConnection;
 import virtuoso.jdbc4.VirtuosoException;
 import virtuoso.jdbc4.VirtuosoPreparedStatement;
+import virtuoso.jdbc4.VirtuosoResultSet;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoUpdateFactory;
 import virtuoso.jena.driver.VirtuosoUpdateRequest;
@@ -133,26 +134,8 @@ public class BatchFusionServlet extends HttpServlet {
     private static final String HAS_GEOMETRY = "http://www.opengis.net/ont/geosparql#hasGeometry";
     private static final double OFFSET_EPSILON = 0.000000000001;
     private static final int BATCH_SIZE = 1;
-    private DBConfig dbConf;
-    private GraphConfig grConf;
-    private VirtGraph vSet = null;
     private static final String DB_URL = "jdbc:postgresql:";
-    private PreparedStatement stmt = null;
-    private Connection dbConn = null;
-    private ResultSet rs = null;
-    private List<FusionState> fs = null;
-    private String tGraph = null;
-    private String nodeA = null;
-    private String nodeB = null;
-    private String dom = null;
-    private String domSub = null;
-    private HttpSession sess = null;
-    private JSONBatchPropertyFusion[] selectedFusions;
-    private JSONClusterLink[] clusterLinks;
-    private JSONFusionResults ret = null;
-    private int activeCluster;
-    private String activeLinkTable = "links";
-    
+
     private class JSONBatchFusions {
         List<JSONBatchPropertyFusion> fusions;
 
@@ -372,6 +355,25 @@ public class BatchFusionServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
+
+        // Per equest state
+        DBConfig                        dbConf;
+        GraphConfig                     grConf;
+        VirtGraph                       vSet = null;
+        Connection                      dbConn = null;
+        List<FusionState>               fs = null;
+        String                          tGraph = null;
+        String                          nodeA = null;
+        String                          nodeB = null;
+        String                          dom = null;
+        String                          domSub = null;
+        HttpSession                     sess = null;
+        JSONBatchPropertyFusion[]       selectedFusions;
+        JSONClusterLink[]               clusterLinks = null;
+        JSONFusionResults               ret = null;
+        int                             activeCluster;
+        String                          activeLinkTable = "links";
+    
         try (PrintWriter out = response.getWriter()) {
             sess = request.getSession(true);
             
@@ -453,13 +455,12 @@ public class BatchFusionServlet extends HttpServlet {
                 System.out.println("Cluster size "+ clusterLinks.length);
                 
                 activeLinkTable = "cluster";
-                loadClusterLinks(clusterLinks);
+                loadClusterLinks(clusterLinks, dbConn);
                 
                 dbConn.commit();
             }
             
             System.out.println(selectedFusions[0].preL);
-            
             
             AbstractFusionTransformation trans = null;
             boolean skipFusion = false;
@@ -485,7 +486,7 @@ public class BatchFusionServlet extends HttpServlet {
                     
                     if (Math.abs(sFactors.getgOffsetAX()) > OFFSET_EPSILON
                             || Math.abs(sFactors.getgOffsetAY()) > OFFSET_EPSILON) {
-                        offsetGeometriesA("dataset_a_geometries", activeLinkTable, -sFactors.getgOffsetAX(), -sFactors.getgOffsetAY());
+                        offsetGeometriesA("dataset_a_geometries", activeLinkTable, -sFactors.getgOffsetAX(), -sFactors.getgOffsetAY(), dbConn);
                         
                         skipFusion = true;
                     }
@@ -499,7 +500,7 @@ public class BatchFusionServlet extends HttpServlet {
                     
                     if (Math.abs(sFactors.getgOffsetBX()) > OFFSET_EPSILON
                             || Math.abs(sFactors.getgOffsetBY()) > OFFSET_EPSILON) {
-                        offsetGeometriesB("dataset_b_geometries", activeLinkTable, -sFactors.getgOffsetBX(), -sFactors.getgOffsetBY());
+                        offsetGeometriesB("dataset_b_geometries", activeLinkTable, -sFactors.getgOffsetBX(), -sFactors.getgOffsetBY(), dbConn);
                         
                         skipFusion = true;
                     }
@@ -515,8 +516,8 @@ public class BatchFusionServlet extends HttpServlet {
                             || Math.abs(sFactors.getgOffsetBY()) > OFFSET_EPSILON
                             || Math.abs(sFactors.getgOffsetAX()) > OFFSET_EPSILON
                             || Math.abs(sFactors.getgOffsetAY()) > OFFSET_EPSILON) {
-                        offsetGeometriesA("dataset_a_geometries", activeLinkTable, -sFactors.getgOffsetAX(), -sFactors.getgOffsetAY());
-                        offsetGeometriesB("dataset_b_geometries", activeLinkTable, -sFactors.getgOffsetBX(), -sFactors.getgOffsetBY());
+                        offsetGeometriesA("dataset_a_geometries", activeLinkTable, -sFactors.getgOffsetAX(), -sFactors.getgOffsetAY(), dbConn);
+                        offsetGeometriesB("dataset_b_geometries", activeLinkTable, -sFactors.getgOffsetBX(), -sFactors.getgOffsetBY(), dbConn);
                     
                         skipFusion = true;
                     }
@@ -535,8 +536,8 @@ public class BatchFusionServlet extends HttpServlet {
                 String queryGeoms = "SELECT b.subject_a, b.subject_b as lb, ST_asText(b.geom) as g\n" +
                                  "FROM fused_geometries AS b\n";
             
-                stmt = dbConn.prepareStatement(queryGeoms);
-                rs = stmt.executeQuery();
+                PreparedStatement stmt = dbConn.prepareStatement(queryGeoms);
+                ResultSet rs = stmt.executeQuery();
             
                 //System.out.println(request.getParameter("cluster"));
                 ret.setCluster(activeCluster);
@@ -569,7 +570,7 @@ public class BatchFusionServlet extends HttpServlet {
                     || ( grConf.getEndpointB().equalsIgnoreCase(grConf.getEndpointT())
                     && grConf.getGraphB().equals(tGraph) ) ) {
                 for (int i = 1; i < selectedFusions.length; i++) {
-                    eraseOldMetadata(selectedFusions[i].action, i);
+                    eraseOldMetadata(selectedFusions[i].action, i, tGraph, sess, grConf, vSet, selectedFusions );
                 }
             }
             
@@ -592,24 +593,118 @@ public class BatchFusionServlet extends HttpServlet {
             List<Link> linkList = (List<Link>) sess.getAttribute("links_list");
             int lastIndex = 0;
             do {
-               System.out.println("Running link creation loop " + linkList.size());
+                System.out.println("Running link creation loop " + linkList.size());
                 if ( activeCluster > -1 ) 
-                    lastIndex = createClusterGraph(clusterLinks, lastIndex);
+                    lastIndex = createClusterGraph(clusterLinks, lastIndex, grConf, vSet);
                 else 
-                    lastIndex = createLinksGraphBatch(linkList, lastIndex);
+                    lastIndex = createLinksGraphBatch(linkList, lastIndex, grConf, vSet);
+                
                 // Perform Metadata Fusion
                 for (int i = 1; i < selectedFusions.length; i++) {
-                    handleMetadataFusion(selectedFusions[i].action, i);
+                    handleMetadataFusion(selectedFusions[i].action, i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
                 }
 
             } while ( lastIndex != 0);
             
             System.out.println(mapper.writeValueAsString(ret));
+            
+            System.out.println("\n\n\n\n\nPreparing to update remote endpoint\n\n\n");
+            UpdateRemoteEndpoint(grConf, vSet);
+            System.out.println("\n\n\n\n\nFiniished updating remote endpoint\n\n\n");
             out.println(mapper.writeValueAsString(ret));
+            
+        } finally {
+            if ( vSet != null ) 
+                vSet.close();
+            
+            if ( dbConn != null ) 
+                dbConn.close();
         }
     }
     
-    private int createLinksGraphBatch(List<Link> lst, int nextIndex) throws SQLException, IOException {
+    void UpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws SQLException {
+        boolean isTargetEndpointLocal = false;
+        try
+        {
+            isTargetEndpointLocal = isThisMyIpAddress(InetAddress.getByName(grConf.getEndpointT())); //"localhost" for localhost
+        }
+        catch(UnknownHostException unknownHost) {}
+        
+        if ( isTargetEndpointLocal ) {
+            LocalUpdateGraphs();
+        } else {
+            SPARQLUpdateRemoteEndpoint(grConf, vSet);
+        }
+    }
+    
+    void LocalUpdateGraphs() {
+        
+    }
+    
+    void SPARQLUpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, SQLException {
+        String selectURITriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isLiTERAL ( ?o ) ) } }";
+        String selectLiteralTriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isURI ( ?o ) ) } }";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement vstmt;
+        vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectURITriples);
+        VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery();
+        
+        boolean updating = true;
+        int addIdx = 0;
+        int cSize = 1;
+        int sizeUp = 1;
+        while (updating) {
+            try {
+                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                //queryStr.append("WITH <"+grConf.getTargetGraph()+"> ");
+                queryStr.append("INSERT DATA { ");
+                queryStr.append("GRAPH <" + grConf.getTargetGraph()+"> {");
+
+                if ( !vrs.next() )
+                    break;
+                
+                for (int i = 0; i < cSize; i++) {
+                    final String sub = vrs.getString(1);
+                    final String pre = vrs.getString(2);
+                    final String obj = vrs.getString(3);
+
+                    queryStr.appendIri(sub);
+                    queryStr.append(" ");
+                    queryStr.appendIri(pre);
+                    queryStr.append(" ");
+                    queryStr.appendLiteral(obj);
+                    queryStr.append(" ");
+                    queryStr.append(".");
+                    queryStr.append(" ");
+                    
+                    if (!vrs.next()) {
+                        updating = false;
+                        break;
+                    }
+                }
+                
+                queryStr.append("} }");
+                
+                System.out.println("The insertion query takes this form "+queryStr.toString());
+                
+                cSize *= 2;
+                
+                UpdateRequest q = queryStr.asUpdate();
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                insertRemoteB.execute();
+            } catch (org.apache.jena.atlas.web.HttpException ex) {
+                System.out.println(ex.getMessage());
+                cSize = 0;
+            }
+
+        }
+        
+        vrs.close();
+        vstmt.close();
+    }
+    
+    private int createLinksGraphBatch(List<Link> lst, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws SQLException, IOException {
         final String dropGraph = "sparql DROP SILENT GRAPH <"+grConf.getLinksGraph()+ ">";
         final String createGraph = "sparql CREATE GRAPH <"+grConf.getLinksGraph()+ ">";
         VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
@@ -628,7 +723,7 @@ public class BatchFusionServlet extends HttpServlet {
         createStmt.close();
         
         //BulkInsertLinksBatch(lst, nextIndex);
-        return SPARQLInsertLinksBatch(lst, nextIndex);
+        return SPARQLInsertLinksBatch(lst, nextIndex, grConf, vSet);
     }
     
     /**
@@ -636,7 +731,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @param lst  A List of Link objects.
      * @param nextIndex Offset in the list
      */
-    private int SPARQLInsertLinksBatch(List<Link> l, int nextIndex) throws VirtuosoException, BatchUpdateException {
+    private int SPARQLInsertLinksBatch(List<Link> l, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
         StringBuilder sb = new StringBuilder();
         sb.append("SPARQL WITH <"+grConf.getLinksGraph()+ "> INSERT {");
         sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
@@ -669,7 +764,7 @@ public class BatchFusionServlet extends HttpServlet {
             
     }
     
-    private void loadClusterLinks(final JSONClusterLink[] links) throws SQLException {
+    private void loadClusterLinks(final JSONClusterLink[] links, Connection dbConn) throws SQLException {
         
         //delete old geometries from fused_geometries table. 
         try{
@@ -706,7 +801,7 @@ public class BatchFusionServlet extends HttpServlet {
         dbConn.commit();
     }
     
-    private int createClusterGraph(JSONClusterLink[] cluster, int startIndex) throws VirtuosoException, BatchUpdateException {
+    private int createClusterGraph(JSONClusterLink[] cluster, int startIndex, GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
         StringBuilder sb = new StringBuilder();
         final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getClusterGraph()+  ">";
         final String createGraph = "sparql CREATE GRAPH <"+ grConf.getClusterGraph()+ ">";
@@ -752,75 +847,9 @@ public class BatchFusionServlet extends HttpServlet {
         else 
             return end;
 
-        /*boolean updating = true;
-        int addIdx = startIndex;
-        int cSize = 1;
-        int sizeUp = 1;
-        while (updating) {
-            try {
-                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
-                //queryStr.append("WITH <"+fusedGraph+"> ");
-                queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <"+ grConf.getClusterGraph()+""> { ");
-                int top = 0;
-                if (cSize >= cluster.length) {
-                    top = cluster.length;
-                } else {
-                    top = cSize;
-                }
-                for (int i = addIdx; i < top; i++) {
-                    final String subject = cluster[i].getNodeA();
-                    final String subjectB = cluster[i].getNodeB();
-                    queryStr.appendIri(subject);
-                    queryStr.append(" ");
-                    queryStr.appendIri(SAME_AS);
-                    queryStr.append(" ");
-                    queryStr.appendIri(subjectB);
-                    queryStr.append(" ");
-                    queryStr.append(".");
-                    queryStr.append(" ");
-                }
-                queryStr.append("} }");
-                //System.out.println("Print "+queryStr.toString());
-
-                UpdateRequest q = queryStr.asUpdate();
-                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
-                insertRemoteB.execute();
-                //System.out.println("Add at "+addIdx+" Size "+cSize);
-                addIdx += (cSize - addIdx);
-                sizeUp *= 2;
-                cSize += sizeUp;
-                if (cSize >= cluster.length) {
-                    cSize = cluster.length;
-                }
-                if (cSize == addIdx) {
-                    updating = false;
-                }
-            } catch (org.apache.jena.atlas.web.HttpException ex) {
-                System.out.println("Failed at " + addIdx + " Size " + cSize);
-                System.out.println("Crazy Stuff");
-                System.out.println(ex.getLocalizedMessage());
-                ex.printStackTrace();
-                ex.printStackTrace(System.out);
-                sizeUp = 1;
-                cSize = addIdx;
-                cSize += sizeUp;
-                if (cSize >= cluster.length) {
-                    cSize = cluster.length;
-                }
-                //System.out.println("Going back at "+addIdx+" Size "+cSize);
-
-                break;
-                //System.out.println("Going back at "+addIdx+" Size "+cSize);
-            } catch (Exception ex) {
-                System.out.println(ex.getLocalizedMessage());
-                break;
-            }
-        }*/
     }
     
-    private void createClusterGraph(JSONClusterLink[] cluster) throws VirtuosoException, BatchUpdateException {
+    private void createClusterGraph(JSONClusterLink[] cluster, DBConfig dbConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
         StringBuilder sb = new StringBuilder();
         sb.append("SPARQL WITH <http://localhost:8890/DAV/all_cluster_" + dbConf.getDBName()+"> INSERT {");
         sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
@@ -863,7 +892,7 @@ public class BatchFusionServlet extends HttpServlet {
         
     }
     
-    private void eraseOldMetadata(String action, int idx) throws SQLException, UnsupportedEncodingException {
+    private void eraseOldMetadata(String action, int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         //String s2 = "SPARQL WITH <http://localhost:8890/DAV/osm_demo_asasas> DELETE { `iri(??)` `iri(??)` ?? }";
         //String s = "SPARQL SELECT * WHERE { ?? ?p ?o  FILTER ( isLiTERAL ( ?o ) ) } LIMIT 10";
         VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
@@ -1123,97 +1152,48 @@ public class BatchFusionServlet extends HttpServlet {
                 }
             }
         }
-        
-        /*for (int i = 0; i < rightPreTokens.length; i++) {
-                    q.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
-                    prev_s = "?o" + i;
-                }
-                q.append("FILTER isLiteral("+prev_s+")} }");
-           */     
+           
         //Commit changes
         conn.commit();
         // Return to auto commit for next actions
         conn.setAutoCommit(true);
         
-        /*
-        try {
-            stmt = (VirtuosoPreparedStatement) conn.prepareStatement(s);
-            stmt.setString(1, "http://linkedgeodata.org/triplify/way204488343");
-            
-            //stmt.
-            //stmt.setString(2, "<tom>");
-            //stmt.setString(3, "<tom>");
-            System.out.println(stmt.toString());
-            VirtuosoResultSet rs = (VirtuosoResultSet) stmt.executeQuery();
-        
-            while ( rs.next() ) {
-                System.out.println(rs.getString(1));
-                System.out.println(rs.getString(2));
-                //System.out.println(rs.getString(3));
-            }
-            
-            rs.close();
-            
-            stmt.close();
-        } catch (SQLException ex) {
-            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
-        try {
-            stmt = (VirtuosoPreparedStatement) conn.prepareStatement(s2);
-            
-            //stmt.setString(1, "http://localhost:8890/DAV/osm_demo_asasas");
-            for (int i = 10; i < 1000; i++ ) {
-                stmt.setString(1, "<osm " + ( i - 2 )  +">");
-                stmt.setString(2, "<demo " + ( i - 2)  +">");
-                stmt.setString(3, "osm " + i +"");
-                //stmt.setString(5, "<demo " + i +">");
-                //stmt.setString(6, "demo " + i +"");
-                
-                stmt.addBatch();
-            }
-            stmt.executeBatchUpdate();
-            
-        } catch (SQLException ex) {
-            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
-        }*/
-        
     }
     
-    private void handleMetadataFusion(String action, int idx) throws SQLException, UnsupportedEncodingException {
+    private void handleMetadataFusion(String action, int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
         if (action.equals("Keep A")) {
-            metadataKeepLeft(idx);
+            metadataKeepLeft(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
         if (action.equals("Keep B")) {
-            metadataKeepRight(idx);
+            metadataKeepRight(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
         if (action.equals("Keep Both")) {
-            //metadataKeepBoth(idx);
-            metadataKeepRight(idx);
-            metadataKeepLeft(idx);
+            //metadataKeepBoth(idx, tGraph, sess, grConf, vSet, selectedFusions);
+            metadataKeepRight(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
+            metadataKeepLeft(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
         if (action.equals("Keep Concatenated B")) {
-            metadataKeepConcatRight(idx);
+            metadataKeepConcatRight(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
         if (action.equals("Keep Concatenated A")) {
-            metadataKeepConcatLeft(idx);
+            metadataKeepConcatLeft(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
         if (action.equals("Keep Concatenated Both")) {
-            metadataKeepConcatLeft(idx);
-            metadataKeepConcatRight(idx);
+            metadataKeepConcatLeft(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
+            metadataKeepConcatRight(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
         if (action.equals("Concatenation")) {
-            metadataConcatenation(idx);
+            metadataConcatenation(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
         if (action.equals("Keep Flattened B")) {
-            metadataKeepFlatRight(idx);
+            metadataKeepFlatRight(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
         if (action.equals("Keep Flattened A")) {
-            metadataKeepFlatLeft(idx);
+            metadataKeepFlatLeft(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
         if (action.equals("Keep Flattened Both")) {
-            metadataKeepFlatLeft(idx);
-            metadataKeepFlatRight(idx);  
+            metadataKeepFlatLeft(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
+            metadataKeepFlatRight(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);  
         }
     }
     
@@ -1324,7 +1304,7 @@ public class BatchFusionServlet extends HttpServlet {
 
     }
     
-    private void metadataKeepFlatLeft(int idx) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepFlatLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsA");
@@ -1469,7 +1449,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
-    private void metadataKeepFlatRight(int idx) throws SQLException, UnsupportedEncodingException {        
+    private void metadataKeepFlatRight(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {        
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsB");
@@ -1615,7 +1595,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
      
-    private void metadataConcatenation(int idx) throws SQLException, UnsupportedEncodingException {
+    private void metadataConcatenation(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lstA = (List<String>)sess.getAttribute("property_patternsA");
@@ -1918,7 +1898,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
-    private void metadataKeepConcatRight(int idx) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepConcatRight(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsB");
@@ -2095,7 +2075,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
-    private void metadataKeepConcatLeft(int idx) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepConcatLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsA");
@@ -2275,7 +2255,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
-    private void metadataKeepLeft(int idx) throws UnsupportedEncodingException {
+    private void metadataKeepLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         if ( grConf.isDominantA() ) 
@@ -2290,7 +2270,7 @@ public class BatchFusionServlet extends HttpServlet {
         String[] newPredTokes = name.split("=>");
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
-            newPred = newPredTokes[1];
+            newPred = newPredTokes[0];
         } else {
             newPred = newPredTokes[0];
         }
@@ -2311,10 +2291,6 @@ public class BatchFusionServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        //System.out.println("In the far depths "+leftPreTokens.length + " " + rightPreTokens.length);
-        //for (String s : fs.get((idx-1)).predsB) {
-        //    System.out.println(s);
-        //    String[] pres = StringUtils.split(s, ",");
         for (String leftProp : leftPres) {
                 String[] leftPreTokens = leftProp.split(",");
                 String[] rightPreTokens = leftPre.split(",");
@@ -2340,7 +2316,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
      
-    private void metadataKeepRight(int idx) throws UnsupportedEncodingException {
+    private void metadataKeepRight(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsB");
@@ -2436,7 +2412,7 @@ public class BatchFusionServlet extends HttpServlet {
         return ret;
     }
     
-    private void offsetGeometriesA(String table, String linkTable, Float offx, Float offy) throws SQLException {
+    private void offsetGeometriesA(String table, String linkTable, Float offx, Float offy, Connection dbConn) throws SQLException {
         // PGSQL Query
         // Join LINKS with GEOM table and offset the geometry
         // Result is stored inside FUSED GEOMETRIES table
@@ -2446,7 +2422,7 @@ public class BatchFusionServlet extends HttpServlet {
                 + "ON ("+linkTable+".nodea = "+table+".subject)";
         
         System.out.println(queryString);
-        stmt = dbConn.prepareStatement(queryString);
+        PreparedStatement stmt = dbConn.prepareStatement(queryString);
         stmt.setFloat(1, offx);
         stmt.setFloat(2, offy);
         stmt.executeUpdate();
@@ -2456,7 +2432,7 @@ public class BatchFusionServlet extends HttpServlet {
         dbConn.commit();
     }
 
-    private void offsetGeometriesB(String table, String linkTable, Float offx, Float offy) throws SQLException {
+    private void offsetGeometriesB(String table, String linkTable, Float offx, Float offy, Connection dbConn) throws SQLException {
         // PGSQL Query
         // Join LINKS with GEOM table and offset the geometry
         // Result is stored inside FUSED GEOMETRIES table
@@ -2465,7 +2441,7 @@ public class BatchFusionServlet extends HttpServlet {
                 + "FROM "+linkTable+" INNER JOIN "+table+" "
                 + "ON ("+linkTable+".nodeb = "+table+".subject)";
         
-        stmt = dbConn.prepareStatement(queryString);
+        PreparedStatement stmt = dbConn.prepareStatement(queryString);
         stmt.setFloat(1, offx);
         stmt.setFloat(2, offy);
         stmt.executeUpdate();
@@ -2476,40 +2452,6 @@ public class BatchFusionServlet extends HttpServlet {
         
     }
     
-    /*
-    private void offsetGeometries(String table, String linkTable, Float offx, Float offy) throws SQLException {
-        
-        final String queryString = "INSERT INTO fused_geometries (subject_A, subject_B, new_geom) "
-                + "SELECT cluster.nodea, cluster.nodeb, ST_Translate(dataset_a_geometries.geom, ?, ?) AS new_geom "
-                + "FROM cluster INNER JOIN dataset_a_geometries "
-                + "ON (cluster.nodea = dataset_a_geometries.subject)";
-        
-        String dropIndexQuery = "DROP INDEX IF EXISTS idx_"+table+"_geom  ";
-        String createIndexQuery = 
-                "CREATE INDEX idx_"+table+"_geom ON "+table+" USING gist (geom);\n" +
-                "CLUSTER "+table+" USING idx_"+table+"_geom; ";
-        
-        stmt = dbConn.prepareStatement(dropIndexQuery);
-        stmt.executeUpdate();
-        
-        stmt.close();
-        
-        String updateQuery = "UPDATE "+table+" SET geom = ST_Translate(geom, ?, ?)";
-        stmt = dbConn.prepareStatement(updateQuery);
-        stmt.setFloat(1, offx);
-        stmt.setFloat(2, offy);
-        stmt.executeUpdate();
-        
-        stmt.close();
-        
-        stmt = dbConn.prepareStatement(createIndexQuery);
-        stmt.executeUpdate();
-        
-        stmt.close();
-        
-        dbConn.commit();
-    }
-    */
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**
      * Handles the HTTP <code>GET</code> method.
@@ -2527,27 +2469,7 @@ public class BatchFusionServlet extends HttpServlet {
         } catch (SQLException ex) {
             Logger.getLogger(BatchFusionServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (dbConn != null) {
-                try {
-                    dbConn.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
+            
         }
     }
 
@@ -2567,27 +2489,7 @@ public class BatchFusionServlet extends HttpServlet {
         } catch (SQLException ex) {
             Logger.getLogger(BatchFusionServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (dbConn != null) {
-                try {
-                    dbConn.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
+            
         }
     }
 

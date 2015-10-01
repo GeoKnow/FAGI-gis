@@ -120,6 +120,36 @@ public class CreateLinkServlet extends HttpServlet {
             vSet.close();
             
             out.println("{}");
+        } finally {
+            
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException ex) {
+                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if (stmtAddGeomA != null) {
+                try {
+                    stmtAddGeomA.close();
+                } catch (SQLException ex) {
+                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if (stmtAddGeomA != null) {
+                try {
+                    stmtAddGeomA.close();
+                } catch (SQLException ex) {
+                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if (dbConn != null) {
+                try {
+                    dbConn.close();
+                } catch (SQLException ex) {
+                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
         }
     }
 
