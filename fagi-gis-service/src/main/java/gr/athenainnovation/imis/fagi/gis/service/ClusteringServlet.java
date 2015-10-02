@@ -42,11 +42,23 @@ public class ClusteringServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
+        
+        HttpSession sess;
+        GraphConfig grConf;
+        DBConfig dbConf;
+            
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
-            HttpSession sess = request.getSession(true);
-            GraphConfig grConf = (GraphConfig)sess.getAttribute("gr_conf");
-            DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
+            grConf = (GraphConfig)sess.getAttribute("gr_conf");
+            dbConf = (DBConfig)sess.getAttribute("db_conf");
             System.out.println("Clustering Parameters "+request.getParameterMap());
             List<GeoClusterer.GeoAttribute> l =  new ArrayList<>();
             for (Map.Entry<String, String[]> entry : request.getParameterMap().entrySet() ) {

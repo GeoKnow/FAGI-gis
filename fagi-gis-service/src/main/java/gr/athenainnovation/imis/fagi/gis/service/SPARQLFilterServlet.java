@@ -146,7 +146,7 @@ public class SPARQLFilterServlet extends HttpServlet {
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
             
-            sess = request.getSession();
+            sess = request.getSession(false);
             
             if ( sess == null ) {
                 out.print("{\"error\":\"invalid session\"}");

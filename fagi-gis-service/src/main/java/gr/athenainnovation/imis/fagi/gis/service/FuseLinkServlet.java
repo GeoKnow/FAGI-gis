@@ -79,23 +79,8 @@ public class FuseLinkServlet extends HttpServlet {
     private static final String TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
     private static final String OWL_CLASS = "http://www.w3.org/2002/07/owl#Class";
     private static final String LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
-    
-    private DBConfig dbConf;
-    private GraphConfig grConf;
-    private VirtGraph vSet = null;
     private static final String DB_URL = "jdbc:postgresql:";
-    private PreparedStatement stmt = null;
-    private Connection dbConn = null;
-    private ResultSet rs = null;
-    private List<FusionState> fs = null;
-    private String tGraph = null;
-    private String nodeA = null;
-    private String nodeB = null;
-    private String dom = null;
-    private String domSub = null;
-    private HttpSession sess = null;
-    private JSONPropertyFusion[] selectedFusions;
-    
+
     private class JSONFusions {
         List<JSONPropertyFusion> fusions;
 
@@ -250,13 +235,30 @@ public class FuseLinkServlet extends HttpServlet {
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
         PrintWriter out = response.getWriter();
-        sess = request.getSession(true);
-        
+
         JSONFusionResult ret = new JSONFusionResult();
-        //List<JSONPropertyFusion> selectedFusions = new ArrayList<>();
-        //JSONFusions selectedFusions = new JSONFusions();
+        DBConfig dbConf;
+        GraphConfig grConf;
+        VirtGraph vSet = null;
+        PreparedStatement stmt = null;
+        Connection dbConn = null;
+        ResultSet rs = null;
+        List<FusionState> fs = null;
+        String tGraph = null;
+        String nodeA = null;
+        String nodeB = null;
+        String dom = null;
+        String domSub = null;
+        HttpSession sess = null;
+        JSONPropertyFusion[] selectedFusions;
+
         try {
+            sess = request.getSession(false);
             
+            if ( sess == null ) {
+                return;
+            }
+
             String classParam = request.getParameter("classes");
             String[] classes = request.getParameterValues("classes[]");
             
@@ -412,7 +414,7 @@ public class FuseLinkServlet extends HttpServlet {
                     ((ShiftBToA)trans).setScale(sFactors.scaleFact);
                 }
                 
-                updateGeom(nodeA, nodeB, selectedFusions[0].valA, selectedFusions[0].valB);
+                updateGeom(nodeA, nodeB, selectedFusions[0].valA, selectedFusions[0].valB, dbConn);
                         
                 if ( trans instanceof KeepRightTransformation) {
                     String q = formInsertGeomQuery(tGraph, domSub, selectedFusions[0].valB);
@@ -487,7 +489,7 @@ public class FuseLinkServlet extends HttpServlet {
             
             
             for(int i = 1; i < selectedFusions.length; i++) {
-                handleMetadataFusion(selectedFusions[i].action, i);
+                handleMetadataFusion(selectedFusions[i].action, i, nodeA, tGraph, sess, grConf, vSet, selectedFusions );
             }
             
             /*
@@ -529,44 +531,44 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
     
-    private void handleMetadataFusion(String action, int idx) throws SQLException, UnsupportedEncodingException {
+    private void handleMetadataFusion(String action, int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         if (action.equals("Keep A")) {
-            metadataKeepLeft(idx);
+            metadataKeepLeft(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
         }
         if (action.equals("Keep B")) {
-            metadataKeepRight(idx);
+            metadataKeepRight(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
         }
         if (action.equals("Keep Both")) {
             //metadataKeepBoth(idx);
-            metadataKeepRight(idx);
-            metadataKeepLeft(idx);
+            metadataKeepRight(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
+            metadataKeepLeft(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
         }
         if (action.equals("Keep Concatenated B")) {
-            metadataKeepConcatRight(idx);
+            metadataKeepConcatRight(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
         }
         if (action.equals("Keep Concatenated A")) {
-            metadataKeepConcatLeft(idx);
+            metadataKeepConcatLeft(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
         }
         if (action.equals("Keep Concatenated Both")) {
-            metadataKeepConcatLeft(idx);
-            metadataKeepConcatRight(idx);
+            metadataKeepConcatLeft(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
+            metadataKeepConcatRight(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
         }
         if (action.equals("Concatenation")) {
-            metadataConcatenation(idx);
+            metadataConcatenation(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
         }
         if (action.equals("Keep Flattened B")) {
-            metadataKeepFlatRight(idx);
+            metadataKeepFlatRight(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
         }
         if (action.equals("Keep Flattened A")) {
-            metadataKeepFlatLeft(idx);
+            metadataKeepFlatLeft(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
         }
         if (action.equals("Keep Flattened Both")) {
-            metadataKeepFlatLeft(idx);
-            metadataKeepFlatRight(idx);  
+            metadataKeepFlatLeft(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);
+            metadataKeepFlatRight(idx, nodeA, tGraph, sess, grConf, vSet, selectedFusions);  
         }
     }
     
-    private void clearPrevious(String[] l, String[] r) {
+    private void clearPrevious(String[] l, String[] r, GraphConfig grConf, String nodeA, String tGraph) {
         System.out.println("\n\n\nCLEARING\n\n\n\n");
         //System.out.println("Left " + l);
         //System.out.println("Right " + r);
@@ -672,7 +674,7 @@ public class FuseLinkServlet extends HttpServlet {
 
     }
     
-    private void metadataConcatenation(int idx) throws SQLException, UnsupportedEncodingException {
+    private void metadataConcatenation(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         if ( grConf.isDominantA() ) 
@@ -709,7 +711,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres);
+        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         // Find Least Common Prefix
         int lcpIndexB = 0;
@@ -1123,7 +1125,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
 
-    private void metadataKeepFlatLeft(int idx) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepFlatLeft(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         if ( grConf.isDominantA() ) 
@@ -1160,7 +1162,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres);
+        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
                 
         // Find Least Common Prefix
         int lcpIndex = 0;
@@ -1479,7 +1481,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
     
-    private void metadataKeepFlatRight(int idx) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepFlatRight(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         if ( grConf.isDominantA() ) 
@@ -1516,7 +1518,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres);
+        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         // Find Least Common Prefix
         int lcpIndex = 0;
@@ -1834,7 +1836,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
     
-    private void metadataKeepConcatLeft(int idx) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepConcatLeft(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         if ( grConf.isDominantA() ) 
@@ -1870,7 +1872,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres);
+        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         // Find Least Common Prefix
         int lcpIndex = 0;
@@ -2114,7 +2116,7 @@ public class FuseLinkServlet extends HttpServlet {
         
     }
     
-    private void metadataKeepConcatRight(int idx) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepConcatRight(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         if ( grConf.isDominantA() ) 
@@ -2151,7 +2153,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres);
+        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         // Find Least Common Prefix
         int lcpIndex = 0;
@@ -2391,7 +2393,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
         
-    private void metadataKeepLeft(int idx) throws UnsupportedEncodingException {
+    private void metadataKeepLeft(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         if ( grConf.isDominantA() ) 
@@ -2427,7 +2429,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres);
+        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         //System.out.println("In the far depths "+leftPreTokens.length + " " + rightPreTokens.length);
         //for (String s : fs.get((idx-1)).predsB) {
@@ -2458,8 +2460,8 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
 
-    private void metadataKeepBoth(int idx) {
-        for (String s : fs.get((idx)).predsA) {
+    private void metadataKeepBoth(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) {
+        /*for (String s : fs.get((idx)).predsA) {
             String[] pres = StringUtils.split(s, ",");
             StringBuilder q = new StringBuilder();
             q.append("INSERT { GRAPH <"+tGraph+"> { ");
@@ -2500,9 +2502,10 @@ public class FuseLinkServlet extends HttpServlet {
             VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(q.toString(), vSet);
             vur.exec();
         }
+        */
     }
     
-    private void metadataKeepRight(int idx) throws UnsupportedEncodingException {
+    private void metadataKeepRight(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         if ( grConf.isDominantA() ) 
@@ -2569,11 +2572,11 @@ public class FuseLinkServlet extends HttpServlet {
     }
     
     //private class RDF
-    private void updateGeom( String subA, String subB, String geomA, String geomB ) throws SQLException {
+    private void updateGeom( String subA, String subB, String geomA, String geomB , Connection dbConn) throws SQLException {
         final String qA = "UPDATE dataset_a_geometries SET geom = ST_GeomFromText(?, 4326) WHERE subject = ?";
         final String qB = "UPDATE dataset_b_geometries SET geom = ST_GeomFromText(?, 4326) WHERE subject = ?";
         
-        stmt = dbConn.prepareStatement(qA);
+        PreparedStatement stmt = dbConn.prepareStatement(qA);
         stmt.setString(1, geomA);
         stmt.setString(2, subA);
         stmt.executeUpdate();
@@ -2607,7 +2610,7 @@ public class FuseLinkServlet extends HttpServlet {
         return "WITH <" + tGraph + "> INSERT { <" + subject +"> <" + predicate +"> " + object +" }";
     }
     
-    private void executeVirtuosoUpdate(String updateQuery) {                
+    private void executeVirtuosoUpdate(String updateQuery, VirtGraph vSet) {                
         VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(updateQuery, vSet);
         
         //VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create (query, set);
@@ -2633,27 +2636,7 @@ public class FuseLinkServlet extends HttpServlet {
         } catch (SQLException ex) {
             Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (dbConn != null) {
-                try {
-                    dbConn.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
+            
         }
     }
 
@@ -2673,27 +2656,7 @@ public class FuseLinkServlet extends HttpServlet {
         } catch (SQLException ex) {
             Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (dbConn != null) {
-                try {
-                    dbConn.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(FuseLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
+            
         }
         
     }

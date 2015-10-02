@@ -375,7 +375,11 @@ public class BatchFusionServlet extends HttpServlet {
         String                          activeLinkTable = "links";
     
         try (PrintWriter out = response.getWriter()) {
-            sess = request.getSession(true);
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                return;
+            }
             
             ret = new JSONFusionResults();
                        

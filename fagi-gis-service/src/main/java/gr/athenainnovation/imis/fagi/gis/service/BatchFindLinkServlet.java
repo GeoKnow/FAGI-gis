@@ -319,15 +319,21 @@ public class BatchFindLinkServlet extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
         
         // Per rquest data
-        HttpSession sess = request.getSession(true);
-        GraphConfig grConf = (GraphConfig)sess.getAttribute("gr_conf");
+        HttpSession sess;
+        GraphConfig grConf;
         VirtGraph vSet = null;
         Connection dbConn = null;
         JSONBArea BBox;
         JSONGeomLinkList ret = null;
         
         try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
+            sess = request.getSession(false);
+
+            if (sess == null) {
+                return;
+            }
+        
+            grConf = (GraphConfig)sess.getAttribute("gr_conf");
             
             ObjectMapper mapper = new ObjectMapper();
             String bboxJSON = request.getParameter("bboxJSON");

@@ -110,16 +110,28 @@ public class FetchLinkDataServlet extends HttpServlet {
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
         
-        HttpSession sess = request.getSession(true);
-        GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
-        DBConfig dbConf = (DBConfig) sess.getAttribute("db_conf");
-        JSONTriples ret = new JSONTriples();
-        String subject = request.getParameter("subject");
-        System.out.println("Subject : " + subject);
-
+        HttpSession sess;
+        GraphConfig grConf;
+        DBConfig dbConf;
+        JSONTriples ret;
+        String subject;
         VirtGraph vSet = null;
         
         try (PrintWriter out = response.getWriter()) {
+            
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                out.println("{}");
+                
+                return;
+            }
+            
+            grConf = (GraphConfig) sess.getAttribute("gr_conf");
+            dbConf = (DBConfig) sess.getAttribute("db_conf");
+            ret = new JSONTriples();
+            subject = request.getParameter("subject");
+        
             /* TODO output your page here. You may use following sample code. */
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, false);

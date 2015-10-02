@@ -40,20 +40,12 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
  */
 @WebServlet(name = "FetchUnlinkedServlet", urlPatterns = {"/FetchUnlinkedServlet"})
 public class FetchUnlinkedServlet extends HttpServlet {
-    GraphConfig grConf;
-    DBConfig dbConf;
-    JSONUnlinkedEntities ret;
-    JSONBArea BBox;
-    HttpSession sess;
-    String queryA = null;
-    String queryB = null;
-    
     //Text
-    private final String strPolygonPattern = "POLYGON\\(\\((.*?)\\)\\)";
-    private final String strTriplePattern = "\\{([^F]*)";
-    private final Pattern patternPolygon = Pattern.compile( strPolygonPattern );
-    private final Pattern patternTriples = Pattern.compile( strTriplePattern );
-    private final Pattern patternInt = Pattern.compile( "^(\\d+)$" );
+    private static final String strPolygonPattern = "POLYGON\\(\\((.*?)\\)\\)";
+    private static final String strTriplePattern = "\\{([^F]*)";
+    private static final Pattern patternPolygon = Pattern.compile( strPolygonPattern );
+    private static final Pattern patternTriples = Pattern.compile( strTriplePattern );
+    private static final Pattern patternInt = Pattern.compile( "^(\\d+)$" );
     
     private class JSONUnlinkedEntity {
         String geom;
@@ -171,18 +163,33 @@ public class FetchUnlinkedServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         long startTime, endtime;
-        sess = request.getSession(true);
-        grConf = (GraphConfig)sess.getAttribute("gr_conf");
-        dbConf = (DBConfig)sess.getAttribute("db_conf");
-        ret = new JSONUnlinkedEntities();    
+        HttpSession sess;
+        GraphConfig grConf;
+        DBConfig dbConf;
+        JSONUnlinkedEntities ret;    
         
         response.setContentType("text/html;charset=UTF-8");
         try (PrintWriter out = response.getWriter()) {
+            
+            // Per request state
+            sess = request.getSession(false);
+            
+            if (sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
+            grConf = (GraphConfig) sess.getAttribute("gr_conf");
+            dbConf = (DBConfig) sess.getAttribute("db_conf");
+            ret = new JSONUnlinkedEntities();
+            JSONBArea BBox;
+            
             /* TODO output your page here. You may use following sample code. */
             ObjectMapper mapper = new ObjectMapper();
             String bboxJSON = request.getParameter("bboxJSON");
-            queryA = request.getParameter("queryA");
-            queryB = request.getParameter("queryB");
+            String queryA = request.getParameter("queryA");
+            String queryB = request.getParameter("queryB");
             
             
             if ( bboxJSON == null || queryA == null || queryB == null ) {
@@ -193,11 +200,11 @@ public class FetchUnlinkedServlet extends HttpServlet {
             
             if ( !queryA.isEmpty() ) {
                 queryA = normalizeQuery(queryA);
-                customFetchGeoms(queryA, ret.entitiesA, grConf.getGraphA(), grConf.getEndpointA() );
+                customFetchGeoms(queryA, ret.entitiesA, grConf.getGraphA(), grConf.getEndpointA(), sess );
             }
             if ( !queryB.isEmpty() ) {
                 queryB = normalizeQuery(queryB);
-                customFetchGeoms(queryB, ret.entitiesB, grConf.getGraphB(), grConf.getEndpointB() );
+                customFetchGeoms(queryB, ret.entitiesB, grConf.getGraphB(), grConf.getEndpointB(), sess );
                 
                 out.print(mapper.writeValueAsString(ret));
                 
@@ -222,13 +229,13 @@ public class FetchUnlinkedServlet extends HttpServlet {
             for (int i = 0; i < geoPropsA.size(); i++ ) {
                 String p = geoPropsA.get(i);
                 String t = geoTypesA.get(i);
-                fetchGeoms(ret.getEntitiesA(), grConf.getGraphA(), grConf.getEndpointA(), p, t);
+                fetchGeoms(ret.getEntitiesA(), grConf.getGraphA(), grConf.getEndpointA(), p, t, BBox, sess);
             }
             
             for (int i = 0; i < geoPropsB.size(); i++ ) {
                 String p = geoPropsB.get(i);
                 String t = geoTypesB.get(i);
-                fetchGeoms(ret.getEntitiesB(), grConf.getGraphB(), grConf.getEndpointB(), p, t);
+                fetchGeoms(ret.getEntitiesB(), grConf.getGraphB(), grConf.getEndpointB(), p, t, BBox, sess);
             }
             
             //System.out.println("Ret JSON "+mapper.writeValueAsString(ret));
@@ -236,7 +243,7 @@ public class FetchUnlinkedServlet extends HttpServlet {
         }
     }
 
-    private void customFetchGeoms(String q, List<JSONUnlinkedEntity> l, String graph, String service) {
+    private void customFetchGeoms(String q, List<JSONUnlinkedEntity> l, String graph, String service, HttpSession sess) {
         HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
         //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
         QueryEngineHTTP qeh = new QueryEngineHTTP(service, q, authenticator);
@@ -280,7 +287,7 @@ public class FetchUnlinkedServlet extends HttpServlet {
         queryExecution.close();
     }
 
-    private void fetchGeoms(List<JSONUnlinkedEntity> l, String graph, String service, String p, String t) {
+    private void fetchGeoms(List<JSONUnlinkedEntity> l, String graph, String service, String p, String t, JSONBArea BBox, HttpSession sess) {
         StringBuilder geoQuery = new StringBuilder();
         final float X_MAX = 180f;
         final float Y_MAX = 85.05f;

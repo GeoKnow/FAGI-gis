@@ -47,13 +47,27 @@ public class FilterServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
-        HashMap<String, String> filteredLinks = new HashMap<>();
-        PrintWriter out = response.getWriter();
-        HttpSession sess = request.getSession(true);
-        GraphConfig grConf = (GraphConfig)sess.getAttribute("gr_conf");
-        DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
+        
+        // Per request state
+        HashMap<String, String>         filteredLinks;
+        PrintWriter                     out = response.getWriter();;
+        HttpSession                     sess;
+        GraphConfig                     grConf;
+        DBConfig                        dbConf;
         
         try {
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
+            filteredLinks = new HashMap<>();
+            grConf = (GraphConfig)sess.getAttribute("gr_conf");
+            dbConf = (DBConfig)sess.getAttribute("db_conf");
+        
             /* TODO output your page here. You may use following sample code. */
             System.out.println(request.getParameterMap());
             String set = request.getParameter("dataset");

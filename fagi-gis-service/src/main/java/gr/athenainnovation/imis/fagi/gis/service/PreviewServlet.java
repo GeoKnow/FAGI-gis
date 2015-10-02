@@ -57,13 +57,23 @@ public class PreviewServlet extends HttpServlet {
         PreparedStatement stmt = null;
         Connection dbConn = null;
         ResultSet rs = null;
-    
+        String[] selectedLinks;
+        HttpSession sess;            
+        DBConfig dbConf;
+        HashMap<String, String> hashLinks;
+            
         try {
+            sess = request.getSession(false);
+            if (sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
             /* TODO output your page here. You may use following sample code. */
-            String[] selectedLinks = request.getParameterValues("links[]");
-            HttpSession sess = request.getSession(true);            
-            DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
-            HashMap<String, String> hashLinks = (HashMap<String, String>)sess.getAttribute("links");
+            selectedLinks = request.getParameterValues("links[]");
+            dbConf = (DBConfig)sess.getAttribute("db_conf");
+            hashLinks = (HashMap<String, String>)sess.getAttribute("links");
             
             System.out.println("Hash "+hashLinks);
             List<Link> lst = new ArrayList<Link>();

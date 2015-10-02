@@ -230,26 +230,41 @@ public class LinkSchemasServlet extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
 
         JSONMatches matches = null;
+        HttpSession sess;
         
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-        SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
-        mapper.setDateFormat(outputFormat);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        HttpSession sess = request.getSession(true);
+        JSONLinkMatching lm;
+        JSONLinkProperties lp;
+        HashMap<String, String> links;
 
-        JSONLinkMatching lm = new JSONLinkMatching();
-        JSONLinkProperties lp = new JSONLinkProperties();
-        HashMap<String, String> links = (HashMap<String, String>) sess.getAttribute("links");
-
-        String s = request.getParameter("subject");
-        String targetGraph = (String) sess.getAttribute("t_graph");
-        GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
+        String s;
+        String targetGraph;
+        GraphConfig grConf;
         
         response.setContentType("application/json");
         try (PrintWriter out = response.getWriter()) {
+            
+            sess = request.getSession(false);
 
+            if (sess == null) {
+                out.print("{}");
+
+                return;
+            }
+        
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
+            mapper.setDateFormat(outputFormat);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        
+            lm = new JSONLinkMatching();
+            lp = new JSONLinkProperties();
+            links = (HashMap<String, String>) sess.getAttribute("links");
+
+            s = request.getParameter("subject");
+            targetGraph = (String) sess.getAttribute("t_graph");
+            grConf = (GraphConfig) sess.getAttribute("gr_conf");
             matches = new JSONMatches();
             VirtGraph vSet = null;
             DBConfig dbConf = (DBConfig) sess.getAttribute("db_conf");

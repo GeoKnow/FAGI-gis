@@ -45,12 +45,25 @@ public class DatasetsServlet extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        PrintWriter out = response.getWriter();
-        try {
-            HttpSession sess = request.getSession(true);
+        
+        // Per request state
+        PrintWriter                 out = response.getWriter();
+        HttpSession                 sess;
 
-            GraphConfig graphConf = new GraphConfig("", "", "", "");
-            DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
+        GraphConfig                 graphConf;
+        DBConfig                    dbConf;
+                    
+        try {
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+
+            graphConf = new GraphConfig("", "", "", "");
+            dbConf = (DBConfig)sess.getAttribute("db_conf");
             
             System.out.println("Dominant A " + request.getParameter("d_dom"));
 

@@ -138,13 +138,25 @@ public class ScanGeometriesServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
+        
+        HttpSession                 sess;
+        GraphConfig                 grConf;
+        JSONFusedGeometries         ret;
+            
         try (PrintWriter out = response.getWriter()) {
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 
-            HttpSession sess = request.getSession(true);
-            GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
-            JSONFusedGeometries ret = new JSONFusedGeometries();
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
+            grConf = (GraphConfig) sess.getAttribute("gr_conf");
+            ret = new JSONFusedGeometries();
 
             final String restriction = "?s ?p1 _:a . _:a <" + AS_WKT_REGEX + "> ?g";
             final String geoQuery = "SELECT ?s ?g WHERE { " + restriction + " }";

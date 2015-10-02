@@ -135,15 +135,23 @@ public class SchemaMatchServlet extends HttpServlet {
         GraphConfig grConf;
         Connection virt_conn;
         VirtGraph vSet = null;
-    
+        HttpSession sess;
         try (PrintWriter out = response.getWriter()) {
+            
+            sess = request.getSession(false);
+
+            if ( sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
             SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
             mapper.setDateFormat(outputFormat);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            HttpSession sess = request.getSession(true);
             
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             grConf = (GraphConfig)sess.getAttribute("gr_conf");

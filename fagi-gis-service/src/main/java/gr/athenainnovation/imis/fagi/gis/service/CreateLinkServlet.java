@@ -73,21 +73,23 @@ public class CreateLinkServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
-        DBConfig dbConf;
-        GraphConfig grConf;
-        VirtGraph vSet = null;
-        PreparedStatement stmt = null;
-        PreparedStatement stmtAddGeomA = null;
-        PreparedStatement stmtAddGeomB = null;
-        Connection dbConn = null;
-        ResultSet rs = null;
-        List<FusionState> fs = null;
-        String tGraph = null;
-        String nodeA = null;
-        String nodeB = null;
-        String dom = null;
-        String domSub = null;
-        HttpSession sess = null;
+        
+        // per requsest state
+        DBConfig                dbConf;
+        GraphConfig             grConf;
+        VirtGraph               vSet = null;
+        PreparedStatement       stmt = null;
+        PreparedStatement       stmtAddGeomA = null;
+        PreparedStatement       stmtAddGeomB = null;
+        Connection              dbConn = null;
+        ResultSet               rs = null;
+        List<FusionState>       fs = null;
+        String                  tGraph ;
+        String                  nodeA ;
+        String                  nodeB ;
+        String                  dom ;
+        String                  domSub ;
+        HttpSession             sess ;
     
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */

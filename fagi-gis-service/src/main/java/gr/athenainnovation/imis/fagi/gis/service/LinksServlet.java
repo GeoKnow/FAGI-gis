@@ -217,9 +217,17 @@ public class LinksServlet extends HttpServlet {
         GraphConfig     grConf =  null;
         Boolean         makeSwap = false;
         VirtGraph       vSet = null;
+        HttpSession     sess;
 
         try {
-            HttpSession sess = request.getSession(true);
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
             for ( String s : QueryEngineHTTP.supportedSelectContentTypes) {

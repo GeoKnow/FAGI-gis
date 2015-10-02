@@ -48,13 +48,13 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 @WebServlet(name = "FindLinkServlet", urlPatterns = {"/FindLinkServlet"})
 public class FindLinkServlet extends HttpServlet {
     
-    private JSONEntity ent = null;
+    // Well Known Text Reader for JTS
+    private static final WKTReader wkt = new WKTReader();
     
-    private GraphConfig grConf;
-    private DBConfig dbConf;
-    private HttpSession sess;
-    
-    private WKTReader wkt = new WKTReader();
+    // Regexes fro metadata matching
+    private static final String strPatternText = "[a-zA-Z]+(\\b[a-zA-Z]+\\b)*([a-zA-Z])";
+    private static Pattern patternText = Pattern.compile( strPatternText );
+    private static Pattern patternInt = Pattern.compile( "^(\\d+)$" );
     
     private static class JSONEntity {
         String sub;
@@ -207,11 +207,6 @@ public class FindLinkServlet extends HttpServlet {
 
     }
     
-    //Text
-    private final String strPatternText = "[a-zA-Z]+(\\b[a-zA-Z]+\\b)*([a-zA-Z])";
-    final Pattern patternText = Pattern.compile( strPatternText );
-    final Pattern patternInt = Pattern.compile( "^(\\d+)$" );
-    
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -224,11 +219,22 @@ public class FindLinkServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, ParseException {
         response.setContentType("text/html;charset=UTF-8");
+        
+        // Per request state
+        JSONEntity              ent;
+        GraphConfig             grConf;
+        DBConfig                dbConf;
+        HttpSession             sess;
+    
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
-            sess = request.getSession();
-            if ( sess == null )
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
                 out.print("Invalid session");
+                
+                return;
+            }
             
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
             dbConf = (DBConfig)sess.getAttribute("db_conf");

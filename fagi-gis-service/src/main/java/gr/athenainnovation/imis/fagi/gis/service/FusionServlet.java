@@ -392,19 +392,30 @@ public class FusionServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        Connection conn;
-        String reg;
-        String tgraph;
-        List<FusionState> ft = null;
-        PreparedStatement stmt = null;
-        Connection dbConn = null;
-        ResultSet rs = null;
-        DBConfig dbConf = null;
-        HttpSession sess;
-        JSONFusion ret;      
+        
+        //  Per session state
+        PrintWriter             out = response.getWriter();
+        Connection              conn;
+        String                  reg;
+        String                  tgraph;
+        List<FusionState>       ft = null;
+        PreparedStatement       stmt = null;
+        Connection              dbConn = null;
+        ResultSet               rs = null;
+        DBConfig                dbConf = null;
+        HttpSession             sess;
+        JSONFusion              ret;      
     
-        try {            
+        try {       
+            sess = request.getSession(false); 
+            
+            if (sess == null ) {
+                out.print("{}");
+                
+                return;
+                
+            }
+            
             ret = new JSONFusion();
             ObjectMapper mapper = new ObjectMapper();
             System.out.println(request.getParameterMap());
@@ -422,7 +433,7 @@ public class FusionServlet extends HttpServlet {
             System.out.println(request.getParameterMap());
             ft = new ArrayList<>();
             String[] selectedPreds = request.getParameterValues("props[]");
-            sess = request.getSession(true);    
+              
             GraphConfig grConf = (GraphConfig)sess.getAttribute("gr_conf");
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             HashMap<String, String> hashLinks = (HashMap<String, String>)sess.getAttribute("links");

@@ -85,6 +85,8 @@ public class ConnectionServlet extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
+    
+    HttpSession sess;
     PrintWriter out = response.getWriter();
     VirtGraph vSet = null;
     FusionState st = new FusionState();
@@ -95,6 +97,16 @@ public class ConnectionServlet extends HttpServlet {
     ret = new JSONConnRequest();
     
     try {
+        
+        // The only time we need a session if one does not exist
+        sess = request.getSession(true);
+
+        if ( sess == null ) {
+            out.print("{}");
+            
+            return;
+        }
+        
         response.setContentType("text/html;charset=UTF-8");
         //System.out.println(Paths.get("").toAbsolutePath().toString());
 
@@ -187,7 +199,6 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
         out.println(mapper.writeValueAsString(ret));
         
         //System.out.println(request.getParameter("v_url")+" "+request.getParameter("v_pass")+" "+request.getParameter("v_name"));
-        HttpSession sess = request.getSession(true);
         sess.setAttribute("db_conf",  dbConf);
                 
         } finally {
