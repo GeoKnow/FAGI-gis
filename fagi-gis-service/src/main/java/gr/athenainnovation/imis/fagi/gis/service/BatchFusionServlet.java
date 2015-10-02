@@ -1380,7 +1380,7 @@ public class BatchFusionServlet extends HttpServlet {
             int pos = (Integer) e.getKey();
             int val = (Integer) e.getValue();
             System.out.println("Val : "+val);
-            if ( val == rightPres.length ) {
+            if ( val == leftPres.length ) {
                 lcpIndex = pos;
                 lcpProperty = leftPreTokensF[pos];
             }
@@ -1463,7 +1463,8 @@ public class BatchFusionServlet extends HttpServlet {
         else 
             domOnto = (String)sess.getAttribute("domB");
         String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
-        String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        String longName = selectedFusions[idx].preL;
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
@@ -1532,7 +1533,6 @@ public class BatchFusionServlet extends HttpServlet {
         
         System.out.println("L C P : "+lcpIndex + " : " + lcpProperty);
         
-        final HashMap<String, StringBuilder> newObjs = Maps.newHashMap();
         for (String rightProp : rightPres) {
             String[] leftPreTokens = rightProp.split(",");
             String[] mainPattern = rightProp.split(",");
@@ -1912,7 +1912,8 @@ public class BatchFusionServlet extends HttpServlet {
         else 
             domOnto = (String)sess.getAttribute("domB");
         String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
-        String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        String longName = selectedFusions[idx].preL;
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
@@ -2089,7 +2090,8 @@ public class BatchFusionServlet extends HttpServlet {
         else 
             domOnto = (String)sess.getAttribute("domB");
         String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
-        String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        String longName = selectedFusions[idx].preL;
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
