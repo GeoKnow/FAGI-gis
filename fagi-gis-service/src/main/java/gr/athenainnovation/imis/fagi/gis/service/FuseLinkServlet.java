@@ -1702,7 +1702,7 @@ public class FuseLinkServlet extends HttpServlet {
                 }
                 
                 prev_s = "<"+ nodeA +">";
-                q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphB() + "> {");
+                q.append("} } WHERE {\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
                 for (int i = 0; i < leftPreTokens.length; i++) {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
