@@ -2298,12 +2298,15 @@ public class BatchFusionServlet extends HttpServlet {
     private void metadataKeepLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
+        List<String> lst = (List<String>)sess.getAttribute("property_patternsA");
+        
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
         else 
             domOnto = (String)sess.getAttribute("domB");
         String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
-        String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
+        String longName = selectedFusions[idx].preL;
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
