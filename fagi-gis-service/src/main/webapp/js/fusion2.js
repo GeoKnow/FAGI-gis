@@ -2034,6 +2034,7 @@ function linkPropSelectedB() {
                             if (typeof scoreLbl[0] === "undefined") {
                                 return false;
                             }
+                            scoreLbl[0].innerHTML = element.score;
                             element1.match_count++;
                             if (!element1.prev_selected)
                                 element1.style.backgroundColor = "yellow";
