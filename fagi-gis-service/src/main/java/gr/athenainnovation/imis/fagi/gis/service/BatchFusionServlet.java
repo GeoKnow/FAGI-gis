@@ -79,51 +79,9 @@ import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoUpdateFactory;
 import virtuoso.jena.driver.VirtuosoUpdateRequest;
 
-/*
-
-dbConf = (DBConfig)sess.getAttribute("db_conf");
-            grConf = (GraphConfig)sess.getAttribute("gr_conf");
-
-try {
-                String url = DB_URL.concat(dbConf.getDBName());
-                dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
-                dbConn.setAutoCommit(false);
-            } catch(SQLException sqlex) {
-                System.out.println(sqlex.getMessage());      
-                out.println("Connection to postgis failed");
-                out.close();
-            
-                return;
-            }
-
-SELECT links.nodea, links.nodeb, a_g AS geomA, b_g AS geomB
-FROM links 
-INNER JOIN (SELECT dataset_a_geometries.subject AS a_s,
-	   dataset_b_geometries.subject AS b_s,
-	   ST_AsText(dataset_a_geometries.geom) AS a_g,
-	   ST_AsText(dataset_b_geometries.geom) AS b_g
-	FROM dataset_a_geometries, dataset_b_geometries) AS geoms
-ON(links.nodea = geoms.a_s AND links.nodeb = geoms.b_s)
-
-SELECT cluster.nodea, cluster.nodeb, a_g AS geomA, b_g AS geomB
-FROM cluster 
-INNER JOIN (SELECT dataset_a_geometries.subject AS a_s,
-	   dataset_b_geometries.subject AS b_s,
-	   ST_AsText(dataset_a_geometries.geom) AS a_g,
-	   ST_AsText(dataset_b_geometries.geom) AS b_g
-	FROM dataset_a_geometries, dataset_b_geometries) AS geoms
-ON(cluster.nodea = geoms.a_s AND cluster.nodeb = geoms.b_s)
-
-stmt = dbConn.prepareStatement(queryGeoms);
-                rs = stmt.executeQuery();
-            
-                while(rs.next()) {
-                    ret.geom = rs.getString(3);
-// Create learning class
-                }
-
-*/
 /**
+ * Batch fusion of geometric and other metadata
+ * The servlet returns fusion results stored in JSON format
  *
  * @author nick
  */
@@ -612,6 +570,7 @@ public class BatchFusionServlet extends HttpServlet {
             
             System.out.println(mapper.writeValueAsString(ret));
             
+            // Update destinATION GRAPH
             System.out.println("\n\n\n\n\nPreparing to update remote endpoint\n\n\n");
             UpdateRemoteEndpoint(grConf, vSet);
             System.out.println("\n\n\n\n\nFiniished updating remote endpoint\n\n\n");
@@ -626,6 +585,14 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
+    /**
+     * Uppdates the specified remote graph.
+     * FAGI uses a faster SPARQL 1.1 operation if the
+     * process is happening locally
+     * @param grConf Graph Configuration fro the request
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @throws SQLException if an SQL error occurs
+     */
     void UpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws SQLException {
         boolean isTargetEndpointLocal = false;
         try
@@ -641,13 +608,33 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
-    void LocalUpdateGraphs() {
+    /**
+     * Local update of theremote graph with SPARUL ADD
+     * @param grConf Graph Configuration fro the request
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @throws SQLException if an SQL error occurs
+     */
+    void LocalUpdateGraphs(GraphConfig grConf, VirtGraph vSet) throws VirtuosoException {
+        String addNewTriples = "SPARQL ADD GRAPH <" + grConf.getTargetTempGraph() + "> TO GRAPH <" + grConf.getTargetGraph()+ ">";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement vstmt;
+        vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(addNewTriples);
         
+        vstmt.executeUpdate();
+        
+        vstmt.close();
     }
     
+    /**
+     * Remote update through concatenated SPARQL INSERTs
+     * @param grConf Graph Configuration fro the request
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @throws SQLException if an SQL error occurs
+     * @throws VirtuosoException if an Virtuoso SQL error occurs
+     */
     void SPARQLUpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, SQLException {
-        String selectURITriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isLiTERAL ( ?o ) ) } }";
-        String selectLiteralTriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isURI ( ?o ) ) } }";
+        String selectURITriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isURI ( ?o ) ) } }";
+        String selectLiteralTriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isLiteral ( ?o ) ) } }";
         VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
         VirtuosoPreparedStatement vstmt;
         vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectURITriples);
@@ -657,6 +644,13 @@ public class BatchFusionServlet extends HttpServlet {
         int addIdx = 0;
         int cSize = 1;
         int sizeUp = 1;
+        
+        // As long as there is data this loop creates concatenated SPARQL INSERTs
+        // to update the remote endpoint
+        // Iy uses the SPARQL HTTP protocol for issuing SPARQL commands
+        // on relies on HTTP Exceptions to reissue the inserts
+        
+        // Different loop for URIs to ease creation of query
         while (updating) {
             try {
                 ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
@@ -676,7 +670,66 @@ public class BatchFusionServlet extends HttpServlet {
                     queryStr.append(" ");
                     queryStr.appendIri(pre);
                     queryStr.append(" ");
-                    queryStr.appendLiteral(obj);
+                    queryStr.appendIri(obj); // !!!!! URI
+                    queryStr.append(" ");
+                    queryStr.append(".");
+                    queryStr.append(" ");
+                    
+                    if (!vrs.next()) {
+                        updating = false;
+                        break;
+                    }
+                }
+                
+                queryStr.append("} }");
+                
+                System.out.println("The insertion query takes this form "+queryStr.toString());
+                
+                cSize *= 2;
+                
+                UpdateRequest q = queryStr.asUpdate();
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                insertRemoteB.execute();
+            } catch (org.apache.jena.atlas.web.HttpException ex) {
+                System.out.println(ex.getMessage());
+                cSize = 0;
+            }
+
+        }
+        
+        vrs.close();
+        vstmt.close();
+        
+        vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectLiteralTriples);
+        vrs = (VirtuosoResultSet) vstmt.executeQuery();
+        
+        updating = true;
+        addIdx = 0;
+        cSize = 1;
+        sizeUp = 1;
+        
+        // Different loop for Literal to ease creation of query
+        while (updating) {
+            try {
+                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                //queryStr.append("WITH <"+grConf.getTargetGraph()+"> ");
+                queryStr.append("INSERT DATA { ");
+                queryStr.append("GRAPH <" + grConf.getTargetGraph()+"> {");
+
+                if ( !vrs.next() )
+                    break;
+                
+                for (int i = 0; i < cSize; i++) {
+                    final String sub = vrs.getString(1);
+                    final String pre = vrs.getString(2);
+                    final String obj = vrs.getString(3);
+
+                    queryStr.appendIri(sub);
+                    queryStr.append(" ");
+                    queryStr.appendIri(pre);
+                    queryStr.append(" ");
+                    queryStr.appendLiteral(obj); // !!!!!! Literal
                     queryStr.append(" ");
                     queryStr.append(".");
                     queryStr.append(" ");

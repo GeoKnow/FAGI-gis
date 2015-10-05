@@ -1086,7 +1086,7 @@ public class FuseLinkServlet extends HttpServlet {
                 }
 
                 StringBuilder insq = new StringBuilder();
-                insq.append("INSERT { GRAPH <" + tGraph + "> { ");
+                insq.append("INSERT { GRAPH <" + grConf.getTargetTempGraph() + "> { ");
 
                 prev_s = "<"+nodeA+">";
                 for (int i = 0; i < leftPreTokens.length - 2; i++) {
@@ -1233,7 +1233,7 @@ public class FuseLinkServlet extends HttpServlet {
                     }
                 }
                 StringBuilder insq = new StringBuilder();
-                insq.append("INSERT { GRAPH <" + tGraph + "> { ");
+                insq.append("INSERT { GRAPH <" + grConf.getTargetTempGraph() + "> { ");
 
                 prev_s = "<"+nodeA+">";
                 for (int i = 0; i < mainPattern.length - 2; i++) {
@@ -1422,7 +1422,7 @@ public class FuseLinkServlet extends HttpServlet {
             StringBuilder newObj = entry.getValue();
             newObj.setLength(newObj.length() - 1);
             StringBuilder q = new StringBuilder();
-            q.append("INSERT { GRAPH <" + tGraph + "> { ");
+            q.append("INSERT { GRAPH <" + grConf.getTargetTempGraph() + "> { ");
             String prev_s = "<" + sub + ">";
             for (int i = 0; i < lcpIndex; i++) {
                 q.append(prev_s + " <" + path[i] + "> ?o" + i + " . ");
@@ -1687,7 +1687,7 @@ public class FuseLinkServlet extends HttpServlet {
             for (String pattern : patterns) {
                 String[] leftPreTokens = pattern.split(",");
                 StringBuilder q = new StringBuilder();
-                q.append("INSERT { GRAPH <" + tGraph + "> { ");
+                q.append("INSERT { GRAPH <" + grConf.getTargetTempGraph() + "> { ");
                 String prev_s = "<"+ nodeA +">";
                 for (int i = 0; i < mainPattern.length - 1; i++) {
                     q.append(prev_s + " <" + mainPattern[i] + "> ?o" + i + " . ");
@@ -1788,7 +1788,7 @@ public class FuseLinkServlet extends HttpServlet {
                 System.out.println("Main Pattern : " + mainPattern.length);
                 
                 StringBuilder q = new StringBuilder();
-                q.append("INSERT { GRAPH <" + tGraph + "> { ");
+                q.append("INSERT { GRAPH <" + grConf.getTargetTempGraph() + "> { ");
                 String prev_s = "<"+ nodeA +">";
                 for (int i = 0; i < mainPattern.length - 1; i++) {
                     q.append(prev_s + " <" + mainPattern[i] + "> ?o" + i + " . ");
