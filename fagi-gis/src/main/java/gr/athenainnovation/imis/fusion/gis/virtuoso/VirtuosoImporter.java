@@ -1240,7 +1240,7 @@ public final class VirtuosoImporter {
             for (int i = 0; i < optDepth + 1; i++) {
                 //System.out.println("DEPTH: "+i);
                 StringBuilder query = new StringBuilder();
-                query.append("sparql SELECT ?pa1 ?oa1 ");
+                query.append("SPARQL SELECT ?pa1 ?oa1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
