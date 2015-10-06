@@ -12,14 +12,14 @@
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.version>244</project.version>
+        <project.version>245</project.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>fagi-gis</artifactId>
-            <version>1.1+rev244</version>
+            <version>1.1+rev245</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -156,5 +156,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
