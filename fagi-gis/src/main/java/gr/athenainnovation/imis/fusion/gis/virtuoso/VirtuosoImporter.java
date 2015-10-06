@@ -1203,7 +1203,6 @@ public final class VirtuosoImporter {
     }
     
     public SchemaMatchState scanProperties(int optDepth, String link) throws SQLException, JWNLException, FileNotFoundException, IOException, ParseException {
-        optDepth = 3;
         if ( SystemUtils.IS_OS_MAC_OSX ) {
             JWNL.initialize(new ByteArrayInputStream(getJWNL(PATH_TO_WORDNET_OS_X).getBytes(StandardCharsets.UTF_8)));
         }
@@ -1240,6 +1239,7 @@ public final class VirtuosoImporter {
             for (int i = 0; i < optDepth + 1; i++) {
                 //System.out.println("DEPTH: "+i);
                 StringBuilder query = new StringBuilder();
+                
                 query.append("SPARQL SELECT ?pa1 ?oa1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
@@ -1255,7 +1255,7 @@ public final class VirtuosoImporter {
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
-                    query.append(" . OPTIONAL {?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append(" ");
+                    query.append(" . ?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append(" ");
                 }
                 for (int j = 0; j < i; j++) {
                     query.append(" } ");
@@ -1264,15 +1264,15 @@ public final class VirtuosoImporter {
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
-                    query.append(" . OPTIONAL {?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append(" ");
+                    query.append(" . ?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append(" ");
                 }
-                for (int j = 0; j < i; j++) {
-                    query.append(" } ");
-                }
+                
                 query.append("} }\n"
                         + "}");
 
-            //System.out.println("SINGLE LINK QUERY "+query.toString());
+                System.out.println("DEPTH: "+i);
+                System.out.println("QUERY FOR PREDICATES : " + query.toString());
+                
                 PreparedStatement fetchProperties;
                 fetchProperties = virt_conn.prepareStatement(query.toString());
                 ResultSet propertiesRS = fetchProperties.executeQuery();
@@ -1298,6 +1298,7 @@ public final class VirtuosoImporter {
                             //predicateB = URLDecoder.decode(predicateB, "UTF-8");
                         }
 
+                        /*
                         if (predicateA != null) {
                             if (!uniquePropertiesA.contains(predicateA)) {
                                 //uniquePropertiesA.add(predicateA);
@@ -1326,21 +1327,17 @@ public final class VirtuosoImporter {
                                 continue;
                             }
                         }
-
+                        */
+                        
                         chainA.add(predicateA);
                         objectChainA.add(objectA);
                         chainB.add(predicateB);
                         objectChainB.add(objectB);
-
-                        if (objectA != null) {
-                            //System.out.println("Object A "+objectA+" "+predicateA);
-                        }
-                        if (objectB != null) {
-                            //System.out.println("Object B "+objectB+" "+predicateB);
-                        }
                     }
+                    
                     scanChain(propertiesA, chainA, objectChainA);
                     scanChain(propertiesB, chainB, objectChainB);
+                    
                 }
 
                 scanMatches();
@@ -1543,6 +1540,7 @@ public final class VirtuosoImporter {
                 //System.out.println(query2.toString());
             }
         }
+        
         StringBuilder sb = new StringBuilder();
         Iterator it = propertiesA.entrySet().iterator();
         while (it.hasNext()) {

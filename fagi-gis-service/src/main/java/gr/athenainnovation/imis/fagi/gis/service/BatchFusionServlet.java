@@ -602,7 +602,7 @@ public class BatchFusionServlet extends HttpServlet {
         catch(UnknownHostException unknownHost) {}
         
         if ( isTargetEndpointLocal ) {
-            LocalUpdateGraphs();
+            LocalUpdateGraphs(grConf, vSet);
         } else {
             SPARQLUpdateRemoteEndpoint(grConf, vSet);
         }

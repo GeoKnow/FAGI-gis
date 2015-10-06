@@ -287,26 +287,13 @@ public class LinkSchemasServlet extends HttpServlet {
             lp.nodeB = links.get(s);
 
             VirtuosoImporter virtImp = (VirtuosoImporter) sess.getAttribute("virt_imp");
-            SchemaMatchState sms = virtImp.scanProperties(2, s);
+            SchemaMatchState sms = virtImp.scanProperties(3, s);
             matches.foundA = sms.foundA;
             matches.foundB = sms.foundB;
             sess.setAttribute("link_predicates_matches", sms);
 
             for (int i = 0; i < 4; i++) {
-                //System.out.println("DEPTH: "+i);
                 StringBuilder query = new StringBuilder();
-                /*query.append("sparql SELECT ?pa1 ?oa1 ");
-                 for(int j = 0; j < i; j++) {
-                 int ind = j+2;
-                 int prev = ind - 1;
-                 query.append("?pa").append(ind).append(" ?oa").append(ind).append(" ");
-                 }
-                 query.append("?pb1 ?ob1 ");
-                 for(int j = 0; j < i; j++) {
-                 int ind = j+2;
-                 query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
-                 }
-                 query.append(" WHERE \n {\n");*/
                 query.append("sparql SELECT ?pa1 ?oa1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
@@ -342,7 +329,6 @@ public class LinkSchemasServlet extends HttpServlet {
                         + "}\n"
                         + "");
 
-            //System.out.println(query.toString());
                 PreparedStatement fetchProperties;
                 fetchProperties = virt_conn.prepareStatement(query.toString());
                 ResultSet propertiesRS = fetchProperties.executeQuery();
@@ -365,20 +351,13 @@ public class LinkSchemasServlet extends HttpServlet {
 
                         if (predicateA != null) {
                             if (predicateA.contains("posSeq")) {
-                                continue;
+                                //continue;
                             }
                         }
                         if (predicateB != null) {
                             if (predicateB.contains("posSeq")) {
-                                continue;
+                                //continue;
                             }
-                        }
-
-                        if (predicateA != null) {
-                            //predicateA = URLDecoder.decode(predicateA, "UTF-8");
-                        }
-                        if (predicateB != null) {
-                            //predicateB = URLDecoder.decode(predicateB, "UTF-8");
                         }
 
                         if (predicateA != null) {
@@ -432,6 +411,7 @@ public class LinkSchemasServlet extends HttpServlet {
             
             if ( vSet != null ) 
                 vSet.close();
+            
             
             lm.p = lp;
             lm.m = matches;
