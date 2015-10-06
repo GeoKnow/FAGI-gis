@@ -2430,8 +2430,9 @@ function onLinkFeatureSelect(event) {
             var schemaListA = document.getElementById("linkSchemasA");
             schemaListA.innerHTML = "";
             $.each(responseJson.p.propsFullA, function (index, element) {
+                console.log(element.short_rep);
                 if (element.short_rep.indexOf("posSeq") >= 0) {
-                    return;
+                    //return;
                 }
                 var opt = document.createElement("li");
                 var optlbl = document.createElement("div");
@@ -2453,7 +2454,7 @@ function onLinkFeatureSelect(event) {
             schemaListB.innerHTML = "";
             $.each(responseJson.p.propsFullB, function (index, element) {
                 if (element.short_rep.indexOf("posSeq") >= 0) {
-                    return;
+                    //return;
                 }
                 var opt = document.createElement("li");
                 var optlbl = document.createElement("div");

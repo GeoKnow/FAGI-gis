@@ -290,11 +290,14 @@ public class LinkSchemasServlet extends HttpServlet {
             SchemaMatchState sms = virtImp.scanProperties(3, s);
             matches.foundA = sms.foundA;
             matches.foundB = sms.foundB;
+            
+            sess.setAttribute("link_property_patternsA", sms.getPropertyList("A"));
+            sess.setAttribute("link_property_patternsB", sms.getPropertyList("B"));
             sess.setAttribute("link_predicates_matches", sms);
 
             for (int i = 0; i < 4; i++) {
                 StringBuilder query = new StringBuilder();
-                query.append("sparql SELECT ?pa1 ?oa1 ");
+                query.append("SPARQL SELECT ?pa1 ?oa1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
@@ -311,24 +314,26 @@ public class LinkSchemasServlet extends HttpServlet {
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
-                    query.append(" . OPTIONAL {?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append("  ");
+                    query.append(" . ?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append("  ");
                 }
-                for (int j = 0; j < i; j++) {
+                //for (int j = 0; j < i; j++) {
                     query.append(" } ");
-                }
-                query.append("}\n } UNION { \n" + "   GRAPH <").append(grConf.getMetadataGraphB()).append("> {<" + s + "> ?pb1 ?ob1 ");
+                //}
+                query.append("\n } UNION { \n" + "   GRAPH <").append(grConf.getMetadataGraphB()).append("> {<" + s + "> ?pb1 ?ob1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
-                    query.append(" . OPTIONAL {?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append("  ");
+                    query.append(" . ?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append("  ");
                 }
                 for (int j = 0; j < i; j++) {
-                    query.append(" } ");
+                    //query.append(" } ");
                 }
                 query.append("} }\n"
                         + "}\n"
                         + "");
 
+                System.out.println(query.toString());
+                
                 PreparedStatement fetchProperties;
                 fetchProperties = virt_conn.prepareStatement(query.toString());
                 ResultSet propertiesRS = fetchProperties.executeQuery();
@@ -379,6 +384,8 @@ public class LinkSchemasServlet extends HttpServlet {
                         }
 
                     }
+                    
+                    System.out.println("Chain A " + chainA);
 
                     if (chainA.length() > 0) {
                         int new_len = chainA.length() - 1;
@@ -417,7 +424,7 @@ public class LinkSchemasServlet extends HttpServlet {
             lm.m = matches;
             //System.out.println(lp.propsA);
             //System.out.println(lp.propsB);
-            //System.out.println(mapper.writeValueAsString(lm));
+            System.out.println(mapper.writeValueAsString(lm));
             out.println(mapper.writeValueAsString(lm));
             /* TODO output your page here. You may use following sample code. */
         }
