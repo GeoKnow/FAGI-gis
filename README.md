@@ -1,4 +1,3 @@
-#Development Version
 ![](https://raw.githubusercontent.com/GeoKnow/FAGI-gis/develop/doc/fagi_logo.jpg)
 
 FAGI-gis is a tool developed, mainly, to facilitate the fusion of interlinked RDF entities containing spatial data. It is designed to retrieve data through SPARQL endpoints. This allows for FAGI-gis to operate on already existing and publicly available datasets without the need for any special formatting or input. It also supports the fusion and handling of other, non-spatial metadata related to these entities. A detailed [user guide](https://docs.google.com/document/d/1-AIWQvZMEYjPrxcjG03aH1KXolMafFv57v_oCPPpyAo/edit?usp=sharing) for FAGI-gis is also provided for further reference.   
