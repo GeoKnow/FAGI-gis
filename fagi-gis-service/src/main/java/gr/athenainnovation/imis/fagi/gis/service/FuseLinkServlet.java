@@ -31,12 +31,15 @@ import gr.athenainnovation.imis.fusion.gis.gui.FuserPanel;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
+import static gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter.isThisMyIpAddress;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -61,6 +64,10 @@ import javax.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoException;
+import virtuoso.jdbc4.VirtuosoPreparedStatement;
+import virtuoso.jdbc4.VirtuosoResultSet;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoQueryExecution;
 import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
@@ -529,6 +536,182 @@ public class FuseLinkServlet extends HttpServlet {
     }
     
     /**
+     * Uppdates the specified remote graph.
+     * FAGI uses a faster SPARQL 1.1 operation if the
+     * process is happening locally
+     * @param grConf Graph Configuration fro the request
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @throws SQLException if an SQL error occurs
+     */
+    void UpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws SQLException {
+        boolean isTargetEndpointLocal = false;
+        try
+        {
+            isTargetEndpointLocal = isThisMyIpAddress(InetAddress.getByName(grConf.getEndpointT())); //"localhost" for localhost
+        }
+        catch(UnknownHostException unknownHost) {}
+        
+        if ( isTargetEndpointLocal ) {
+            LocalUpdateGraphs(grConf, vSet);
+        } else {
+            SPARQLUpdateRemoteEndpoint(grConf, vSet);
+        }
+    }
+    
+    /**
+     * Local update of theremote graph with SPARUL ADD
+     * @param grConf Graph Configuration fro the request
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @throws SQLException if an SQL error occurs
+     */
+    void LocalUpdateGraphs(GraphConfig grConf, VirtGraph vSet) throws VirtuosoException {
+        String addNewTriples = "SPARQL ADD GRAPH <" + grConf.getTargetTempGraph() + "> TO GRAPH <" + grConf.getTargetGraph()+ ">";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement vstmt;
+        vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(addNewTriples);
+        
+        vstmt.executeUpdate();
+        
+        vstmt.close();
+    }
+    
+    /**
+     * Remote update through concatenated SPARQL INSERTs
+     * @param grConf Graph Configuration fro the request
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @throws SQLException if an SQL error occurs
+     * @throws VirtuosoException if an Virtuoso SQL error occurs
+     */
+    void SPARQLUpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, SQLException {
+        String selectURITriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isURI ( ?o ) ) } }";
+        String selectLiteralTriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isLiteral ( ?o ) ) } }";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement vstmt;
+        vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectURITriples);
+        VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery();
+        
+        boolean updating = true;
+        int addIdx = 0;
+        int cSize = 1;
+        int sizeUp = 1;
+        
+        // As long as there is data this loop creates concatenated SPARQL INSERTs
+        // to update the remote endpoint
+        // Iy uses the SPARQL HTTP protocol for issuing SPARQL commands
+        // on relies on HTTP Exceptions to reissue the inserts
+        
+        // Different loop for URIs to ease creation of query
+        while (updating) {
+            try {
+                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                //queryStr.append("WITH <"+grConf.getTargetGraph()+"> ");
+                queryStr.append("INSERT DATA { ");
+                queryStr.append("GRAPH <" + grConf.getTargetGraph()+"> {");
+
+                if ( !vrs.next() )
+                    break;
+                
+                for (int i = 0; i < cSize; i++) {
+                    final String sub = vrs.getString(1);
+                    final String pre = vrs.getString(2);
+                    final String obj = vrs.getString(3);
+
+                    queryStr.appendIri(sub);
+                    queryStr.append(" ");
+                    queryStr.appendIri(pre);
+                    queryStr.append(" ");
+                    queryStr.appendIri(obj); // !!!!! URI
+                    queryStr.append(" ");
+                    queryStr.append(".");
+                    queryStr.append(" ");
+                    
+                    if (!vrs.next()) {
+                        updating = false;
+                        break;
+                    }
+                }
+                
+                queryStr.append("} }");
+                
+                System.out.println("The insertion query takes this form "+queryStr.toString());
+                
+                cSize *= 2;
+                
+                UpdateRequest q = queryStr.asUpdate();
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                insertRemoteB.execute();
+            } catch (org.apache.jena.atlas.web.HttpException ex) {
+                System.out.println(ex.getMessage());
+                cSize = 0;
+            }
+
+        }
+        
+        vrs.close();
+        vstmt.close();
+        
+        vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectLiteralTriples);
+        vrs = (VirtuosoResultSet) vstmt.executeQuery();
+        
+        updating = true;
+        addIdx = 0;
+        cSize = 1;
+        sizeUp = 1;
+        
+        // Different loop for Literal to ease creation of query
+        while (updating) {
+            try {
+                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                //queryStr.append("WITH <"+grConf.getTargetGraph()+"> ");
+                queryStr.append("INSERT DATA { ");
+                queryStr.append("GRAPH <" + grConf.getTargetGraph()+"> {");
+
+                if ( !vrs.next() )
+                    break;
+                
+                for (int i = 0; i < cSize; i++) {
+                    final String sub = vrs.getString(1);
+                    final String pre = vrs.getString(2);
+                    final String obj = vrs.getString(3);
+
+                    queryStr.appendIri(sub);
+                    queryStr.append(" ");
+                    queryStr.appendIri(pre);
+                    queryStr.append(" ");
+                    queryStr.appendLiteral(obj); // !!!!!! Literal
+                    queryStr.append(" ");
+                    queryStr.append(".");
+                    queryStr.append(" ");
+                    
+                    if (!vrs.next()) {
+                        updating = false;
+                        break;
+                    }
+                }
+                
+                queryStr.append("} }");
+                
+                System.out.println("The insertion query takes this form "+queryStr.toString());
+                
+                cSize *= 2;
+                
+                UpdateRequest q = queryStr.asUpdate();
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                insertRemoteB.execute();
+            } catch (org.apache.jena.atlas.web.HttpException ex) {
+                System.out.println(ex.getMessage());
+                cSize = 0;
+            }
+
+        }
+        
+        vrs.close();
+        vstmt.close();
+    }
+    
+    /**
      * Function that handles metadata fusion
      * based on the selected action. A lot could be done
      * to optimize this single link version but
@@ -698,8 +881,8 @@ public class FuseLinkServlet extends HttpServlet {
     private void metadataConcatenation(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
-        List<String> lstA = (List<String>)sess.getAttribute("property_patternsA");
-        List<String> lstB = (List<String>)sess.getAttribute("property_patternsB");
+        List<String> lstA = (List<String>)sess.getAttribute("link_property_patternsA");
+        List<String> lstB = (List<String>)sess.getAttribute("link_property_patternsB");
 
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
@@ -859,7 +1042,7 @@ public class FuseLinkServlet extends HttpServlet {
 
                 while (rs.next()) {
                     //for (int i = 0; i < pres.length; i++) {
-                    String o = rs.getString(2);
+                    String o = rs.getString("o" + (rightPreTokens.length - 1));
                     final String s = nodeA;
 ;
                     StringBuilder concat_str;
@@ -905,7 +1088,6 @@ public class FuseLinkServlet extends HttpServlet {
                 }
                 q.append("FILTER isLiteral("+prev_s+")} }");
                 
-                q.append("} }");
                 System.out.println(q.toString());
                 PreparedStatement stmt;
                 stmt = virt_conn.prepareStatement(q.toString());
@@ -982,7 +1164,7 @@ public class FuseLinkServlet extends HttpServlet {
     private void metadataKeepFlatLeft(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
-        List<String> lst = (List<String>)sess.getAttribute("property_patternsA");
+        List<String> lst = (List<String>)sess.getAttribute("link_property_patternsA");
         
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
@@ -1128,7 +1310,7 @@ public class FuseLinkServlet extends HttpServlet {
     private void metadataKeepFlatRight(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
-        List<String> lst = (List<String>)sess.getAttribute("property_patternsB");
+        List<String> lst = (List<String>)sess.getAttribute("link_property_patternsB");
 
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
@@ -1275,7 +1457,7 @@ public class FuseLinkServlet extends HttpServlet {
     private void metadataKeepConcatLeft(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
-        List<String> lst = (List<String>)sess.getAttribute("property_patternsA");
+        List<String> lst = (List<String>)sess.getAttribute("link_property_patternsA");
         
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
@@ -1381,9 +1563,8 @@ public class FuseLinkServlet extends HttpServlet {
                     q.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
                 }
-                q.append("FILTER isLiteral("+prev_s+")");
+                q.append("FILTER isLiteral("+prev_s+") } }");
                 
-                q.append("} }");
                 System.out.println(q.toString());
                 PreparedStatement stmt;
                 stmt = virt_conn.prepareStatement(q.toString());
@@ -1463,7 +1644,7 @@ public class FuseLinkServlet extends HttpServlet {
     private void metadataKeepConcatRight(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
-        List<String> lst = (List<String>)sess.getAttribute("property_patternsB");
+        List<String> lst = (List<String>)sess.getAttribute("link_property_patternsB");
 
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
@@ -1581,7 +1762,7 @@ public class FuseLinkServlet extends HttpServlet {
 
                 while (rs.next()) {
                     //for (int i = 0; i < pres.length; i++) {
-                    String o = rs.getString(2);
+                    String o = rs.getString("o" + (rightPreTokens.length - 1));
                     String s = nodeA;
 
                     StringBuilder concat_str;
@@ -1642,7 +1823,7 @@ public class FuseLinkServlet extends HttpServlet {
     private void metadataKeepLeft(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
-        List<String> lst = (List<String>)sess.getAttribute("property_patternsA");
+        List<String> lst = (List<String>)sess.getAttribute("link_property_patternsA");
         
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
@@ -1734,7 +1915,7 @@ public class FuseLinkServlet extends HttpServlet {
     private void metadataKeepRight(int idx, String nodeA, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) throws UnsupportedEncodingException {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
-        List<String> lst = (List<String>)sess.getAttribute("property_patternsB");
+        List<String> lst = (List<String>)sess.getAttribute("link_property_patternsB");
 
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
