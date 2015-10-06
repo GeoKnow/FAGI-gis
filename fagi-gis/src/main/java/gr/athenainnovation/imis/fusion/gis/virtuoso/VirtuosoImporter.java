@@ -1251,16 +1251,16 @@ public final class VirtuosoImporter {
                     int ind = j + 2;
                     query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
                 }
-                query.append("\nWHERE\n{\n" + " { GRAPH <").append(gr_c.getMetadataGraphA()).append("> { {<" + link + "> ?pa1 ?oa1} ");
+                query.append("\nWHERE\n{\n" + " { GRAPH <").append(gr_c.getMetadataGraphA()).append("> { <" + link + "> ?pa1 ?oa1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
                     query.append(" . ?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append(" ");
                 }
-                for (int j = 0; j < i; j++) {
-                    query.append(" } ");
-                }
-                query.append("}\n } UNION { \n" + "   GRAPH <").append(gr_c.getMetadataGraphB()).append("> { {<" + link + "> ?pb1 ?ob1} ");
+                
+                query.append(" } ");
+                
+                query.append("}\n UNION { \n" + "   GRAPH <").append(gr_c.getMetadataGraphB()).append("> { <" + link + "> ?pb1 ?ob1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
