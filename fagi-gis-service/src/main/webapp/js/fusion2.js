@@ -84,7 +84,18 @@ function init() {
     $('#popupTransformMenu').hide();
     $('#popupValidateMenu').hide();
     $('#popupFindLinkMenu').hide();
-
+    $('#fg-info-popup').hide();
+    
+    /*
+    document.getElementById("fg-info-popup").style.opacity = 0.7;
+    document.getElementById("fg-info-popup").style.display = 'inline';
+    document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
+    document.getElementById("fg-info-popup").style.left = $('#map').width() - ($('#fg-info-popup').width() + 10);
+        
+    document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
+    document.getElementById("fg-info-popup").style.left = $('#map').width() - ($('#fg-info-popup').width() + 100);
+    */
+   
     $(".buttonset").buttonset();
     $('#connButton').click(setConnection);
     $('#dataButton').click(setDatasets);
@@ -1027,13 +1038,7 @@ $('#removeLinkSchema').click(function () {
     //alert($('#schemasB').text());
 });
 
-$('#buttonL').click(function () {
-    //var formData = new FormData(document.getElementById("linksDiv"));
-    var formData = new FormData();
-    formData.append('file', $('input[type=file]')[0].files[0]);
-    //alert('file', $('input[type=file]')[0].files[0]);
-    //alert($('#swapButton').is(":checked"));
-    //alert('hey');
+function loadLinkedEntities(formData) {
     enableSpinner();
     $.ajax({
         url: 'LinksServlet', //Server script to process data
@@ -1064,6 +1069,14 @@ $('#buttonL').click(function () {
         contentType: false,
         processData: false
     });
+}
+
+$('#buttonL').click(function () {
+    //var formData = new FormData(document.getElementById("linksDiv"));
+    var formData = new FormData();
+    formData.append('file', $('input[type=file]')[0].files[0]);
+    
+    loadLinkedEntities(formData);
 });
 
 function submitLinks(batchFusion) {
@@ -1332,14 +1345,14 @@ function batchFusionPreview(geomsJSON) {
             var clusterLink = new Object();
             var geom = geomsJSON.fusedGeoms[element.attributes.a];
             addGeom(element, geom.geom);
-            console.log("Got " + geom.nb + " with geom " + geom.geom);
+            //console.log("Got " + geom.nb + " with geom " + geom.geom);
         });
     } else if ( cluster == 9999 ) {
         $.each(activeFeatureClusterA, function (index, element) {
             toDelFeatures[toDelFeatures.length] = element;
             var geom = geomsJSON.fusedGeoms[element.attributes.a];
             addGeom(element, geom.geom);
-            console.log("In Custom cluster Got " + geom.nb + " with geom " + geom.geom);
+            //console.log("In Custom cluster Got " + geom.nb + " with geom " + geom.geom);
         });
     } else {
         $.each(vectorsLinks.features, function (index, element) {
@@ -1347,7 +1360,7 @@ function batchFusionPreview(geomsJSON) {
                 toDelFeatures[toDelFeatures.length] = element;
                 var geom = geomsJSON.fusedGeoms[element.attributes.a];
                 addGeom(element, geom.geom);
-                console.log("Got " + geom.nb + " with geom " + geom.geom);
+                //console.log("Got " + geom.nb + " with geom " + geom.geom);
             } 
         });
     }
@@ -2021,6 +2034,7 @@ function linkPropSelectedB() {
                             if (typeof scoreLbl[0] === "undefined") {
                                 return false;
                             }
+                            scoreLbl[0].innerHTML = element.score;
                             element1.match_count++;
                             if (!element1.prev_selected)
                                 element1.style.backgroundColor = "yellow";
@@ -2549,6 +2563,8 @@ function setDatasets()
         // the response is passed to the function
         success: function (responseText) {
             //$('#dataLabel').text(responseText);
+            //alert(responseText);
+            //alert(responseText == 1);
             disableSpinner();
             $('#dataLabel').text("Datasets accepted");
             $('#datasetNameA').html($('#idDatasetA').val());
@@ -2560,9 +2576,18 @@ function setDatasets()
             $('#legendLinkSetA').html($('#idDatasetA').val());
             $('#legendLinkSetB').html($('#idDatasetB').val());
             
+            //Loaqd links through endpoint
+            if ( responseText == 1 )
+                loadLinkedEntities(null);
+            
+            //Scan target dataset for any already fused geometry
             if ( $('#fg-fetch-fused-check').prop('checked') )
                 scanGeometries();
             
+            // Disable file uploading if a SPARQL endpoint for links is provided
+            if ( $('#fg-links-graph').val() && $('#fg-links-endpoint').val() ) 
+                $("#buttonL").prop('disabled', true);
+                
             $("#linksMenu").trigger('click');
         },
         // code to run if the request fails; the raw request and

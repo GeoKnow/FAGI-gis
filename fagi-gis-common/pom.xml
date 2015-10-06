@@ -12,7 +12,7 @@
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.version>241</project.version>
+        <project.version>244</project.version>
     </properties>
     
     <build>
@@ -40,12 +40,29 @@
                             <controlDir>${basedir}/src/deb/control</controlDir>
                             <dataSet>
                                 <data>
-                                    <excludes>**/control/**</excludes>
-                                    <src>${basedir}/src/deb</src>
-                                    <type>directory</type>
+                                    <src>${basedir}/usr/share/dbconfig-common/data/fagi-gis-common/install/extend_schema</src>
+                                    <type>file</type>
                                     
                                     <mapper>
-                                        <prefix>/usr/</prefix>
+                                        <type>perm</type>
+                                        <prefix>/usr/share/dbconfig-common/data/fagi-gis-common/install</prefix>
+                                    </mapper>
+                                </data>
+                                <data>
+                                    <src>${basedir}/usr/share/dbconfig-common/data/fagi-gis-common/install/pgsql</src>
+                                    <type>file</type>
+                                    
+                                    <mapper>
+                                        <type>perm</type>
+                                        <prefix>/usr/share/dbconfig-common/data/fagi-gis-common/install</prefix>
+                                    </mapper>
+                                </data>
+                                <data>
+                                    <src>${basedir}/etc/dbconfig-common/fagi-gis-common.conf</src>
+                                    <type>file</type>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <prefix>/etc/dbconfig-common</prefix>
                                     </mapper>
                                 </data>
                             </dataSet>

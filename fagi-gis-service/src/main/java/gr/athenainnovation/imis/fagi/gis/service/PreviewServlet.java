@@ -51,13 +51,29 @@ public class PreviewServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
+        
+        // Per request data
         PrintWriter out = response.getWriter();
+        PreparedStatement stmt = null;
+        Connection dbConn = null;
+        ResultSet rs = null;
+        String[] selectedLinks;
+        HttpSession sess;            
+        DBConfig dbConf;
+        HashMap<String, String> hashLinks;
+            
         try {
+            sess = request.getSession(false);
+            if (sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
             /* TODO output your page here. You may use following sample code. */
-            String[] selectedLinks = request.getParameterValues("links[]");
-            HttpSession sess = request.getSession(true);            
-            DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
-            HashMap<String, String> hashLinks = (HashMap<String, String>)sess.getAttribute("links");
+            selectedLinks = request.getParameterValues("links[]");
+            dbConf = (DBConfig)sess.getAttribute("db_conf");
+            hashLinks = (HashMap<String, String>)sess.getAttribute("links");
             
             System.out.println("Hash "+hashLinks);
             List<Link> lst = new ArrayList<Link>();
@@ -89,7 +105,7 @@ public class PreviewServlet extends HttpServlet {
             
                 return;
             }
-             
+    
             try {
                 String url = DB_URL.concat(dbConf.getDBName());
                 dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
@@ -112,7 +128,7 @@ public class PreviewServlet extends HttpServlet {
                                  "FROM links INNER JOIN dataset_b_geometries AS b\n" +
                                  "ON (links.nodeb = b.subject)";
                   
-            String slectLinkedGeoms = "SELECT links.nodea as la, links.nodeb as lb, ST_asText(a_g) as ga, ST_asText(b_g) as gb\n" +
+            String selectLinkedGeoms = "SELECT links.nodea as la, links.nodeb as lb, ST_asText(a_g) as ga, ST_asText(b_g) as gb\n" +
                                         "FROM links \n" +
                                         "INNER JOIN (SELECT dataset_a_geometries.subject AS a_s,\n" +
                                         "		   dataset_b_geometries.subject AS b_s,\n" +
@@ -121,7 +137,7 @@ public class PreviewServlet extends HttpServlet {
                                         "		FROM dataset_a_geometries, dataset_b_geometries) AS geoms \n" +
                                         "		ON(links.nodea = geoms.a_s AND links.nodeb = geoms.b_s)";
             
-            stmt = dbConn.prepareStatement(slectLinkedGeoms);
+            stmt = dbConn.prepareStatement(selectLinkedGeoms);
             rs = stmt.executeQuery();
             
             while (rs.next()) {
@@ -146,42 +162,6 @@ public class PreviewServlet extends HttpServlet {
             rs.close();
             stmt.close();
             dbConn.close();
-            /*
-            PreparedStatement stmt = dbConn.prepareStatement(queryGeomsB);
-            ResultSet rs = stmt.executeQuery();
-                       
-            while (rs.next()) {
-                String g = rs.getString("g");
-                String lb = rs.getString("lb");
-                System.out.println(lb);
-                geomColl.append(lb);
-                geomColl.append(";");
-                geomColl.append(g);
-                geomColl.append(";");
-            }
-            
-            geomColl.append("::");
-            
-            stmt = dbConn.prepareStatement(queryGeomsA);
-            rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                String g = rs.getString("g");
-                String la = rs.getString("la");
-                System.out.println(la);
-                geomColl.append(la);
-                geomColl.append(";");
-                geomColl.append(g);
-                geomColl.append(";");
-            }
-            
-            geomColl.append("::");
-            
-            rs.close();
-            stmt.close();
-            */
-            rs.close();
-            stmt.close();
             
             out.print(geomColl);
         } finally {

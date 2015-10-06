@@ -22,6 +22,7 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
     private final int datasetIdent;
     private final Dataset sourceDataset;
     private final DBConfig dbConfig;
+    private final GraphConfig grConf;
     private final javax.swing.JLabel statusText;
     
     private int metadataProgress = 0;
@@ -54,10 +55,11 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
      * @param sourceDataset source dataset from which to extract triples
      * @throws RuntimeException in case of an unrecoverable error. The cause of the error will be encapsulated by the thrown RuntimeException
      */
-    public ImporterWorker(final DBConfig dbConfig, final int datasetIdent, final Dataset sourceDataset, javax.swing.JLabel textField, final ErrorListener errListener) {
+    public ImporterWorker(final DBConfig dbConfig, final GraphConfig grConf, final int datasetIdent, final Dataset sourceDataset, javax.swing.JLabel textField, final ErrorListener errListener) {
         super();
         
         this.dbConfig = dbConfig;
+        this.grConf = grConf;
         this.datasetIdent = datasetIdent;
         this.sourceDataset = sourceDataset;
         
@@ -69,7 +71,7 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
     protected Void doInBackground() {
         Importer importer = null;
         try {
-            importer = new Importer(dbConfig, this);
+            importer = new Importer(dbConfig, this, grConf);
             //importer.importMetadata(datasetIdent, sourceDataset); //we decided not to import the metadata in the DB. 
                                                                     //metadata will get imported straight from the virtuoso graph.
             importer.importGeometries(datasetIdent, sourceDataset);
@@ -157,4 +159,9 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
         
         setProgress(globalProgress);
     }
+
+    public DBConfig getDbConfig() {
+        return dbConfig;
+    }
+    
 }

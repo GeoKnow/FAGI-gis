@@ -55,14 +55,14 @@ public class BatchFindLinkServlet extends HttpServlet {
     private static final String WKT = "http://www.opengis.net/ont/geosparql#asWKT";
     private static final String HAS_GEOMETRY = "http://www.opengis.net/ont/geosparql#hasGeometry";
     
-    private GraphConfig grConf;
-    private VirtGraph vSet = null;
-    private Connection dbConn = null;
-    private HttpSession sess = null;
-    private JSONBArea BBox;
-    private JSONGeomLinkList ret = null;
+    // WKT Reader for JTS
+    private static final WKTReader wkt = new WKTReader();
     
-    private WKTReader wkt = new WKTReader();
+    // Patterns for metadata handling
+    private static final Pattern patternWordbreaker = Pattern.compile( "(([a-z]|[A-Z])[a-z]+)|(([a-z]|[A-Z])[A-Z]+)" );
+    private static final String strPatternText = "[a-zA-Z]+(\\b[a-zA-Z]+\\b)*([a-zA-Z])";
+    private static final Pattern patternText = Pattern.compile( strPatternText );
+    private static final Pattern patternInt = Pattern.compile( "^(\\d+)$" );
     
     private class IntWrapper {
         public int i;
@@ -180,11 +180,6 @@ public class BatchFindLinkServlet extends HttpServlet {
         }
 
     }
-    
-    //Text
-    private final String strPatternText = "[a-zA-Z]+(\\b[a-zA-Z]+\\b)*([a-zA-Z])";
-    final Pattern patternText = Pattern.compile( strPatternText );
-    final Pattern patternInt = Pattern.compile( "^(\\d+)$" );
     
     private static class JSONBArea {
         String barea;
@@ -323,11 +318,22 @@ public class BatchFindLinkServlet extends HttpServlet {
             throws ServletException, IOException, ParseException {
         response.setContentType("text/html;charset=UTF-8");
         
-        sess = request.getSession(true);
-        grConf = (GraphConfig)sess.getAttribute("gr_conf");
+        // Per rquest data
+        HttpSession sess;
+        GraphConfig grConf;
+        VirtGraph vSet = null;
+        Connection dbConn = null;
+        JSONBArea BBox;
+        JSONGeomLinkList ret = null;
         
         try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
+            sess = request.getSession(false);
+
+            if (sess == null) {
+                return;
+            }
+        
+            grConf = (GraphConfig)sess.getAttribute("gr_conf");
             
             ObjectMapper mapper = new ObjectMapper();
             String bboxJSON = request.getParameter("bboxJSON");
@@ -414,8 +420,8 @@ public class BatchFindLinkServlet extends HttpServlet {
             //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
             QueryEngineHTTP qeh = new QueryEngineHTTP(service, geoQuery.toString(), authenticator);
             qeh.addDefaultGraph(graph);
-            QueryExecution queryExecution = qeh;
-            final com.hp.hpl.jena.query.ResultSet resultSetGeomsA = queryExecution.execSelect();
+            qeh.setSelectContentType((String)sess.getAttribute("content-type"));
+            final com.hp.hpl.jena.query.ResultSet resultSetGeomsA = qeh.execSelect();
             
             System.out.println("Fetched already: " + fetchedGeomsA.size());
 
@@ -437,7 +443,8 @@ public class BatchFindLinkServlet extends HttpServlet {
                 
                 geomsA.put(sub, wkt.read(geo) );
             }
-            queryExecution.close();
+            
+            qeh.close();
             
             System.out.println("Count from A : " + countA);
             
@@ -480,8 +487,8 @@ public class BatchFindLinkServlet extends HttpServlet {
             //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
             qeh = new QueryEngineHTTP(service, geoQuery.toString(), authenticator);
             qeh.addDefaultGraph(graph);
-            queryExecution = qeh;
-            final com.hp.hpl.jena.query.ResultSet resultSetGeomsB = queryExecution.execSelect();
+            qeh.setSelectContentType((String)sess.getAttribute("content-type"));
+            final com.hp.hpl.jena.query.ResultSet resultSetGeomsB = qeh.execSelect();
             
             System.out.println("Fetched already: " + fetchedGeomsA.size());
 
@@ -503,7 +510,8 @@ public class BatchFindLinkServlet extends HttpServlet {
                 
                 geomsB.put(sub, wkt.read(geo));
             }
-            queryExecution.close();
+            
+            qeh.close();
             
             countB = geomsB.size();
             System.out.println("Count from B : " + countB);
@@ -551,9 +559,9 @@ public class BatchFindLinkServlet extends HttpServlet {
                 authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
                 //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
                 qeh = new QueryEngineHTTP(service, geoQuery.toString(), authenticator);
+                qeh.setSelectContentType((String)sess.getAttribute("content-type"));
                 qeh.addDefaultGraph(graph);
-                queryExecution = qeh;
-                final com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
+                final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
 
                 // Fetch neighboring entities Predicate.Object pairs
                 Map<String, List<SubObjPair>> mappings = new HashMap<>();
@@ -614,7 +622,8 @@ public class BatchFindLinkServlet extends HttpServlet {
 
                     //System.out.println("Fetched "+geo);
                 }
-                queryExecution.close();
+                
+                qeh.close();
                 
                 //System.out.println("Hash Set Size : " + uniqueSubs.size());
                 for (Map.Entry<String, List<SubObjPair>> entry : mappings.entrySet()) {
@@ -650,9 +659,9 @@ public class BatchFindLinkServlet extends HttpServlet {
                 authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
                 //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
                 qeh = new QueryEngineHTTP(service, query, authenticator);
+                qeh.setSelectContentType((String)sess.getAttribute("content-type"));
                 qeh.addDefaultGraph(graph);
-                queryExecution = qeh;
-                final com.hp.hpl.jena.query.ResultSet resultSetEnt = queryExecution.execSelect();
+                final com.hp.hpl.jena.query.ResultSet resultSetEnt = qeh.execSelect();
                 
                 while (resultSetEnt.hasNext()) {
                     final QuerySolution querySolution = resultSetEnt.next();
@@ -716,7 +725,8 @@ public class BatchFindLinkServlet extends HttpServlet {
                     }
 
                 }
-                queryExecution.close();
+                
+                qeh.close();
                 
                 maxDistIndex.put(subA, maxDist);
             }
@@ -854,180 +864,11 @@ public class BatchFindLinkServlet extends HttpServlet {
             
             System.out.println(mapper.writeValueAsString(ret));
             
-            /*
-            System.out.println("Geom query " + geoQuery);
-            p = geoPropsB.get(0);
-            geoQuery.setLength(0);
-            for (String t : geoTypesB) {
-                if (t.equalsIgnoreCase("POLYGON")) {
-                    geoQuery.append("SELECT ?s ?p ?o ?geo\nWHERE { ?s ?p ?o {\n");
-                    geoQuery.append("SELECT ?s ?geo WHERE {\n"
-                            + "?s <" + p + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n");
-                    if (BBox.getLeft() < 0) {
-                        geoQuery.append("FILTER ( ( bif:st_xmax(?geo) + " + X_MAX + " )  < " + (BBox.getRight() + X_MAX) + ")\n"
-                                + "FILTER ( ( bif:st_xmax(?geo) + " + X_MAX + " ) > " + (BBox.getLeft() + X_MAX) + ")\n");
-                    } else {
-                        geoQuery.append("FILTER ( ( bif:st_xmax(?geo) + " + X_MAX + " )  < " + (BBox.getRight() + X_MAX) + ")\n"
-                                + "FILTER ( ( bif:st_xmax(?geo) + " + X_MAX + " ) > " + (BBox.getLeft() + X_MAX) + ")\n");
-                    }
-                    if (BBox.getBottom() < 0) {
-                        geoQuery.append("FILTER ( ( bif:st_ymax(?geo) + " + Y_MAX + " ) > " + (BBox.getTop() + Y_MAX) + ")\n"
-                                + "FILTER ( ( bif:st_ymax(?geo) + " + Y_MAX + " ) < " + (BBox.getBottom() + Y_MAX) + ")\n");
-                    } else {
-                        geoQuery.append("FILTER ( ( bif:st_ymax(?geo) + " + Y_MAX + " ) < " + (BBox.getTop() + Y_MAX) + ")\n"
-                                + "FILTER ( ( bif:st_ymax(?geo) + " + Y_MAX + " ) > " + (BBox.getBottom() + Y_MAX) + ")\n");
-                    }
-                    geoQuery.append("} } }");
-                } else {
-                    geoQuery.append("SELECT ?s ?p ?o ?geo\nWHERE { ?s ?p ?o {\n");
-                    geoQuery.append("SELECT ?s ?geo\n"
-                            + "WHERE {\n"
-                            + "?s <" + p + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n"
-                            + "FILTER (bif:st_intersects (?geo, bif:st_geomfromtext(\"" + BBox.getBarea() + "\"), 0))\n"
-                            + "} } }");
-                }
-            }
-            
-            System.out.println("Geom query " + geoQuery);
-            
-            service = grConf.getEndpointB();
-            graph = grConf.getGraphB();
-            
-            authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-            //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-            qeh = new QueryEngineHTTP(service, geoQuery.toString(), authenticator);
-            qeh.addDefaultGraph(graph);
-            queryExecution = qeh;
-            final com.hp.hpl.jena.query.ResultSet resultSetB = queryExecution.execSelect();
-            
-            // Fetch neighboring entities Predicate.Object pairs
-            HashMap<String, List<SubObjPair>> mappingsB = new HashMap<>();
-            HashMap<String, IntWrapper> freqsB = new HashMap<>();
-            HashMap<String, String> geomsB = new HashMap<>();
-            Set<String> uniqueSubsB = new HashSet<>();
-            
-            while (resultSetB.hasNext()) {
-                final QuerySolution querySolution = resultSetB.next();
-
-                final String geo = querySolution.getLiteral("?geo").getString();
-                final String pre = querySolution.getResource("?p").getURI();
-                String obj = "";
-                RDFNode n = querySolution.get("?o");
-                if ( n.isResource() )
-                    continue;
-                else
-                    obj = n.asLiteral().getString();
-                
-                //System.out.println(obj + " : " + patternText.matcher(obj).find());
-                //System.out.println(obj + " : " + patternInt.matcher(obj).find());
-                //System.out.println(obj + " : " + obj.matches(strPatternText));
-                
-                if ( patternInt.matcher(obj).find() )
-                    continue;
-                
-                if ( !patternText.matcher(obj).find() )
-                    continue;
-                
-                if ( obj.contains("http") )
-                    continue;
-                
-                final String sub = querySolution.getResource("?s").getURI();
-                if ( !fetchedGeomsA.contains(sub) ) {
-                    newGeom++;
-                    geomsB.put(sub, geo);
-                } else {
-                    //ret.AddEntityB(new JSONUnlinkedEntity(geo, sub));
-                    geomsB.put(sub, "");
-                }
-                
-                uniqueSubsB.add(sub);
-                
-                IntWrapper freq = freqsB.get(obj);
-                if ( freq == null ) {
-                    IntWrapper newFreq = new IntWrapper(0);
-                    freq = newFreq;
-                    freqsB.put(obj, newFreq);
-                }
-                freq.inc();
-                
-                SubObjPair pair = new SubObjPair(sub, obj);
-                List<SubObjPair> pairList = mappingsB.get(pre);
-                if ( pairList == null ) {
-                    pairList = new ArrayList<>();
-                    mappingsB.put(pre, pairList);
-                }
-                pairList.add(pair);
-            }
-            
-            String subA = "";
-            String subB = "";
-            System.out.println("reached");
-            for (Map.Entry<String, List<SubObjPair>> entryA : mappingsA.entrySet()) {
-                subA = entryA.getKey();
-                List<SubObjPair> pairsA = entryA.getValue();
-                for (SubObjPair pA : pairsA) {
-                    float tfA = (float) freqsA.get(pA.getObj()).i / uniqueSubsA.size();
-                    if (freqsA.get(pA.getObj()).i > 1) {
-                        continue;
-                    }
-                    for (Map.Entry<String, List<SubObjPair>> entryB : mappingsB.entrySet()) {
-                        subB = entryB.getKey();
-                        List<SubObjPair> pairsB = entryB.getValue();
-                        //System.out.println("Subject " + subA + " + " + subB);
-                        for (SubObjPair pB : pairsB) {
-                            float tfB = (float) freqsB.get(pB.getObj()).i / uniqueSubsB.size();
-                            if (freqsB.get(pB.getObj()).i > 1) {
-                                continue;
-                            } else {
-                                float JaccardIndex = getJaccardIndex(pA.getObj(), pB.getObj());
-                                if (JaccardIndex >= 0.8) {
-                                    System.out.println("Matched " + pA.getObj() + " with " + pB.getObj());
-                                    JSONGeomLink l = new JSONGeomLink (
-                                        pA.getSub(), geomsA.get(pA.getSub()),
-                                        pB.getSub(), geomsB.get(pB.getSub())
-                                     );
-
-                                     ret.AddLink(l);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            System.out.println("Size A "+geomsA.size());
-            System.out.println("Size B "+geomsB.size());
-            
-            for ( String sub : geomsA.keySet() ) {
-                fetchedGeomsA.add(sub);
-            }
-            
-            for ( String sub : geomsB.keySet() ) {
-                fetchedGeomsA.add(sub);
-            }
-            
-            for ( JSONGeomLink l : ret.getLinks() ) {
-                geomsA.remove(l.getSubA());
-                geomsB.remove(l.getSubB());
-                
-                System.out.println("Subject A : " + l.getSubA());
-                System.out.println("Subject B : " + l.getSubB());
-                System.out.println("Geom A : " + l.getGeomA());
-                System.out.println("Geom B : " + l.getGeomB());
-            }
-            ret.setEntitiesA(geomsA);
-            ret.setEntitiesB(geomsB);
-            System.out.println("Size A "+geomsA.size());
-            System.out.println("Size B "+geomsB.size());
-            System.out.println(mapper.writeValueAsString(ret));
-            out.print(mapper.writeValueAsString(ret));
-            */
             //System.out.println(mapper.writeValueAsString(ret));
             out.print(mapper.writeValueAsString(ret));
         }
     }
     
-    final Pattern patternWordbreaker = Pattern.compile( "(([a-z]|[A-Z])[a-z]+)|(([a-z]|[A-Z])[A-Z]+)" );
     private float getJaccardIndex(String a, String b) {
         List<String> arrA = new ArrayList<>();
         List<String> arrB = new ArrayList<>();

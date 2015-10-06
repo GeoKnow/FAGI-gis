@@ -1,29 +1,7 @@
 
 package gr.athenainnovation.imis.fusion.gis.cli;
 
-import com.hp.hpl.jena.graph.BulkUpdateHandler;
-import com.hp.hpl.jena.graph.Node;
-import com.hp.hpl.jena.graph.NodeFactory;
-import com.hp.hpl.jena.graph.Triple;
-import com.hp.hpl.jena.query.ParameterizedSparqlString;
-import com.hp.hpl.jena.query.Query;
-import com.hp.hpl.jena.query.QueryExecution;
-import com.hp.hpl.jena.query.QueryExecutionFactory;
-import com.hp.hpl.jena.query.QueryFactory;
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.shared.JenaException;
-import com.hp.hpl.jena.sparql.algebra.Op;
-import com.hp.hpl.jena.sparql.algebra.OpAsQuery;
-import com.hp.hpl.jena.sparql.algebra.op.OpProject;
-import com.hp.hpl.jena.sparql.core.BasicPattern;
-import com.hp.hpl.jena.sparql.core.Var;
-import com.hp.hpl.jena.update.UpdateExecutionFactory;
-import com.hp.hpl.jena.update.UpdateFactory;
-import com.hp.hpl.jena.update.UpdateProcessor;
-import com.hp.hpl.jena.update.UpdateRequest;
-import com.hp.hpl.jena.util.iterator.ExtendedIterator;
-import gr.athenainnovation.imis.fusion.gis.clustering.GeoClusterer;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.ErrorListener;
@@ -38,56 +16,29 @@ import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
 import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import net.didion.jwnl.JWNL;
-import net.didion.jwnl.JWNLException;
-import net.didion.jwnl.data.IndexWord;
-import net.didion.jwnl.data.POS;
-import net.didion.jwnl.data.PointerType;
-import net.didion.jwnl.data.Synset;
-import net.didion.jwnl.data.relationship.AsymmetricRelationship;
-import net.didion.jwnl.data.relationship.Relationship;
-import net.didion.jwnl.data.relationship.RelationshipFinder;
-import net.didion.jwnl.data.relationship.RelationshipList;
-import net.didion.jwnl.dictionary.Dictionary;
-import net.didion.jwnl.dictionary.MorphologicalProcessor;
-import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.system.StreamRDF;
+import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoException;
+import virtuoso.jdbc4.VirtuosoPreparedStatement;
+import virtuoso.jdbc4.VirtuosoResultSet;
 import virtuoso.jena.driver.VirtGraph;
 //import org.apache.commons.lang3.StringUtils;
 
@@ -114,8 +65,7 @@ public class FusionGISCLI {
     public static void main(String args[]) {      
         /* Clustering test */
         
-        /*
-        VirtGraph vSet;
+        /*VirtGraph vSet;
         try {
             vSet = new VirtGraph("jdbc:virtuoso://" + "localhost:1111" + "/CHARSET=UTF-8",
                     "dba",
@@ -128,11 +78,68 @@ public class FusionGISCLI {
             return;
         }
  
-        StreamRDF destination = null; 
-        RDFDataMgr.parse(destination, "http://example/data.ttl") ;
+        String s2 = "SPARQL WITH <http://localhost:8890/DAV/osm_demo_asasas> INSERT { `iri(??)` `iri(??)` ?? }";
+        String s = "SPARQL SELECT * WHERE { ?? ?p ?o  FILTER ( isLiTERAL ( ?o ) ) } LIMIT 10";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement stmt = null;
+        
+        try {
+            stmt = (VirtuosoPreparedStatement) conn.prepareStatement(s);
+            stmt.setString(1, "http://linkedgeodata.org/triplify/way204488343");
+            
+            //stmt.
+            //stmt.setString(2, "<tom>");
+            //stmt.setString(3, "<tom>");
+            System.out.println(stmt.toString());
+            VirtuosoResultSet rs = (VirtuosoResultSet) stmt.executeQuery();
+        
+            while ( rs.next() ) {
+                System.out.println(rs.getString(1));
+                System.out.println(rs.getString(2));
+                //System.out.println(rs.getString(3));
+            }
+            
+            rs.close();
+            
+            stmt.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        try {
+            conn.setAutoCommit(false);
+        } catch (VirtuosoException ex) {
+            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        try {
+            stmt = (VirtuosoPreparedStatement) conn.prepareStatement(s2);
+            
+            //stmt.setString(1, "http://localhost:8890/DAV/osm_demo_asasas");
+            for (int i = 10; i < 100000; i++ ) {
+                stmt.setString(1, "<osm " + ( i - 2 )  +">");
+                stmt.setString(2, "<demo " + ( i - 2)  +">");
+                stmt.setString(3, "osm " + i +"");
+                //stmt.setString(5, "<demo " + i +">");
+                //stmt.setString(6, "demo " + i +"");
+                
+                stmt.addBatch();
+            }
+            stmt.executeBatchUpdate();
+            
+        } catch (SQLException ex) {
+            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        try {
+            conn.commit();
+            //StreamRDF destination = null;
+            //RDFDataMgr.parse(destination, "http://example/data.ttl") ;
+        } catch (VirtuosoException ex) {
+            Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
-        return;
-        */
+        return;*/
+        
         List<String> lines = new ArrayList<>();
         
         /*
@@ -254,7 +261,7 @@ public class FusionGISCLI {
             
                 //final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
                 Dataset sourceADataset = new Dataset(st.getGraphConf().getEndpointA(), st.getGraphConf().getGraphA(), "");
-                final ImporterWorker datasetAImportWorker = new ImporterWorker(st.getDbConf(), 
+                final ImporterWorker datasetAImportWorker = new ImporterWorker(st.getDbConf(), st.getGraphConf(),
                         PostGISImporter.DATASET_A, sourceADataset, null, errListen);
                 datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                     @Override public void propertyChange(PropertyChangeEvent evt) {
@@ -265,7 +272,7 @@ public class FusionGISCLI {
                 });
             
                 Dataset sourceBDataset = new Dataset(st.getGraphConf().getEndpointB(), st.getGraphConf().getGraphB(), "");
-                final ImporterWorker datasetBImportWorker = new ImporterWorker(st.getDbConf(), 
+                final ImporterWorker datasetBImportWorker = new ImporterWorker(st.getDbConf(), st.getGraphConf(),
                         PostGISImporter.DATASET_B, sourceBDataset, null, errListen);
             
                 datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
@@ -373,8 +380,8 @@ public class FusionGISCLI {
     
     private static void createLinksGraph(List<Link> lst, FusionState st) {
         try {
-            final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/all_links_"+st.getDbConf().getDBName()+">";
-            final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_"+st.getDbConf().getDBName()+">";
+            final String dropGraph = "sparql DROP SILENT GRAPH <"+ st.getGraphConf().getAllLinksGraph() + ">";
+            final String createGraph = "sparql CREATE GRAPH <"+ st.getGraphConf().getAllLinksGraph() + ">";
             VirtGraph set = getVirtuosoSet(st.getDbConf().getDBURL(), st.getDbConf().getUsername(), st.getDbConf().getPassword());
             //long endTime = System.nanoTime();
             //System.out.println("Time to connect : "+(endTime-startTime)/1000000000f);
@@ -392,7 +399,7 @@ public class FusionGISCLI {
             //f.getParentFile().mkdirs();
             PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f)));
             final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('"+st.getDbConf().getBulkDir()+"bulk_inserts/selected_links.nt'), '', "
-                    +"'"+"http://localhost:8890/DAV/all_links_"+st.getDbConf().getDBName()+"')";
+                    +"'"+ st.getGraphConf().getAllLinksGraph() + "')";
             //int stop = 0;
             if ( lst.size() > 0 ) {
                 

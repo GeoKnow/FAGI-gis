@@ -1085,9 +1085,6 @@ function clearSelected(event) {
 }
 
 function addSelected(event) {
-    //alert('multiple start');
-    //alert(activeFeatureClusterA[event.feature.attributes.la.attributes.a]);
-    //alert(activeFeatureClusterB[event.feature.attributes.lb.attributes.a]);
     if ( typeof activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined" )
         return;
     
@@ -1098,6 +1095,17 @@ function addSelected(event) {
     //clusterLink.nodeA = event.feature.attributes.la.attributes.a;
     //clusterLink.nodeB = event.feature.attributes.lb.attributes.a;
     //activeFeatureCluster[activeFeatureCluster.length] = clusterLink;
+    console.log($('#fg-info-popup').width());
+    console.log($('#map').width());
+    
+    $("#fg-info-label").html($("#fg-info-label").html() + '  ' + event.feature.attributes.la.attributes.a);
+    document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
+    document.getElementById("fg-info-popup").style.left = $('#map').width() - ($('#fg-info-popup').width() + 10);
+    //$("#fg-info-popup").width($('#map').width() - ($('#fg-info-popup').width()));
+    
+    console.log($('#fg-info-popup').width());
+    console.log($('#map').width());
+    console.log(event.feature.attributes.la.attributes.a);
     activeFeatureClusterA[event.feature.attributes.la.attributes.a] = event.feature;
     activeFeatureClusterB[event.feature.attributes.lb.attributes.a] = event.feature;
 }
@@ -1155,11 +1163,29 @@ function setSingleMapControls() {
 }
 
 function activateMultipleTool() {
+    //alert("multiple");
     //activeFeatureCluster = new Array();
-    mselectActive = true;
-    if ( !$('#clusterSelector option[value="9999"]').length ) {
+    //alert($('#clusterSelector option[value="9999"]').length);
+    
+    if ( !$('#clusterSelector option[value="9999"]').length )
         $("#clusterSelector").append("<option value=\""+9999+"\" >Custom Cluster </option>");
-    }
+    
+    multipleEnabled = true;
+    multipleSelector.activate();
+    selectControl.deactivate();
+    
+    vectorsLinks.events.un({
+        'featureselected': onLinkFeatureSelect,
+        'featureunselected': onLinkFeatureUnselect,
+        scope: vectorsLinks
+    });
+   
+    // register multiple feature callbacks
+    vectorsLinks.events.on({
+        'featureselected': addSelected,
+        'featureunselected': clearSelected,
+        scope: vectorsLinks
+    });
 }
 
 function activateBBoxTool() {
@@ -2193,7 +2219,7 @@ function onFusedSelect(event) {
         // code to run if the request fails; the raw request and
         // status codes are passed to the function
         error: function (xhr, status, errorThrown) {
-            alert("Sorry, there was a problem with the second AJAX");
+            //alert("Sorry, there was a problem with the second AJAX");
             console.log("Error: " + errorThrown);
             console.log("Status: " + status);
             console.dir(xhr);
@@ -2404,8 +2430,9 @@ function onLinkFeatureSelect(event) {
             var schemaListA = document.getElementById("linkSchemasA");
             schemaListA.innerHTML = "";
             $.each(responseJson.p.propsFullA, function (index, element) {
+                console.log(element.short_rep);
                 if (element.short_rep.indexOf("posSeq") >= 0) {
-                    return;
+                    //return;
                 }
                 var opt = document.createElement("li");
                 var optlbl = document.createElement("div");
@@ -2427,7 +2454,7 @@ function onLinkFeatureSelect(event) {
             schemaListB.innerHTML = "";
             $.each(responseJson.p.propsFullB, function (index, element) {
                 if (element.short_rep.indexOf("posSeq") >= 0) {
-                    return;
+                    //return;
                 }
                 var opt = document.createElement("li");
                 var optlbl = document.createElement("div");

@@ -846,7 +846,6 @@ function propSelectedA() {
             lastSelectedFromA.prev_selected = false;
         }
         var elems = mappins.foundA[this.long_name];
-        //alert(elems);
         var list = document.getElementById("schemasB");
         var listItems = list.getElementsByTagName("li");
         

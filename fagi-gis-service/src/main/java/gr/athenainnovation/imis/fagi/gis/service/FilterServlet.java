@@ -47,13 +47,27 @@ public class FilterServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
-        HashMap<String, String> filteredLinks = new HashMap<>();
-        PrintWriter out = response.getWriter();
-        HttpSession sess = request.getSession(true);
-        GraphConfig grConf = (GraphConfig)sess.getAttribute("gr_conf");
-        DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
+        
+        // Per request state
+        HashMap<String, String>         filteredLinks;
+        PrintWriter                     out = response.getWriter();;
+        HttpSession                     sess;
+        GraphConfig                     grConf;
+        DBConfig                        dbConf;
         
         try {
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
+            filteredLinks = new HashMap<>();
+            grConf = (GraphConfig)sess.getAttribute("gr_conf");
+            dbConf = (DBConfig)sess.getAttribute("db_conf");
+        
             /* TODO output your page here. You may use following sample code. */
             System.out.println(request.getParameterMap());
             String set = request.getParameter("dataset");
@@ -78,9 +92,9 @@ public class FilterServlet extends HttpServlet {
             for (String filter : filters ) {  
                 String filterSelectA = "";
                 if (grConf.isDominantA()) {
-                    filterSelectA = "sparql select distinct(?s) ?o where { GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <"+(String)sess.getAttribute("t_graph")+"_"+dbConf.getDBName()+"A> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
+                    filterSelectA = "sparql select distinct(?s) ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
                 } else {
-                    filterSelectA = "sparql select distinct(?s) ?o where { GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+"> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <"+(String)sess.getAttribute("t_graph")+"_"+dbConf.getDBName()+"A> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
+                    filterSelectA = "sparql select distinct(?s) ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
                 }
                 System.out.println(filterSelectA);
                 filtersStmt = virt_conn.prepareStatement(filterSelectA);
@@ -100,9 +114,9 @@ public class FilterServlet extends HttpServlet {
             for (String filter : filters ) {           
                 String filterSelectB = "";
                 if (grConf.isDominantA()) {
-                    filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <"+(String)sess.getAttribute("t_graph")+"_"+dbConf.getDBName()+"B> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
+                    filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
                 } else {
-                    filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+"> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <"+(String)sess.getAttribute("t_graph")+"_"+dbConf.getDBName()+"B> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
+                    filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
                 }
                 filtersStmt = virt_conn.prepareStatement(filterSelectB);
                 ResultSet rs = filtersStmt.executeQuery();

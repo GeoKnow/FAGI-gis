@@ -9,20 +9,31 @@ import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI;
 //import static gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI.getFAGIState;
 //import static gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI.st;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.ImporterWorker;
 import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import static gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter.DATASET_A;
 import static gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter.DATASET_B;
+import static gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter.isThisMyIpAddress;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.log4j.Logger;
+import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoPreparedStatement;
+import virtuoso.jdbc4.VirtuosoResultSet;
+import virtuoso.jena.driver.VirtGraph;
 
 /**
  * Provides the infrastructure for the export of metadata and geometric triples from a dataset with a given SPARQL endpoint and 
@@ -43,6 +54,8 @@ public class Importer {
     
     private float elapsedTime = 0f;
     private int importedTripletsCount = 0;
+    
+    private GraphConfig grConf;
     
     public float getElapsedTime() {
         return elapsedTime;
@@ -71,14 +84,16 @@ public class Importer {
      * @throws SQLException 
      * @throws RuntimeException in case of an unrecoverable error. The cause of the error will be encapsulated by the thrown RuntimeException
      */
-    public Importer(final DBConfig dBConfig, final ImporterWorker callback) throws SQLException {
+    public Importer(final DBConfig dBConfig, final ImporterWorker callback, final GraphConfig grConf) throws SQLException {
         this.callback = callback;
         this.postGISImporter = new PostGISImporter(dBConfig);
+        this.grConf = grConf;
     }
     
-    public Importer(final DBConfig dBConfig) throws SQLException {
+    public Importer(final DBConfig dBConfig, final GraphConfig grConf) throws SQLException {
         this.callback = null;
         this.postGISImporter = new PostGISImporter(dBConfig);
+        this.grConf = grConf;
     }
     
     /**
@@ -171,7 +186,10 @@ public class Importer {
         final String sourceEndpoint = sourceDataset.getEndpoint();
         final String sourceGraph = sourceDataset.getGraph();
         final String subjectRegex = sourceDataset.getSubjectRegex();
-        checkIfValidRegexArgument(subjectRegex);                  
+        checkIfValidRegexArgument(subjectRegex);           
+        VirtGraph vSet = new VirtGraph ("jdbc:virtuoso://" + callback.getDbConfig().getDBURL() + "/CHARSET=UTF-8", callback.getDbConfig().getUsername(), callback.getDbConfig().getPassword());
+        VirtuosoConnection virt_conn = (VirtuosoConnection)vSet.getConnection();
+        VirtuosoPreparedStatement virt_stmt = null;
         //check the serialisation of the dataset with a count query. If it doesn t find WKT the serialisation, the serialisation is wgs84        
         
         //check which is the dataset to define triples format
@@ -179,7 +197,28 @@ public class Importer {
         final String restrictionForWgs = "?s ?p1 ?o1 . ?s ?p2 ?o2 FILTER(regex(?s, \"" + subjectRegex + "\", \"i\")) " + "FILTER(regex(?p1, \"" + LAT_REGEX + "\", \"i\"))" +
                 "FILTER(regex(?p2, \"" + LONG_REGEX + "\", \"i\"))";
         
-        final String queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
+        
+        boolean isEndpointLocal = false;
+        try
+        {
+            URL endURL = new URL(sourceEndpoint);
+            isEndpointLocal = isThisMyIpAddress(InetAddress.getByName(endURL.getHost())); //"localhost" for localhost
+        }
+        catch(UnknownHostException unknownHost)
+        {
+            System.out.println("It is not");
+        } catch (MalformedURLException ex) {
+            System.out.println("Malformed URL");
+        }
+        
+        String queryString1 = "";
+        if ( isEndpointLocal )
+            queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <"+ this.grConf.getAllLinksGraph() + "> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
+        else
+            queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?s ?lp ?os} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} } }";
+
+        
+        //final String queryString1 = "SELECT ?s ?o1 ?o2 WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
         boolean countWgs = checkForWGS(sourceEndpoint, sourceGraph, restrictionForWgs, "?s");       
         final String restriction = "?os ?p1 _:a . _:a <"+AS_WKT_REGEX+"> ?g ";
         /*final String restriction = "?os ?p1 _:a . _:a ?p2 ?g FILTER(regex(?os, \"" + subjectRegex + "\", \"i\")) " + "" +
@@ -191,25 +230,45 @@ public class Importer {
         //int countWgs = 0;
         
         final String queryString;
-        if (datasetIdent == DATASET_A)
-            queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?os ?lp ?s} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
-        else 
-            queryString = "SELECT ?os ?g WHERE { GRAPH <http://localhost:8890/DAV/all_links_"+postGISImporter.getDbName()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
+        if (datasetIdent == DATASET_A) {
+            if ( isEndpointLocal )
+                queryString = "SELECT ?os ?g WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?os ?lp ?s} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
+            else
+                queryString = "SELECT ?os ?g WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?os ?lp ?s} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restriction + "} } }";
+        } else {
+            if ( isEndpointLocal )
+                queryString = "SELECT ?os ?g WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?s ?lp ?os} . GRAPH <"+sourceGraph+"> {" + restriction + " } }";
+            else
+                queryString = "SELECT ?os ?g WHERE { GRAPH <"+ this.grConf.getAllLinksGraph()+"> {?s ?lp ?os} . SERVICE <"+sourceEndpoint+"> { GRAPH <"+sourceGraph+"> {" + restriction + "} } }";
+        }
         
 //System.out.println("Query String "+queryString);
-        //System.out.println("Count WKT " + countWKT+" Count WGS "+countWgs);
+        for ( String s : QueryEngineHTTP.supportedAskContentTypes ) {
+            System.out.println("Supported ASK " + s);
+        }
+        System.out.println("Count WKT " + countWKT+" Count WGS "+countWgs);
         int currentCount = 1;
-        
         QueryExecution queryExecution = null;
         if (!countWKT){ //if geosparql geometry doesn' t exist        
             try {
                 //System.out.println("Query String "+queryString);
                 final Query query = QueryFactory.create(queryString1);
                 HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, authenticator);
-                final ResultSet resultSet = queryExecution.execSelect();
-                long startTime =  System.nanoTime();
-                while(resultSet.hasNext()) {
+                //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, authenticator);
+                //HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
+                //QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, QueryFactory.create(query), authenticator);
+                //qeh.addDefaultGraph(grConf.getGraphA());
+                //QueryExecution queryExecution = qeh;
+                //qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+                //final ResultSet resultSet = qeh.execSelect();
+                virt_stmt = (VirtuosoPreparedStatement)virt_conn.prepareStatement("SPARQL " + query.toString());
+                VirtuosoResultSet rs = (VirtuosoResultSet) virt_stmt.executeQuery();
+                
+                long startTime = System.nanoTime();
+                
+                
+                /*while(resultSet.hasNext()) {
                     
                     
                     final QuerySolution querySolution = resultSet.next();
@@ -234,7 +293,10 @@ public class Importer {
                     //if (callback != null )
                         //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));                                       
                 }
+                */
                 postGISImporter.finishUpdates();
+                
+                //qeh.close();
                 //System.out.println("PostGISImporter finishedUpdates");
                 long endTime =  System.nanoTime();
                 setElapsedTime((endTime-startTime)/1000000000f);
@@ -249,20 +311,48 @@ public class Importer {
                 }
             }
         }                                   
-        else{ //if geosparql geometry exists
+        else { //if geosparql geometry exists
             //System.out.println("geosparql");
             try {
-                //System.out.println("Geosparql Query String "+queryString);
+                System.out.println("Geosparql Query String "+queryString);
                 final Query query = QueryFactory.create(queryString);
                 HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, authenticator);
+                //queryExecution = QueryExecutionFactory.(sourceEndpoint, query, authenticator);
                 //System.out.println("query: \n" + query + "\nendpoint: " + sourceEndpoint + " sourceGraph: " + sourceGraph);
-                final ResultSet resultSet = queryExecution.execSelect();
+                
+                //QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(sourceEndpoint, QueryFactory.create(query), authenticator);
+                //qeh.addDefaultGraph(grConf.getGraphA());
+                //QueryExecution queryExecution = qeh;
+                //qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+                //final ResultSet resultSet = qeh.execSelect();
+                
+                virt_stmt = (VirtuosoPreparedStatement)virt_conn.prepareStatement("SPARQL " + queryString);
+                VirtuosoResultSet rs = (VirtuosoResultSet) virt_stmt.executeQuery();
+                
                 long startTime =  System.nanoTime();
+                while(rs.next()) {
+                    final String subject = rs.getString(1);                 
+                    //System.out.println(subject);
+                    final String geometry = rs.getString(2);
+                    //if(objectNode.isLiteral()) {
+                        //final String geometry = objectNode.asLiteral().getLexicalForm();
+                        //System.out.println("Virtuoso geometry objectNode.asLiteral().getLexicalForm():   "+ geometry);
+                        
+                        postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+                    //}
+                    //if (callback != null )
+                        //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWKT)));
+                }
+                
+                rs.close();
+                virt_stmt.close();
+                /*
                 while(resultSet.hasNext()) {
                     final QuerySolution querySolution = resultSet.next();
                     
-                    final String subject = querySolution.getResource("?os").getURI();                 
+                    System.out.println(querySolution.get("?os").toString());
+                    System.out.println(querySolution.get("?g").toString());
+                    final String subject = querySolution.get("?os").toString();                 
                     //System.out.println(subject);
                     final RDFNode objectNode = querySolution.get("?g");
                     if(objectNode.isLiteral()) {
@@ -277,6 +367,9 @@ public class Importer {
                     //if (callback != null )
                         //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWKT)));
                 }
+                
+                qeh.close();
+                */
                 postGISImporter.finishUpdates();
                 //System.out.println("Count : "+currentCount);
                 long endTime =  System.nanoTime();
@@ -333,9 +426,13 @@ public class Importer {
         try {
             final Query query = QueryFactory.create(queryString);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-            queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
-            
-            final ResultSet resultSet = queryExecution.execSelect();
+            //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
+            QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
+        qeh.addDefaultGraph(sourceGraph);
+        //QueryExecution queryExecution = qeh;
+        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+                final ResultSet resultSet = qeh.execSelect();
+            //final ResultSet resultSet = queryExecution.execSelect();
             
             while(resultSet.hasNext()) {
                 final QuerySolution querySolution = resultSet.next();
@@ -386,10 +483,15 @@ public class Importer {
         try {
             final Query query = QueryFactory.create(queryString);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-            queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
-            //System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
-
-            result = queryExecution.execAsk();
+            //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
+            QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
+        qeh.addDefaultGraph(sourceGraph);
+        //QueryExecution queryExecution = qeh;
+        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+                //final ResultSet resultSet = qeh.execSelect();
+//System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
+            
+            result = qeh.execAsk();
         }
         catch (RuntimeException ex) {
             LOG.warn(ex.getMessage(), ex);
@@ -428,15 +530,24 @@ public class Importer {
             }
         }*/
         
-        final String queryString = "ASK WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g }";
+        //final String queryString = "ASK WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g }";
+        final String queryString = "SELECT ?s WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g } LIMIT 1";
         QueryExecution queryExecution = null;
         try {
             final Query query = QueryFactory.create(queryString);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-            queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
-            //System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
+            //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
+            System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
 
-            result = queryExecution.execAsk();
+            QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
+        qeh.addDefaultGraph(sourceGraph);
+        //QueryExecution queryExecution = qeh;
+        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+        
+        if (qeh.execSelect().hasNext() )
+            return true;
+        
+            //result = qeh.execAsk();
         }
         catch (RuntimeException ex) {
             LOG.warn(ex.getMessage(), ex);

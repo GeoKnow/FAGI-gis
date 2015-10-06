@@ -392,19 +392,30 @@ public class FusionServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        Connection conn;
-        String reg;
-        String tgraph;
-        List<FusionState> ft = null;
-        PreparedStatement stmt = null;
-        Connection dbConn = null;
-        ResultSet rs = null;
-        DBConfig dbConf = null;
-        HttpSession sess;
-        JSONFusion ret;      
+        
+        //  Per session state
+        PrintWriter             out = response.getWriter();
+        Connection              conn;
+        String                  reg;
+        String                  tgraph;
+        List<FusionState>       ft = null;
+        PreparedStatement       stmt = null;
+        Connection              dbConn = null;
+        ResultSet               rs = null;
+        DBConfig                dbConf = null;
+        HttpSession             sess;
+        JSONFusion              ret;      
     
-        try {            
+        try {       
+            sess = request.getSession(false); 
+            
+            if (sess == null ) {
+                out.print("{}");
+                
+                return;
+                
+            }
+            
             ret = new JSONFusion();
             ObjectMapper mapper = new ObjectMapper();
             System.out.println(request.getParameterMap());
@@ -422,7 +433,7 @@ public class FusionServlet extends HttpServlet {
             System.out.println(request.getParameterMap());
             ft = new ArrayList<>();
             String[] selectedPreds = request.getParameterValues("props[]");
-            sess = request.getSession(true);    
+              
             GraphConfig grConf = (GraphConfig)sess.getAttribute("gr_conf");
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             HashMap<String, String> hashLinks = (HashMap<String, String>)sess.getAttribute("links");
@@ -451,9 +462,9 @@ public class FusionServlet extends HttpServlet {
             System.out.println("Geom JSON "+mapper.writeValueAsString(ret));
             String getLink = "";
             if (grConf.isDominantA()) {
-                getLink = "sparql select ?o where { GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+"> {<"+reg+"> ?p ?o} }";
+                getLink = "sparql select ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> {<"+reg+"> ?p ?o} }";
             } else {
-                getLink = "sparql select ?o where { GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+"> {?o ?p <"+reg+">} }";
+                getLink = "sparql select ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> {?o ?p <"+reg+">} }";
             }
             
             stmt = null;
@@ -471,14 +482,14 @@ public class FusionServlet extends HttpServlet {
             stmt.close();
             
             String getClassA = "sparql SELECT ?owlClass"
-                    + "  WHERE {GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+">"
+                    + "  WHERE {GRAPH <"+ grConf.getAllLinksGraph()+ ">"
                     + " { <"+reg+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n" +
-                      " GRAPH <"+(String)sess.getAttribute("t_graph")+"_"+dbConf.getDBName()+"A> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
+                      " GRAPH <" + grConf.getMetadataGraphA() + "> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
             
             String getClassB = "sparql SELECT ?owlClass"
-                    + "  WHERE {GRAPH <http://localhost:8890/DAV/all_links_"+dbConf.getDBName()+">"
+                    + "  WHERE {GRAPH <"+ grConf.getAllLinksGraph()+ ">"
                     + " { <"+reg+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n" +
-                      " GRAPH <"+(String)sess.getAttribute("t_graph")+"_"+dbConf.getDBName()+"B> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
+                      " GRAPH <"+ grConf.getMetadataGraphB() + "> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
             
             
             stmt = null;

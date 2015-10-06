@@ -1,12 +1,17 @@
 package gr.athenainnovation.imis.fusion.gis.gui.workers;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
+import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
+import com.hp.hpl.jena.query.Syntax;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
@@ -16,7 +21,10 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
  * Keeps info about graph names and given endpoints.
  */
 public class GraphConfig {
-    private String graphA, graphB, endpointA, endpointB, endpointLoc, endpointT;
+    private String graphA, graphB, graphL, endpointA, endpointB, endpointL, endpointLoc, endpointT;
+    private String metadataGraphA, metadataGraphB, targetGraph, targetTempGraph;
+    private String allLinksGraph, allClusterGraph, clusterGraph, linksGraph, sampleLinksGraph;
+    
     private boolean dominantA;
     
     private List<String> geoPropertiesA;
@@ -81,6 +89,110 @@ public class GraphConfig {
         geoPropertiesB = new ArrayList<>();
         geoTypesA = new ArrayList<>();
         geoTypesB = new ArrayList<>();
+    }
+
+    public GraphConfig(String graphA, String graphB, String endpointA, String endpointB, String endLoc, String endL, String graphL){
+        this.graphA = checkNotNull(graphA, "graph name cannot be null.");
+        this.graphB = checkNotNull(graphB, "graph name cannot be null.");
+        this.endpointA = checkNotNull(endpointA, "endpoint cannot be null.");
+        this.endpointB = checkNotNull(endpointB, "endpoint cannot be null.");
+        this.endpointLoc = endLoc;
+        this.dominantA = true;
+        this.graphL = graphL;
+        this.endpointL = endL;
+        
+        geoPropertiesA = new ArrayList<>();
+        geoPropertiesB = new ArrayList<>();
+        geoTypesA = new ArrayList<>();
+        geoTypesB = new ArrayList<>();
+    }
+
+    public String getSampleLinksGraph() {
+        return sampleLinksGraph;
+    }
+
+    public void setSampleLinksGraph(String sampleLinksGraph) {
+        this.sampleLinksGraph = sampleLinksGraph;
+    }
+
+    public String getAllLinksGraph() {
+        return allLinksGraph;
+    }
+
+    public void setAllLinksGraph(String allLinksGraph) {
+        this.allLinksGraph = allLinksGraph;
+    }
+
+    public String getAllClusterGraph() {
+        return allClusterGraph;
+    }
+
+    public void setAllClusterGraph(String allClusterGraph) {
+        this.allClusterGraph = allClusterGraph;
+    }
+
+    public String getClusterGraph() {
+        return clusterGraph;
+    }
+
+    public void setClusterGraph(String clusterGraph) {
+        this.clusterGraph = clusterGraph;
+    }
+
+    public String getLinksGraph() {
+        return linksGraph;
+    }
+
+    public void setLinksGraph(String linksGraph) {
+        this.linksGraph = linksGraph;
+    }
+
+    public String getMetadataGraphA() {
+        return metadataGraphA;
+    }
+
+    public void setMetadataGraphA(String metadataGraphA) {
+        this.metadataGraphA = metadataGraphA;
+    }
+
+    public String getMetadataGraphB() {
+        return metadataGraphB;
+    }
+
+    public void setMetadataGraphB(String metadataGraphB) {
+        this.metadataGraphB = metadataGraphB;
+    }
+
+    public String getTargetGraph() {
+        return targetGraph;
+    }
+
+    public void setTargetGraph(String targetGraph) {
+        this.targetGraph = targetGraph;
+    }
+
+    public String getTargetTempGraph() {
+        return targetTempGraph;
+    }
+
+    public void setTargetTempGraph(String targetTempGraph) {
+        this.targetTempGraph = targetTempGraph;
+    }
+    
+    public String getGraphL() {
+        return graphL;
+    }
+
+    public void setGraphL(String graphL) {
+        this.graphL = graphL;
+    }
+
+    public String getEndpointL() {
+        return endpointL;
+    }
+
+    public void setEndpointL(String endpointL) {
+        this.endpointL = endpointL;
     }
 
     public String getEndpointLoc() {
@@ -195,25 +307,41 @@ public class GraphConfig {
     }
     
     private void fillGeoProperties(String g, String s, Set<String> l, Set<String> t) {
-        String geoQuery = "SELECT distinct ?p bif:GeometryType(?geo) AS ?geo_t\n" +
-                          "WHERE\n" +
+        String geoQuery = "SELECT distinct ?pre bif:geometryType(?geo) AS ?geo_t \n" +
+                          "WHERE { \n" +
+                          "GRAPH <"+g+"> {\n" +
                           "  {\n" +
-                          "    ?s ?p ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n" +
-                          "  }";
-        //System.out.println("Graph "+geoQuery);
-        //System.out.println("Graph "+g);
+                          "    ?s ?pre ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n" +
+                          "  } } }";
+        System.out.println("Graph "+geoQuery);
+        System.out.println("Graph "+g);
+        System.out.println("Graph "+s);
         HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+        //Query query = QueryFactory.create();
         //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
+        //QueryFactory.parse(query, geoQuery, "", Syntax.syntaxSPARQL_11);
         QueryEngineHTTP qeh = new QueryEngineHTTP(s, geoQuery, authenticator);
-        qeh.addDefaultGraph(g);
-        QueryExecution queryExecution = qeh;
-        final ResultSet resultSet = queryExecution.execSelect();
-        
+
+        System.out.println("Requesting " + QueryEngineHTTP.supportedSelectContentTypes[3]);
+        System.out.println("Requesting " + QueryEngineHTTP.supportedSelectContentTypes[0]);
+        System.out.println("Requesting " + QueryEngineHTTP.supportedSelectContentTypes[1]);
+        String xmlType = "";
+        for (String type : QueryEngineHTTP.supportedSelectContentTypes) {
+            if (type.contains("xml")) {
+                xmlType = type;
+            }
+        }
+        qeh.setSelectContentType(xmlType);
+        //qeh.addDefaultGraph(g);
+        //QueryExecution queryExecution = qeh;
+        final ResultSet resultSet = qeh.execSelect();
+        /*
+        "WHERE\n" +
+        */
         while(resultSet.hasNext()) {
             final QuerySolution querySolution = resultSet.next();
-                    
-            final String geo = querySolution.getResource("?p").getURI();
-            final String geo_t = querySolution.getLiteral("?geo_t").getString();
+            final String geo = querySolution.get("?pre").toString();
+            final String geo_t = querySolution.get("?geo_t").toString();
             //System.out.println("Geo Type : "+geo_t);
             if ( geo.toLowerCase().contains("geometry") ) {
                 l.add(geo);
@@ -221,6 +349,6 @@ public class GraphConfig {
             }
         }
         
-        queryExecution.close();
+        qeh.close();
     }
 }

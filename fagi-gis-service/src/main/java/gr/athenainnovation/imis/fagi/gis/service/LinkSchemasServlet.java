@@ -230,31 +230,45 @@ public class LinkSchemasServlet extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
 
         JSONMatches matches = null;
+        HttpSession sess;
         
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-        SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
-        mapper.setDateFormat(outputFormat);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        HttpSession sess = request.getSession(true);
+        JSONLinkMatching lm;
+        JSONLinkProperties lp;
+        HashMap<String, String> links;
 
-        JSONLinkMatching lm = new JSONLinkMatching();
-        JSONLinkProperties lp = new JSONLinkProperties();
-        HashMap<String, String> links = (HashMap<String, String>) sess.getAttribute("links");
-
-        String s = request.getParameter("subject");
-        String targetGraph = (String) sess.getAttribute("t_graph");
+        String s;
+        String targetGraph;
+        GraphConfig grConf;
+        
         response.setContentType("application/json");
         try (PrintWriter out = response.getWriter()) {
+            
+            sess = request.getSession(false);
 
+            if (sess == null) {
+                out.print("{}");
+
+                return;
+            }
+        
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
+            mapper.setDateFormat(outputFormat);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        
+            lm = new JSONLinkMatching();
+            lp = new JSONLinkProperties();
+            links = (HashMap<String, String>) sess.getAttribute("links");
+
+            s = request.getParameter("subject");
+            targetGraph = (String) sess.getAttribute("t_graph");
+            grConf = (GraphConfig) sess.getAttribute("gr_conf");
             matches = new JSONMatches();
             VirtGraph vSet = null;
             DBConfig dbConf = (DBConfig) sess.getAttribute("db_conf");
-            //dbConf.setBulkDir((String)sess.getAttribute("bulk"));
-            GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
-            //System.out.println(dbConf.getDBName());
-
+            
             try {
                 vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
                         dbConf.getUsername(),
@@ -273,27 +287,17 @@ public class LinkSchemasServlet extends HttpServlet {
             lp.nodeB = links.get(s);
 
             VirtuosoImporter virtImp = (VirtuosoImporter) sess.getAttribute("virt_imp");
-            SchemaMatchState sms = virtImp.scanProperties(2, s);
+            SchemaMatchState sms = virtImp.scanProperties(3, s);
             matches.foundA = sms.foundA;
             matches.foundB = sms.foundB;
+            
+            sess.setAttribute("link_property_patternsA", sms.getPropertyList("A"));
+            sess.setAttribute("link_property_patternsB", sms.getPropertyList("B"));
             sess.setAttribute("link_predicates_matches", sms);
 
             for (int i = 0; i < 4; i++) {
-                //System.out.println("DEPTH: "+i);
                 StringBuilder query = new StringBuilder();
-                /*query.append("sparql SELECT ?pa1 ?oa1 ");
-                 for(int j = 0; j < i; j++) {
-                 int ind = j+2;
-                 int prev = ind - 1;
-                 query.append("?pa").append(ind).append(" ?oa").append(ind).append(" ");
-                 }
-                 query.append("?pb1 ?ob1 ");
-                 for(int j = 0; j < i; j++) {
-                 int ind = j+2;
-                 query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
-                 }
-                 query.append(" WHERE \n {\n");*/
-                query.append("sparql SELECT ?pa1 ?oa1 ");
+                query.append("SPARQL SELECT ?pa1 ?oa1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
@@ -306,29 +310,30 @@ public class LinkSchemasServlet extends HttpServlet {
                     query.append("?pb").append(ind).append(" ?ob").append(ind).append(" ");
                 }
                 query.append("\nWHERE\n{\n\n"
-                        + " { GRAPH <").append(targetGraph).append("_" + dbConf.getDBName() + "A> {<" + s + "> ?pa1 ?oa1 ");
+                        + " { GRAPH <").append(grConf.getMetadataGraphA()).append("> {<" + s + "> ?pa1 ?oa1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
-                    query.append(" . OPTIONAL {?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append("  ");
+                    query.append(" . ?oa").append(prev).append(" ?pa").append(ind).append(" ?oa").append(ind).append("  ");
                 }
-                for (int j = 0; j < i; j++) {
+                //for (int j = 0; j < i; j++) {
                     query.append(" } ");
-                }
-                query.append("}\n } UNION { \n" + "   GRAPH <").append(targetGraph).append("_" + dbConf.getDBName() + "B> {<" + s + "> ?pb1 ?ob1 ");
+                //}
+                query.append("\n } UNION { \n" + "   GRAPH <").append(grConf.getMetadataGraphB()).append("> {<" + s + "> ?pb1 ?ob1 ");
                 for (int j = 0; j < i; j++) {
                     int ind = j + 2;
                     int prev = ind - 1;
-                    query.append(" . OPTIONAL {?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append("  ");
+                    query.append(" . ?ob").append(prev).append(" ?pb").append(ind).append(" ?ob").append(ind).append("  ");
                 }
                 for (int j = 0; j < i; j++) {
-                    query.append(" } ");
+                    //query.append(" } ");
                 }
                 query.append("} }\n"
                         + "}\n"
                         + "");
 
-            //System.out.println(query.toString());
+                System.out.println(query.toString());
+                
                 PreparedStatement fetchProperties;
                 fetchProperties = virt_conn.prepareStatement(query.toString());
                 ResultSet propertiesRS = fetchProperties.executeQuery();
@@ -351,20 +356,13 @@ public class LinkSchemasServlet extends HttpServlet {
 
                         if (predicateA != null) {
                             if (predicateA.contains("posSeq")) {
-                                continue;
+                                //continue;
                             }
                         }
                         if (predicateB != null) {
                             if (predicateB.contains("posSeq")) {
-                                continue;
+                                //continue;
                             }
-                        }
-
-                        if (predicateA != null) {
-                            //predicateA = URLDecoder.decode(predicateA, "UTF-8");
-                        }
-                        if (predicateB != null) {
-                            //predicateB = URLDecoder.decode(predicateB, "UTF-8");
                         }
 
                         if (predicateA != null) {
@@ -386,6 +384,8 @@ public class LinkSchemasServlet extends HttpServlet {
                         }
 
                     }
+                    
+                    System.out.println("Chain A " + chainA);
 
                     if (chainA.length() > 0) {
                         int new_len = chainA.length() - 1;
@@ -419,11 +419,12 @@ public class LinkSchemasServlet extends HttpServlet {
             if ( vSet != null ) 
                 vSet.close();
             
+            
             lm.p = lp;
             lm.m = matches;
             //System.out.println(lp.propsA);
             //System.out.println(lp.propsB);
-            //System.out.println(mapper.writeValueAsString(lm));
+            System.out.println(mapper.writeValueAsString(lm));
             out.println(mapper.writeValueAsString(lm));
             /* TODO output your page here. You may use following sample code. */
         }

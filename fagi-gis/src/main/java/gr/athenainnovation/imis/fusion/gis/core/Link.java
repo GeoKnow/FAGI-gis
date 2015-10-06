@@ -1,11 +1,13 @@
 package gr.athenainnovation.imis.fusion.gis.core;
 
+import java.io.Serializable;
+
 /**
  * Represents a link between two RDF nodes.
  * @author Thomas Maroulis
  */
-public class Link {
-    private final String nodeA, nodeB;
+public class Link implements Serializable {
+    private String nodeA, nodeB;
     
     /**
      * Constructs a new link between two nodes.

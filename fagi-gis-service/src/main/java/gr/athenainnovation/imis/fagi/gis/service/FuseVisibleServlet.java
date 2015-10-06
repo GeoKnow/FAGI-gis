@@ -121,15 +121,22 @@ public class FuseVisibleServlet extends HttpServlet {
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
         
-        HttpSession sess = request.getSession(true);
-        GraphConfig grConf = (GraphConfig)sess.getAttribute("gr_conf");
-        DBConfig dbConf = (DBConfig)sess.getAttribute("db_conf");
+        HttpSession sess;
+        GraphConfig grConf;
+        DBConfig dbConf;
         
         try (PrintWriter out = response.getWriter()) {
-            //System.out.println(request.getParameter("top"));
-            //System.out.println(request.getParameter("right"));
-            //System.out.println(request.getParameter("bottom"));
-            //System.out.println(request.getParameter("left"));
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
+            grConf = (GraphConfig)sess.getAttribute("gr_conf");
+            dbConf = (DBConfig)sess.getAttribute("db_conf");
+            
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
             mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);

@@ -28,15 +28,20 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 //import java.sql.Connection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 //import java.util.logging.Level;
 //import java.util.logging.Logger;
 import javax.servlet.ServletConfig;
+import org.apache.commons.io.FileUtils;
 //import javax.servlet.http.HttpSession;
 
 /**
@@ -49,48 +54,42 @@ import javax.servlet.ServletConfig;
 public class LearningServlet extends HttpServlet {
     
     private static final String OS = System.getProperty("os.name").toLowerCase();
-    private static final String PATH = System.getProperty("user.home");   //when apache starts with sudo, this fails. returns /root 
-    //private static final String PATH_WIN = System.getenv("ProgramFiles");  //  C:\Program Files  
-    private static final String PATH_WIN = System.getenv("ProgramFiles(X86)");  //  C:\Program Files x86
-    
-    private static final String PATH_DOC = System.getProperty("user.home") + File.separatorChar + "My Documents";
-    
-    //private static final String PATH_WIN = "C:";
-    
-    /* //old paths.
-        private static final String LINUX_TAG_MODEL = PATH + "/FAGI_models/best_model";   
-        private static final String WINDOWS_TAG_MODEL = PATH_WIN + "\\FAGI_models\\best_model";   
-        private static final String LINUX_FUSIONS_MODEL = PATH + "/FAGI_models/model";
-        private static final String WINDOWS_FUSIONS_MODEL = PATH_WIN + "\\FAGI_models\\model";               
-        private static final String LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI_models/default_model";
-        private static final String WINDOWS_DEFAULT_FUSIONS_MODEL = PATH_WIN + "\\FAGI_models\\default_model";
-        private static final String LINUX_MAP_FILE = PATH + "/FAGI_models/Map";
-        private static final String WINDOWS_MAP_FILE = PATH_WIN + "\\FAGI_models\\Map";
 
-        private static final String LINUX_TRAIN_FILE = PATH + "/FAGI_models/trainFile.ser";
-        private static final String WINDOWS_TRAIN_FILE = PATH_WIN + "\\FAGI_models\\trainFile.ser";   
-    */
-       
-    private static final String LINUX_TAG_MODEL = PATH + "/FAGI_models/best_model";   
-    private static final String WINDOWS_TAG_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\best_model";   
-    private static final String LINUX_FUSIONS_MODEL = PATH + "/FAGI_models/model";
-    private static final String WINDOWS_FUSIONS_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\model";               
-    private static final String LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI_models/default_model";
-    private static final String WINDOWS_DEFAULT_FUSIONS_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\default_model";
-    private static final String LINUX_MAP_FILE = PATH + "/FAGI_models/Map";
-    private static final String WINDOWS_MAP_FILE = PATH_WIN + "\\FAGI-gis\\files\\ontology\\Map";
     
-    private static final String LINUX_TRAIN_FILE = PATH + "/FAGI_models/trainFile.ser";
+    //private static final String LINUX_HOME = PATH + "/FAGI_models";
+    //private static final String PATH_WIN = System.getenv("ProgramFiles");  //  C:\Program Files  
+    private static final String PATH_WIN = System.getenv("ProgramFiles(X86)");  //  C:\Program Files x86   
+    private static final String PATH_DOC = System.getProperty("user.home") + File.separatorChar + "My Documents";    
+    private static final String WINDOWS_TAG_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\best_model";      
+    private static final String WINDOWS_FUSIONS_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\model";                   
+    private static final String WINDOWS_DEFAULT_FUSIONS_MODEL = PATH_DOC + "\\FAGI-gis\\SVM_models\\default_model";   
+    private static final String WINDOWS_MAP_FILE = PATH_WIN + "\\FAGI-gis\\files\\ontology\\Map";       
     private static final String WINDOWS_TRAIN_FILE = PATH_DOC + "\\FAGI-gis\\SVM_models\\train_data\\trainFile.ser";      
     
-    private static final int TAG_REC_SIZE = 6;
-            
-    
-    private static boolean modelExists = true;
-    private static boolean isLinux = false;
-    private static EntitiesCart batchEntitiesCart;
 
     
+    //private static final String PATH = System.getProperty("user.home");   //when apache starts with sudo, this fails. returns /root    
+    //to resolve above issue, user home path will be resolved from the config file of the deb install phaze:
+    private static String PATH;// = "/usr/share/fagi-gis-service/config/user.conf";
+    //private static final String PATH = System.getProperty("user.home");   
+    private static String LINUX_TAG_MODEL;
+    //private static final String LINUX_TAG_MODEL = PATH + "/FAGI-gis models/best_model";
+    private static String LINUX_FUSIONS_MODEL;
+    //private static final String LINUX_FUSIONS_MODEL = PATH + "/FAGI-gis models/model";
+    private static String LINUX_DEFAULT_FUSIONS_MODEL;
+    //private static final String LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI-gis models/default_model";
+    private static String LINUX_MAP_FILE;
+    //private static final String LINUX_MAP_FILE = PATH + "/FAGI-gis models/Map";   
+    private static String LINUX_TRAIN_FILE;
+    //private static final String LINUX_TRAIN_FILE = PATH + "/FAGI-gis models/train/trainData.ser";  
+    private static final String MODELS_USR = "/usr/share/fagi-gis-service/models";    
+    
+    
+    private static final int TAG_REC_SIZE = 6;
+                
+    private static boolean modelExists = true;
+    private static boolean isLinux = false;
+    private static EntitiesCart batchEntitiesCart;    
     private FusionActions fusionActions;
     private MapPairFactory mapPairFactory;
     private EntitiesCart entitiesCart;
@@ -99,15 +98,32 @@ public class LearningServlet extends HttpServlet {
     private Map<Integer, String> idsWithMappings;
     private static final boolean NETBEANS = true;
     //private final Connection dbConn = null;
-    //private final HttpSession sess = null;
-    
+    //private final HttpSession sess = null;    
     
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);       
 //        System.out.println("base PATH linux = " + PATH);
 //        System.out.println("base PATH windows = " + PATH_WIN);
+        
+        System.out.println("NEW CODE chmod \n");
+        //getUserHome();
+        resolveLinuxPaths();
+        
+        
         System.out.println(FuserPanel.transformations);
+                      
+        File fagiModels = new File(MODELS_USR);
+        File pathToPaste = new File(PATH + "/FAGI-gis models");
+        System.out.println("fagiModels path: \n" + MODELS_USR);
+        System.out.println("user home path: \n" + PATH);
+        
+        try {
+            FileUtils.copyDirectory(fagiModels, pathToPaste);
+        } catch (IOException ex) {
+            Logger.getLogger(LearningServlet.class.getName()).log(Level.SEVERE, null, ex);
+        }        
+        
         
         isLinux = !OS.contains("win");
         
@@ -118,7 +134,8 @@ public class LearningServlet extends HttpServlet {
         entitiesCart = new EntitiesCart();
         mapPairFactory = new MapPairFactory(entitiesCart, fusionActions);
         //mapPairFactory.produceSomeTestEntities();
-
+        
+        
     }
     
     /**
@@ -237,8 +254,11 @@ public class LearningServlet extends HttpServlet {
              
             
             if (entitiesCart.isFull()) {
-                //writeTrainFileToDisk(entitiesCart);
+                writeTrainFileToDisk(entitiesCart);
+                entitiesCart = obtainTrainFileFromDisk();
                 initiateTraining();
+                //entitiesCart gets cleared after the trainWorker thread has finished.
+                
                 
             }
             else{
@@ -472,6 +492,36 @@ public class LearningServlet extends HttpServlet {
         }  
         return entitiesFromFile;
     }
+
+    private void getUserHome() {
+        //File config = new File("/usr/share/fagi-gis-service/config/user.conf");
+        List<String> lines = null;
+        try {
+            lines = Files.readAllLines(Paths.get("/usr/share/fagi-gis-service/config/user.conf"), Charset.forName("UTF-8"));
+        } catch (IOException ex) {
+            Logger.getLogger(LearningServlet.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        for(String line:lines){
+            String username = line;
+            PATH = "/home/" + username ;
+            System.out.println("HOME PATH: \n" + PATH);
+        } 
+    }
+
+    private void resolveLinuxPaths() {
+        //MODELS_USR = "/usr/share/fagi-gis-service/models"
+//        LINUX_TAG_MODEL = PATH + "/FAGI-gis models/best_model";
+//        LINUX_FUSIONS_MODEL = PATH + "/FAGI-gis models/model";
+//        LINUX_DEFAULT_FUSIONS_MODEL = PATH + "/FAGI-gis models/default_model";
+//        LINUX_MAP_FILE = PATH + "/FAGI-gis models/Map";
+//        LINUX_TRAIN_FILE = PATH + "/FAGI-gis models/train/trainData.ser";
+        
+        LINUX_TAG_MODEL = MODELS_USR + "/best_model";
+        LINUX_FUSIONS_MODEL = MODELS_USR + "/model";
+        LINUX_DEFAULT_FUSIONS_MODEL = MODELS_USR + "/default_model";
+        LINUX_MAP_FILE = MODELS_USR + "/Map";
+        LINUX_TRAIN_FILE = MODELS_USR + "/train/trainData.ser";
+    }
     
     private static class JSONPredictions {
         
@@ -500,3 +550,21 @@ public class LearningServlet extends HttpServlet {
         }
     }      
 }
+
+// read paths from config file
+
+/*//        List<String> lines = null;
+//        try {
+//            lines = Files.readAllLines(Paths.get(PATH_CONFIG), Charset.forName("UTF-8"));
+//        } catch (IOException ex) {
+//            Logger.getLogger(LearningServlet.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//        for(String line:lines){
+//            if(line.contains("Documents")){
+//                PATH_DOC = line.substring(line.indexOf("=")+1);
+//                System.out.println(PATH_DOC);
+//                
+//            }
+//          
+//        } 
+*/

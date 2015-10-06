@@ -73,21 +73,23 @@ public class CreateLinkServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
-        DBConfig dbConf;
-        GraphConfig grConf;
-        VirtGraph vSet = null;
-        PreparedStatement stmt = null;
-        PreparedStatement stmtAddGeomA = null;
-        PreparedStatement stmtAddGeomB = null;
-        Connection dbConn = null;
-        ResultSet rs = null;
-        List<FusionState> fs = null;
-        String tGraph = null;
-        String nodeA = null;
-        String nodeB = null;
-        String dom = null;
-        String domSub = null;
-        HttpSession sess = null;
+        
+        // per requsest state
+        DBConfig                dbConf;
+        GraphConfig             grConf;
+        VirtGraph               vSet = null;
+        PreparedStatement       stmt = null;
+        PreparedStatement       stmtAddGeomA = null;
+        PreparedStatement       stmtAddGeomB = null;
+        Connection              dbConn = null;
+        ResultSet               rs = null;
+        List<FusionState>       fs = null;
+        String                  tGraph ;
+        String                  nodeA ;
+        String                  nodeB ;
+        String                  dom ;
+        String                  domSub ;
+        HttpSession             sess ;
     
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
@@ -120,6 +122,36 @@ public class CreateLinkServlet extends HttpServlet {
             vSet.close();
             
             out.println("{}");
+        } finally {
+            
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException ex) {
+                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if (stmtAddGeomA != null) {
+                try {
+                    stmtAddGeomA.close();
+                } catch (SQLException ex) {
+                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if (stmtAddGeomA != null) {
+                try {
+                    stmtAddGeomA.close();
+                } catch (SQLException ex) {
+                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if (dbConn != null) {
+                try {
+                    dbConn.close();
+                } catch (SQLException ex) {
+                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
         }
     }
 
@@ -186,7 +218,7 @@ public class CreateLinkServlet extends HttpServlet {
             ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
             //queryStr.append("WITH <"+fusedGraph+"> ");
             queryStr.append("INSERT DATA { ");
-            queryStr.append("GRAPH <http://localhost:8890/DAV/links_" + dbConf.getDBName() + "> { ");
+            queryStr.append("GRAPH <"+ grConf.getAllLinksGraph()+ "> { ");
 
             boolean makeSwap = validateLinking(grConf, vSet, nodeA, nodeB);
             
@@ -238,7 +270,7 @@ public class CreateLinkServlet extends HttpServlet {
             queryStr = new ParameterizedSparqlString();
             //queryStr.append("WITH <"+fusedGraph+"> ");
             queryStr.append("INSERT DATA { ");
-            queryStr.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ");
+            queryStr.append("GRAPH <"+ grConf.getAllLinksGraph()+ "> { ");
             
             queryStr.appendIri(subject);
             queryStr.append(" ");
@@ -286,7 +318,7 @@ public class CreateLinkServlet extends HttpServlet {
                 //System.out.println("is local "+isLocalEndpoint(endpointA));
                 if (endpointLoc2.equals(grConf.getEndpointA())) {
                     getFromA.append("sparql INSERT\n");
-                    getFromA.append("  { GRAPH <").append(tGraph).append("_" + dbConf.getDBName() + "A" + "> {\n");
+                    getFromA.append("  { GRAPH <").append(grConf.getMetadataGraphA()).append("> {\n");
                     if (grConf.isDominantA()) {
                         getFromA.append(" <" + nodeA + "> ?p ?o1 . \n");
                     } else {
@@ -316,7 +348,7 @@ public class CreateLinkServlet extends HttpServlet {
                 //System.out.println("is local "+isLocalEndpoint(endpointA));
                 if (endpointLoc2.equals(grConf.getEndpointB())) {
                     getFromB.append("sparql INSERT\n");
-                    getFromB.append("  { GRAPH <").append(tGraph).append("_" + dbConf.getDBName() + "B" + "> {\n");
+                    getFromB.append("  { GRAPH <").append(grConf.getMetadataGraphB()).append("> {\n");
                     if (grConf.isDominantA()) {
                         getFromB.append(" <" + nodeA + "> ?p ?o1 . \n");
                     } else {
@@ -351,6 +383,8 @@ public class CreateLinkServlet extends HttpServlet {
                 stmt = virt_conn.prepareStatement(getFromB.toString());
                 stmt.executeUpdate();
 
+                stmt.close();
+                
                 updated = true;
             } catch (VirtuosoException ve) {
                 if (ve.getLocalizedMessage().contains("deadlock")) {

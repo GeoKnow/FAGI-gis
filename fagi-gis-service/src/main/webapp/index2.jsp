@@ -26,27 +26,49 @@
     
     <body>
         <%
-            String str = request.getParameter("dataset-a");
+            String str = request.getParameter("dataset-l");
             if ( str == null ) 
-                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+                request.setAttribute("dataset-l", "http://localhost:8890/DAV/links_postgis1");
+                //request.setAttribute("dataset-l", "http://generator.geoknow.eu/resource/RdfImport_1441965089653");
+            else
+                request.setAttribute("dataset-l", request.getParameter("dataset-l"));
+            
+            str = request.getParameter("endpoint-l");
+            if ( str == null ) 
+                request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
+                //request.setAttribute("endpoint-l", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
+                //request.setAttribute("endpoint-l", "http://fagi.guests.ipsyp.dom:8891/sparql");
+            else
+                request.setAttribute("endpoint-l", request.getParameter("endpoint-l"));
+            
+            
+            str = request.getParameter("dataset-a");
+            if ( str == null ) 
+                //request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+                request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
             else
                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
             
             str = request.getParameter("dataset-b");
             if ( str == null ) 
-                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+                //request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+                request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
             else
                 request.setAttribute("dataset-b", request.getParameter("dataset-b"));
             
             str = request.getParameter("endpoint-a");
             if ( str == null ) 
-                request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
+                //request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
+                request.setAttribute("endpoint-a", "http://generator.geoknow.eu:8080/generator/rest/session/8d631684-e4cc-4bae-bea7-656c07f78663");
+                //request.setAttribute("endpoint-a", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
                 request.setAttribute("endpoint-a", request.getParameter("endpoint-a"));
             
             str = request.getParameter("endpoint-b");
             if ( str == null ) 
-                request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
+                //request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
+                request.setAttribute("endpoint-b", "http://generator.geoknow.eu:8080/generator/rest/session/8d631684-e4cc-4bae-bea7-656c07f78663");
+                //request.setAttribute("endpoint-b", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
                 request.setAttribute("endpoint-b", request.getParameter("endpoint-b"));
             
@@ -152,9 +174,9 @@
         </div>
         
         <!--
-        <div class="tooltip" style="top: 200px; left: 500px;" id="fg-debug-popup">
-            <button id="close-debug-menu-btn" type="button" class="btn btn-primary">X</button>
-            Debug Output
+        <div class="tooltip"id="fg-info-popup">
+            <button id="close-info-menu-btn" type="button" class="btn btn-primary">X</button>
+            <label id="fg-info-label" style="font-size: 22px;">Debug Output</label>
         </div>
         -->
         
@@ -252,7 +274,7 @@
                             </form></td>
                     </tr>
                 </table> </div>
-            <div style="float:right; width:100%; height:98%;" id="map"></div>
+            <div style="float:right; width:100%; height:96%;" id="map"></div>
         </div>
 
         <!--
@@ -301,6 +323,8 @@
                             </tbody>
                         </table>
                         SPARQL Endpoint Target: <input type="text" name="t_end" class="centered" value="<% out.println(request.getAttribute("target-endpoint"));%>" title="SPARQL Endpoint of the target dataset."/>
+                        Links Graph: <input id="fg-links-graph" type="text" name="l_graph" class="centered" value="<% out.println(request.getAttribute("dataset-l"));%>" title="Name of the links Datase.t(Leave empty if provided through file)"/>
+                        SPARQL Endpoint Links <input id="fg-links-endpoint" type="text" name="l_end" class="centered" value="<% out.println(request.getAttribute("endpoint-l"));%>" title="SPARQL Endpoint of the links dataset.(Leave empty if provided through file)"/>
                         <!--Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/fagi/Desktop/"/>-->
                         <!-- Linux IMIS 
                         Bulk Insert Dir: <input type="text" name="bulk" class="centered" value="/home/nick/Projects/FAGI-gis-master/"/> -->
@@ -604,9 +628,10 @@
                 </div>
             </div>
         </div>
-        <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+        <!--sript src="//code.jquery.com/jquery-1.10.2.js"></script>-->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
-        <script src="//code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
+        <script src="https://code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
         <script type="text/javascript" src="js/jquery.autocomplete.min.js"></script>
         <script type="text/javascript" src="js/jquery.easing-sooper.js"></script>
         <script type="text/javascript" src="js/jquery.sooperfish.js"></script>

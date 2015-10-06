@@ -8,7 +8,13 @@ package gr.athenainnovation.imis.fagi.gis.service;
 import com.google.common.collect.Maps;
 import com.hp.hpl.jena.graph.BulkUpdateHandler;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
+import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
+import com.hp.hpl.jena.query.QueryFactory;
+import com.hp.hpl.jena.query.QuerySolution;
+import static com.hp.hpl.jena.query.ResultSetFactory.result;
+import com.hp.hpl.jena.query.ResultSetFormatter;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.RDFNode;
@@ -35,12 +41,14 @@ import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -67,6 +75,8 @@ import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
+import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoPreparedStatement;
 import virtuoso.jena.driver.VirtGraph;
 
 /**
@@ -79,11 +89,7 @@ public class LinksServlet extends HttpServlet {
 
     private static final String SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
     private static final org.apache.log4j.Logger LOG = org.apache.log4j.Logger.getLogger(FusionGISCLI.class);
-    DBConfig dbConf;
-    GraphConfig grConf;
-    Boolean makeSwap;
-    VirtGraph vSet = null;
-
+    
     private class FAGILogger implements ErrorListener {
 
         @Override
@@ -100,7 +106,7 @@ public class LinksServlet extends HttpServlet {
         return s.hasNext() ? s.next() : "";
     }
 
-    private boolean validateLinking(String lsub, String rsub) throws SQLException {
+    private boolean validateLinking(HttpSession sess, String lsub, String rsub, VirtGraph vSet, GraphConfig grConf) throws SQLException {
         Connection virt_conn = vSet.getConnection();
         PreparedStatement stmt;
         ResultSet rs;
@@ -112,31 +118,43 @@ public class LinksServlet extends HttpServlet {
         
         HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
         //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-        QueryEngineHTTP qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
-        qeh.addDefaultGraph(grConf.getGraphA());
-        QueryExecution queryExecution = qeh;
-        com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
+        QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(grConf.getEndpointA(), QueryFactory.create(checkA), authenticator);
+        //qeh.addDefaultGraph(grConf.getGraphA());
+        //QueryExecution queryExecution = qeh;
+        qeh.setSelectContentType((String)sess.getAttribute("content-type"));
+        System.out.println((String)sess.getAttribute("content-type"));
+        com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
             
         boolean foundInA = false;
         boolean foundInB = false;
+        for ( String s : resultSet.getResultVars())
+            System.out.println("Result : " + s);
+        
+        //System.out.println(ResultSetFormatter.asText(resultSet));
+        //ResultSetFormatter.outputAsRDF(System.out, "RDF/XML", resultSet);
+
         while (resultSet.hasNext()) {
+            QuerySolution qs = resultSet.nextSolution();
+            System.out.println("Link subject from A " + qs.getResource("?o").toString());
             foundInA = true;
             break;
         }
         
-        queryExecution.close();
+        qeh.close();
         
-        qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
-        qeh.addDefaultGraph(grConf.getGraphA());
-        queryExecution = qeh;
-        resultSet = queryExecution.execSelect();
+        qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointB(), QueryFactory.create(checkB), authenticator);
+        qeh.setSelectContentType((String)sess.getAttribute("content-type"));
+        //qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
+        //qeh.addDefaultGraph(grConf.getGraphB());
+        //queryExecution = qeh;
+        resultSet = qeh.execSelect();
         
         while (resultSet.hasNext()) {
             foundInB = true;
             break;
         }
 
-        queryExecution.close();
+        qeh.close();
 
         System.out.println("Found in A : " + foundInA + " B : " + foundInB);
         if (foundInA) {
@@ -146,6 +164,40 @@ public class LinksServlet extends HttpServlet {
         }
     }
 
+    InputStream fetchLinkFromEndpoint(HttpSession sess, String e, String g) {
+        StringBuilder sb = new StringBuilder(1024);
+        sb.append("");
+        String q = "SELECT * WHERE { GRAPH <"+g+"> { ?s ?p ?o } }";
+        System.out.println(q);
+        final Query query = QueryFactory.create(q);
+        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+        QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(e, QueryFactory.create(query), authenticator);
+        //qeh.addDefaultGraph(grConf.getGraphA());
+        //QueryExecution queryExecution = qeh;
+        qeh.setSelectContentType((String)sess.getAttribute("content-type"));
+        final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+                
+        while ( resultSet.hasNext() ) {
+            final QuerySolution querySolution = resultSet.next();
+
+            final RDFNode subject = querySolution.get("?s");
+            final RDFNode objectNode1 = querySolution.get("?p"); //lat
+            final RDFNode objectNode2 = querySolution.get("?o"); //long
+            
+            System.out.println("Subject "+subject.toString());
+            System.out.println("Subject "+objectNode1.toString());
+            System.out.println("Subject "+objectNode2.toString());
+            sb.append("<"+subject+">");
+            sb.append(" ");
+            sb.append("<"+SAME_AS+">");
+            sb.append(" ");
+            sb.append("<"+objectNode2+">");
+            sb.append(" . ");
+        }
+        
+        return new ByteArrayInputStream(sb.toString().getBytes(StandardCharsets.UTF_8));
+    }
+    
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -158,16 +210,30 @@ public class LinksServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException, InterruptedException, JWNLException, ExecutionException, Exception {
         response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
+        
+        // Per request state
+        PrintWriter     out = response.getWriter();
+        DBConfig        dbConf = null;
+        GraphConfig     grConf =  null;
+        Boolean         makeSwap = false;
+        VirtGraph       vSet = null;
+        HttpSession     sess;
+
         try {
-            HttpSession sess = request.getSession(true);
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                out.print("{}");
+                
+                return;
+            }
+            
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
-            //String ret = createBulkLoadDir((String)sess.getAttribute("bulk"));
-            //dbConf.setBulkDir(ret);
-
-            System.out.println(dbConf.getDBName());
-
+            for ( String s : QueryEngineHTTP.supportedSelectContentTypes) {
+                if ( s.contains("xml"))
+                    sess.setAttribute("content-type", s);
+            }
             try {
                 vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
                         dbConf.getUsername(),
@@ -179,13 +245,17 @@ public class LinksServlet extends HttpServlet {
 
                 return;
             }
-
-            Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
-            String filename = getFilename(filePart);
-            InputStream filecontent = filePart.getInputStream();
-
-    //Scanner sc = new Scanner(filecontent);
-            //System.out.println("Filename "+filename);
+            
+            //Checking Content Type allows to know if there is a file provided
+            InputStream filecontent;
+            if (request.getContentType() != null) {
+                Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
+                String filename = getFilename(filePart);
+                filecontent = filePart.getInputStream();
+            } else {
+                filecontent = fetchLinkFromEndpoint(sess, grConf.getEndpointL(), grConf.getGraphL());
+            }
+            
             List<Link> output = new ArrayList<Link>();
             HashMap<String, String> linksHashed = (HashMap<String, String>)sess.getAttribute("links");
             
@@ -205,7 +275,7 @@ public class LinksServlet extends HttpServlet {
                 if (object.isResource()) {
                     nodeB = object.asResource().getURI();
                 }
-                makeSwap = validateLinking(nodeA, nodeB);
+                makeSwap = validateLinking(sess, nodeA, nodeB, vSet, grConf);
 
                 break;
             }
@@ -215,8 +285,7 @@ public class LinksServlet extends HttpServlet {
             while (iter.hasNext()) {
                 final Statement statement = iter.nextStatement();
                 final String nodeA = statement.getSubject().getURI();
-            //System.out.println(nodeA);
-                //System.in.r;
+            
                 final String nodeB;
                 final RDFNode object = statement.getObject();
                 if (object.isResource()) {
@@ -266,9 +335,9 @@ public class LinksServlet extends HttpServlet {
             fetchedGeomsB.clear();
             
             sess.setAttribute("links", linksHashed);
+            sess.setAttribute("links_list", output);
             int i = 0;
             for (Link l : output) {
-                fetchedGeomsB.add(l.getNodeB());
                 fetchedGeomsA.add(l.getNodeA());
                 fetchedGeomsA.add(l.getNodeB());
                 String check = "chk" + i;
@@ -289,11 +358,11 @@ public class LinksServlet extends HttpServlet {
                 geometryFuser.clean();
             }
 
-            createLinksGraph(output, vSet.getConnection(), dbConf.getBulkDir());
+            createLinksGraph(output, vSet.getConnection(), grConf, dbConf.getBulkDir());
 
             //final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
             Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
-            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, PostGISImporter.DATASET_A, sourceADataset, null, errListen);
+            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, errListen);
             datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override
                 public void propertyChange(PropertyChangeEvent evt) {
@@ -304,7 +373,7 @@ public class LinksServlet extends HttpServlet {
             });
 
             Dataset sourceBDataset = new Dataset(grConf.getEndpointB(), grConf.getGraphB(), "");
-            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, PostGISImporter.DATASET_B, sourceBDataset, null, errListen);
+            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_B, sourceBDataset, null, errListen);
             datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override
                 public void propertyChange(PropertyChangeEvent evt) {
@@ -315,38 +384,50 @@ public class LinksServlet extends HttpServlet {
             });
 
             //startTime = System.nanoTime();
-            System.out.println("Execute");
+            //System.out.println("Execute");
             datasetAImportWorker.execute();
             datasetBImportWorker.execute();
-            System.out.println("Print");
+            //System.out.println("Print");
             datasetAImportWorker.get();
             datasetBImportWorker.get();
 
-                //endTime = System.nanoTime();
             VirtuosoImporter virtImp = new VirtuosoImporter(dbConf, null, (String) sess.getAttribute("t_graph"), true, grConf);
             Connection virt_conn = vSet.getConnection();
+            
+            // Recreate target temp graph
+            final String dropTempGraph = "SPARQL DROP SILENT GRAPH <"+ grConf.getTargetTempGraph()+  ">";
+            final String createTempGraph = "SPARQL CREATE GRAPH <"+ grConf.getTargetTempGraph()+ ">";
 
+            PreparedStatement stmt;
+            stmt = virt_conn.prepareStatement(dropTempGraph);
+            stmt.execute();
+            
+            stmt = virt_conn.prepareStatement(dropTempGraph);
+            stmt.execute();
+
+            stmt.close();
+            
             sess.setAttribute("virt_imp", virtImp);
             virtImp.createLinksGraph(output);
 
             //virtImp.importGeometriesToVirtuoso((String) sess.getAttribute("t_graph"));
             virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true);
-            final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + ">";
+            final String createGraph = "sparql CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
 
-            String fetchFiltersA = "";
-            String fetchFiltersB = "";
+            String fetchFiltersA;
+            String fetchFiltersB;
             if (grConf.isDominantA()) {
-                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + (String) sess.getAttribute("t_graph") + "_" + dbConf.getDBName() + "A> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + (String) sess.getAttribute("t_graph") + "_" + dbConf.getDBName() + "B> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() +"> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
             } else {
-                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + (String) sess.getAttribute("t_graph") + "_" + dbConf.getDBName() + "A> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + (String) sess.getAttribute("t_graph") + "_" + dbConf.getDBName() + "B> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
             }
 
-            System.out.println(fetchFiltersA);
-            System.out.println(fetchFiltersB);
-            System.out.println(grConf.getGraphA());
-            System.out.println(grConf.getGraphB());
+            System.out.println("Fetch from graph A : "+fetchFiltersA);
+            System.out.println("Fetch from graph B : " + fetchFiltersB);
+            System.out.println("Graph A : " + grConf.getGraphA());
+            System.out.println("Graph B : " + grConf.getGraphB());
 
             PreparedStatement filtersStmt;
             filtersStmt = virt_conn.prepareStatement(fetchFiltersA);
@@ -364,10 +445,10 @@ public class LinksServlet extends HttpServlet {
                     }
                 }
             }
+            
             rs.close();
             filtersStmt.close();
-            System.out.println("Printing out");
-            System.out.println(out.toString());
+            
             out.print("+>>>+");
 
             filtersStmt = virt_conn.prepareStatement(fetchFiltersB);
@@ -385,11 +466,14 @@ public class LinksServlet extends HttpServlet {
                     }
                 }
             }
-        //HttpSession sess = request.getSession(true);
-            //sess.setAttribute("linksList", output );
-
-            System.out.println(out.toString());
+            
+            rs.close();
+            filtersStmt.close();
+            
         } finally {
+            if ( vSet != null ) {
+                vSet.close();
+            }
             out.close();
         }
     }
@@ -450,9 +534,9 @@ public class LinksServlet extends HttpServlet {
         return ret;
     }
 
-    public void createLinksGraph(List<Link> lst, Connection virt_conn, String bulkInsertDir) throws SQLException, IOException {
-        final String dropGraph = "sparql DROP SILENT GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + ">";
-        final String createGraph = "sparql CREATE GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + ">";
+    public void createLinksGraph(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) throws SQLException, IOException {
+        final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getAllLinksGraph()+  ">";
+        final String createGraph = "sparql CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
         //final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
 
         //PreparedStatement endStmt;
@@ -463,15 +547,19 @@ public class LinksServlet extends HttpServlet {
         dropStmt = virt_conn.prepareStatement(dropGraph);
         dropStmt.execute();
 
+        dropStmt.close();
+        
         PreparedStatement createStmt;
         createStmt = virt_conn.prepareStatement(createGraph);
         createStmt.execute();
         
+        createStmt.close();
+        
         //bulkInsertLinks(lst, virt_conn, bulkInsertDir);
-        SPARQLInsertLink(lst);
+        SPARQLInsertLink(lst, grConf);
     }
 
-    private void SPARQLInsertLink(List<Link> l) {
+    private void SPARQLInsertLink(List<Link> l, GraphConfig grConf) {
         boolean updating = true;
         int addIdx = 0;
         int cSize = 1;
@@ -481,7 +569,7 @@ public class LinksServlet extends HttpServlet {
                 ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
                 //queryStr.append("WITH <"+fusedGraph+"> ");
                 queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "> { ");
+                queryStr.append("GRAPH <"+ grConf.getAllLinksGraph()+ "> { ");
                 int top = 0;
                 if (cSize >= l.size()) {
                     top = l.size();
@@ -540,10 +628,10 @@ public class LinksServlet extends HttpServlet {
         }
     }
 
-    private void bulkInsertLinks(List<Link> lst, Connection virt_conn, String bulkInsertDir) throws FileNotFoundException, SQLException {
+    private void bulkInsertLinks(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) throws FileNotFoundException, SQLException {
         long starttime, endtime;
         /*
-         set2 = getVirtuosoSet("http://localhost:8890/DAV/all_links", db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
+         set2 = getVirtuosoSet("+ grConf.getAllLinksGraph()+ , db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
          BulkUpdateHandler buh2 = set2.getBulkUpdateHandler();*/
         LOG.info(ANSI_YELLOW + "Loaded " + lst.size() + " links" + ANSI_RESET);
 
@@ -559,7 +647,7 @@ public class LinksServlet extends HttpServlet {
         //dir = dir.replace(":","");
         PrintWriter out = new PrintWriter(bulkInsertDir + "bulk_inserts/selected_links.nt");
         final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('" + dir + "bulk_inserts/selected_links.nt'), '', "
-                + "'" + "http://localhost:8890/DAV/all_links_" + dbConf.getDBName() + "')";
+                + "'" + grConf.getAllLinksGraph()+ "')";
         //int stop = 0;
         if (lst.size() > 0) {
 
