@@ -5,12 +5,13 @@
  */
 package gr.athenainnovation.imis.fusion.gis.utils;
 
-import java.util.Enumeration;
-import org.apache.log4j.Appender;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.util.Scanner;
 
 /**
  *
@@ -18,6 +19,39 @@ import org.apache.log4j.Logger;
  */
 public class Utilities {
 
+    public static String convertStreamToString(java.io.InputStream is) {
+        Scanner s = new Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
+    }
     
+    public static boolean isLocalInstance(InetAddress addr) {
+        
+        // Check if the address is a valid special local or loop back
+        if (addr.isAnyLocalAddress() || addr.isLoopbackAddress())
+            return true;
+
+        // Check if the address is defined on any interface
+        try {
+            return NetworkInterface.getByInetAddress(addr) != null;
+        } catch (SocketException e) {
+            return false;
+        }
+        
+    }
     
+    public static boolean isURLToLocalInstance(String url) {
+        boolean isLocal;
+        
+        // Check if the address is defined on any interface
+        try {
+            URL endURL = new URL(url);
+            isLocal = isLocalInstance(InetAddress.getByName(endURL.getHost())); //"localhost" for localhost
+        }catch(UnknownHostException unknownHost) {
+            isLocal = false;
+        } catch (MalformedURLException ex) {
+            isLocal = false;
+        }
+        
+        return isLocal;
+    }
 }

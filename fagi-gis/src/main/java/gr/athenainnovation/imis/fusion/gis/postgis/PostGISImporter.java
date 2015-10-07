@@ -4,10 +4,12 @@ package gr.athenainnovation.imis.fusion.gis.postgis;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.logging.Level;
 import org.apache.log4j.Logger;
 
 
@@ -20,8 +22,7 @@ public class PostGISImporter {
     private static final Logger LOG = Logger.getLogger(PostGISImporter.class);
     private final String dbName;
     private final Connection connection;
-    
-    private static final String DB_URL = "jdbc:postgresql:";
+    private boolean initialized = false;
     
     /**
      * Represents dataset A in the db schema ('left' dataset).
@@ -40,15 +41,26 @@ public class PostGISImporter {
     /**
      * Constructs a new instance of PostGISImporter and immediately establishes a connection to the specified database.
      * @param dbConfig database configuration object
-     * @throws SQLException  
      */
-    public PostGISImporter(final DBConfig dbConfig) throws SQLException {        
+    public PostGISImporter(final DBConfig dbConfig) {  
         dbName = dbConfig.getDBName();
         final String dbUsername = dbConfig.getDBUsername();
         final String dbPassword = dbConfig.getDBPassword();
         
         this.connection = connect(dbName, dbUsername, dbPassword);
-        prepareStatements();
+        
+        if ( this.connection == null ) {
+            setInitialized(false);
+            return;
+        }
+        
+        if ( !prepareStatements() ) {
+            setInitialized(false);
+            return;
+        }
+        
+        setInitialized(true);
+
     }
     
     /**
@@ -57,6 +69,7 @@ public class PostGISImporter {
      * @param endpoint dataset endpoint URL
      * @param graph dataset graph URI
      * @throws SQLException  
+     * @deprecated Abandoned idea to laod info in PostGIS
      */
     public void loadInfo(final int dataset, final String endpoint, final String graph) throws SQLException {        
         PreparedStatement insertInfo = null;
@@ -94,7 +107,8 @@ public class PostGISImporter {
      * @param object statement object
      * @param objectLang optional of statement object language or {@link Optional#absent()} if no language tag exists
      * @param objectDatatype optional of statement object datatype or {@link Optional#absent()} if no datatype exists
-     * @throws SQLException  
+     * @throws SQLException 
+     * @deprecated Abandoned idea to laod metadata in PostGIS
      */
     /*
     public void loadMetadata(final int dataset, final String subject, final String predicate, final String object, final Optional<String> objectLang, final Optional<String> objectDatatype) 
@@ -139,10 +153,10 @@ public class PostGISImporter {
      * @param dataset {@link PostGISImporter#DATASET_A} for dataset A or {@link PostGISImporter#DATASET_B} for dataset B
      * @param subject subject with which the provided geometry is associated
      * @param geometry geometry in WKT serialisation format
-     * @throws SQLException  
      */
-    public void loadGeometry(final int dataset, final String subject, final String geometry) throws SQLException {       
+    public boolean loadGeometry(final int dataset, final String subject, final String geometry) {       
         PreparedStatement insertGeometry;
+        boolean success = true;
         
         try {
             if(dataset == DATASET_A) {
@@ -151,74 +165,155 @@ public class PostGISImporter {
             else {
                 insertGeometry = insertGeometryB;
             }
-            //System.out.println(subject+ " with geom "+geometry);
+
             insertGeometry.setString(1, subject);
             insertGeometry.setString(2, geometry);
             
-            //insertGeometry.executeUpdate();
             insertGeometry.addBatch();
-            //connection.commit();
+            
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during connection");
+            LOG.debug("SQLException thrown during connection : \n" + ex.getMessage());
+            
+            success = false;
         }
-        catch (SQLException ex) {
-            connection.rollback();
-            throw ex;
+        
+        try {
+            if ( ! success )
+                connection.rollback();
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during rollback");
+            LOG.debug("SQLException thrown during rollback : \n" + ex.getMessage());
+            LOG.debug("SQLException thrown during rollback : \n" + ex.getSQLState());
+            
+            success = false;
         }
+        
+        return success;
     }
     
-    public void finishUpdates() throws SQLException {
-        insertGeometryA.executeBatch();
-        insertGeometryB.executeBatch();
-        connection.commit();
-        //System.out.println("geom commited 1");
+    public boolean finishUpdates() {
+        boolean success = true;
+        
+        // Execute previously constructed lists of Updates and commit
+        try {
+            
+            insertGeometryA.executeBatch();
+            insertGeometryB.executeBatch();
+            connection.commit();
+
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during batch update");
+            LOG.debug("SQLException thrown during batch update : \n" + ex.getMessage());
+            LOG.debug("SQLException thrown during batch update : \n" + ex.getSQLState());
+
+            success = false;
+        }
+        
+        return success;
     }
+    
     /**
      * Releases all database resources and terminates connection to it.
-     * @throws SQLException 
+     * @return success
      */
-    public void clean() throws SQLException {
-//        if(insertMetadataA != null) {
-//            insertMetadataA.close();
-//        }
-//        if(insertMetadataB != null) {
-//            insertMetadataB.close();
-//        }
-        if(insertGeometryA != null) {
-            insertGeometryA.close();
-        }
-        if(insertGeometryB != null) {
-            insertGeometryB.close();
-        }
+    public boolean clean() {
+        boolean success = true;
+        try {
+            if (insertGeometryA != null) {
+                insertGeometryA.close();
+            }
+            if (insertGeometryB != null) {
+                insertGeometryB.close();
+            }
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during statement cleanup");
+            LOG.debug("SQLException thrown during statement cleanup : \n" + ex.getMessage());
+            LOG.debug("SQLException thrown during statement cleanup : \n" + ex.getSQLState());
 
-        if(connection != null) {
-            connection.close();
+            success = false;
         }
-        System.out.println("POSTGISImporter, statements closed");
+        
+        try {
+            if (connection != null) {
+                connection.close();
+            }
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during connection close");
+            LOG.debug("SQLException thrown during connection close : \n" + ex.getMessage());
+            LOG.debug("SQLException thrown during connection close : \n" + ex.getSQLState());
+
+            success = false;
+        }
+        
+        //System.out.println("POSTGISImporter, statements closed");
         LOG.info(ANSI_YELLOW+"Database connection closed."+ANSI_RESET);
+        
+        return success;
+        
     }
     
     // Establish connection to database
-    private Connection connect(final String dbName, final String dbUsername, final String dbPassword) throws SQLException {
-        final String url = DB_URL.concat(dbName);
-        final Connection dbConn = DriverManager.getConnection(url, dbUsername, dbPassword);
-        dbConn.setAutoCommit(false);
+    private Connection connect(final String dbName, final String dbUsername, final String dbPassword) {
+        Connection conn = null;
+        boolean success = false;
+        try {
+            final String url = Constants.DB_URL.concat(dbName);
+            conn = DriverManager.getConnection(url, dbUsername, dbPassword);
+            conn.setAutoCommit(false);
+            
+            success = true;
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during connection");
+            LOG.debug("SQLException thrown during connection : \n" + ex.getMessage());
+            
+            success = false;
+        }
+        
+        try {
+            if ( success == false && connection != null )
+                conn.close();
+        } catch (SQLException exroll) {
+            LOG.trace("SQLException thrown during rollback");
+            LOG.debug("SQLException thrown during rollback : \n" + exroll.getMessage());
+
+        }
+        
         LOG.info(ANSI_YELLOW+"Connection to db established."+ANSI_RESET);
-        return dbConn;
+        
+        return connection;
     }
     
-    private void prepareStatements() throws SQLException {
+    private boolean prepareStatements() {
         //final String insertMetadataAString = "INSERT INTO dataset_a_metadata (subject, predicate, object, object_lang, object_datatype) VALUES (?, ?, ?, ?, ?)";
         //final String insertMetadataBString = "INSERT INTO dataset_b_metadata (subject, predicate, object, object_lang, object_datatype) VALUES (?, ?, ?, ?, ?)";
+        boolean success = true;
+        
         final String insertGeometryAString = "INSERT INTO dataset_a_geometries (subject, geom) VALUES (?, ST_GeometryFromText(?, 4326))";
         final String insertGeometryBString = "INSERT INTO dataset_b_geometries (subject, geom) VALUES (?, ST_GeometryFromText(?, 4326))";
         
-        //insertMetadataA = connection.prepareStatement(insertMetadataAString);
-        //insertMetadataB = connection.prepareStatement(insertMetadataBString);
-        insertGeometryA = connection.prepareStatement(insertGeometryAString);
-        insertGeometryB = connection.prepareStatement(insertGeometryBString);
+        try {
+            insertGeometryA = connection.prepareStatement(insertGeometryAString);
+            insertGeometryB = connection.prepareStatement(insertGeometryBString);
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during creation of INSERT queries");
+            LOG.debug("SQLException thrown during creation of INSERT queries : \n" + ex.getMessage());
+
+            success = false;
+        }
+        return success;
     }
 
     public String getDbName() {
         return dbName;
+    }
+
+    public final boolean isInitialized() {
+        return initialized;
+    }
+
+    public final void setInitialized(boolean initialized) {
+        this.initialized = initialized;
     }
     
 }

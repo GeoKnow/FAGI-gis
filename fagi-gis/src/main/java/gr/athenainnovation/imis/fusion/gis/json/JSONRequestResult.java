@@ -9,7 +9,7 @@ package gr.athenainnovation.imis.fusion.gis.json;
  * Used as return status report for Requests
  * @author nick
  */
-class JSONRequestResult {
+public class JSONRequestResult {
 
     // -1 error 0 success
     int             statusCode;

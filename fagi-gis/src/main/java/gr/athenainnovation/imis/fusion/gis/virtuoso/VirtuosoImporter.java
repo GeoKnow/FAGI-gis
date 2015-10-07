@@ -15,6 +15,7 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
@@ -91,13 +92,7 @@ import virtuoso.jena.driver.VirtuosoUpdateRequest;
 
 public final class VirtuosoImporter {
     
-    private static final Logger LOG = Logger.getLogger(VirtuosoImporter.class);
-    private static final String DB_URL = "jdbc:postgresql:";
-    private static final String WKT = "http://www.opengis.net/ont/geosparql#asWKT";
-    private static final String HAS_GEOMETRY = "http://www.opengis.net/ont/geosparql#hasGeometry";
-    private static final String LAT = "http://www.w3.org/2003/01/geo/wgs84_pos#lat";
-    private static final String LON = "http://www.w3.org/2003/01/geo/wgs84_pos#long";
-    private static final String SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";    
+    private static final Logger LOG = Logger.getLogger(VirtuosoImporter.class);   
     private String links_graph = "http://localhost:8890/DAV/links";
     private static final String del_wgs_graph = "http://localhost:8890/DAV/del_wgs";
     private static final String del_geom_graph = "http://localhost:8890/DAV/del_geom";
@@ -105,8 +100,7 @@ public final class VirtuosoImporter {
     private static final String PATH_TO_WORDNET_LINUX = "/usr/share/wordnet";
     private static final String PATH_TO_WORDNET_OS_X = "/usr/local/WordNet-3.0/dict";
     private static final String PATH_TO_WORDNET_WINDOWS = "C:\\Program Files (x86)\\WordNet\\2.1\\dict";
-    private static final int BATCH_SIZE = 10000;
-    private static final int SAMPLE_SIZE = 20;   
+     
     private final String graphB; 
     private final String graphA;
     private String bulkInsertDir;    
@@ -519,7 +513,7 @@ public final class VirtuosoImporter {
         Connection connection = null;
         System.out.println("Upload of geometries about to commence");
         try{      
-            connection = DriverManager.getConnection(DB_URL + dbName, dbUsername, dbPassword);
+            connection = DriverManager.getConnection(Constants.DB_URL + dbName, dbUsername, dbPassword);
             //String deleteQuery;
             String subject;
             String fusedGeometry;
@@ -775,7 +769,7 @@ public final class VirtuosoImporter {
             
             endtime =  System.nanoTime();
             LOG.info("Metadata main parsed in "+(endtime-starttime)/1000000000f);
-            i += BATCH_SIZE;
+            i += Constants.BATCH_SIZE;
             count++;
         }
         //System.out.println(count);
@@ -1359,7 +1353,7 @@ public final class VirtuosoImporter {
                     + "{\n"
                     + "SELECT ?s ?p ?o WHERE {\n"
                     + " GRAPH <"+gr_c.getLinksGraph()+ "> { ?s ?p ?o }\n"
-                    + "} limit " + SAMPLE_SIZE + "\n"
+                    + "} limit " + Constants.SAMPLE_SIZE + "\n"
                     + "}}";
 
             PreparedStatement dropSamplesStmt;
@@ -1775,19 +1769,6 @@ public final class VirtuosoImporter {
         }
     }
     
-    public static boolean isThisMyIpAddress(InetAddress addr) {
-        // Check if the address is a valid special local or loop back
-        if (addr.isAnyLocalAddress() || addr.isLoopbackAddress())
-            return true;
-
-        // Check if the address is defined on any interface
-        try {
-            return NetworkInterface.getByInetAddress(addr) != null;
-        } catch (SocketException e) {
-            return false;
-        }
-    }
-    
     private String getJWNL(String pathToWordnet){
         
         String jwnlXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -1952,7 +1933,7 @@ public final class VirtuosoImporter {
         
             endtime =  System.nanoTime();
             LOG.info("Metadata parsed in "+(endtime-starttime)/1000000000f);
-            i += BATCH_SIZE;
+            i += Constants.BATCH_SIZE;
             //count++;
         }
         endtime =  System.nanoTime();
@@ -2069,9 +2050,9 @@ public final class VirtuosoImporter {
         int i = nextIndex;
         //System.out.println(i);
         if ( lst.size() > 0 ) {
-            while (i < lst.size() && i < nextIndex + BATCH_SIZE ) {
+            while (i < lst.size() && i < nextIndex + Constants.BATCH_SIZE ) {
                 Link link = lst.get(i);
-                String triple = "<"+link.getNodeA()+"> <"+SAME_AS+"> <"+link.getNodeB()+"> .";
+                String triple = "<"+link.getNodeA()+"> <"+Constants.SAME_AS+"> <"+link.getNodeB()+"> .";
         
                 out.println(triple);
                 i++;
@@ -2100,13 +2081,13 @@ public final class VirtuosoImporter {
     private void SPARQLInsertLinksBatch(List<Link> l, int nextIndex) throws VirtuosoException, BatchUpdateException {
         StringBuilder sb = new StringBuilder();
         sb.append("SPARQL WITH <"+gr_c.getLinksGraph()+ "> INSERT {");
-        sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
+        sb.append("`iri(??)` <"+Constants.SAME_AS+"> `iri(??)` . } ");
         System.out.println("Statement " + sb.toString());
         VirtuosoConnection conn = (VirtuosoConnection) set.getConnection();
         VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
                 
         int start = nextIndex;
-        int end = nextIndex + BATCH_SIZE;
+        int end = nextIndex + Constants.BATCH_SIZE;
         if ( end > l.size() ) {
             end = l.size();
         }
@@ -2131,7 +2112,7 @@ public final class VirtuosoImporter {
     private void SPARQLInsertLinks(List<Link> l) throws VirtuosoException, BatchUpdateException {
         StringBuilder sb = new StringBuilder();
         sb.append("SPARQL WITH <"+ gr_c.getAllLinksGraph()+"> INSERT {");
-        sb.append("`iri(??)` <"+SAME_AS+"> `iri(??)` . } ");
+        sb.append("`iri(??)` <"+Constants.SAME_AS+"> `iri(??)` . } ");
         System.out.println("Statement " + sb.toString());
         VirtuosoConnection conn = (VirtuosoConnection) set.getConnection();
         VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
@@ -2252,7 +2233,7 @@ public final class VirtuosoImporter {
             
             for(Link link : lst) {
                 //if (stop++ > 1000) break;
-                String triple = "<"+link.getNodeA()+"> <"+SAME_AS+"> <"+link.getNodeB()+"> .";
+                String triple = "<"+link.getNodeA()+"> <"+Constants.SAME_AS+"> <"+link.getNodeB()+"> .";
         
                 out.println(triple);
             }
