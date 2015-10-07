@@ -6,6 +6,7 @@
 
 package gr.athenainnovation.imis.fagi.gis.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QuerySolution;
@@ -13,6 +14,7 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.io.IOException;
 import java.io.PrintWriter;
 import javax.servlet.ServletException;
@@ -21,6 +23,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import org.apache.log4j.Logger;
 
 /**
  *
@@ -29,11 +32,8 @@ import javax.servlet.http.HttpSession;
 @WebServlet(name = "DatasetsServlet", urlPatterns = {"/DatasetsServlet"})
 public class DatasetsServlet extends HttpServlet {
 
-    private static final String HAS_GEOMETRY_REGEX = "http://www.opengis.net/ont/geosparql#hasGeometry";
-    private static final String AS_WKT_REGEX = "http://www.opengis.net/ont/geosparql#asWKT";
-    private static final String LONG_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#long";
-    private static final String LAT_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#lat";
-    
+    private static final Logger LOG = Log.getClassFAGILogger(DatasetsServlet.class);    
+
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -49,7 +49,7 @@ public class DatasetsServlet extends HttpServlet {
         // Per request state
         PrintWriter                 out = response.getWriter();
         HttpSession                 sess;
-
+        ObjectMapper                mapper = new ObjectMapper();
         GraphConfig                 graphConf;
         DBConfig                    dbConf;
                     
@@ -59,33 +59,30 @@ public class DatasetsServlet extends HttpServlet {
             if ( sess == null ) {
                 out.print("{}");
                 
+                out.close();
+                
                 return;
             }
 
             graphConf = new GraphConfig("", "", "", "");
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             
-            System.out.println("Dominant A " + request.getParameter("d_dom"));
+            //System.out.println("Dominant A " + request.getParameter("d_dom"));
 
+            LOG.trace("Is A the dominant dataset? : " + request.getParameter("d_dom"));
             if (request.getParameter("d_dom") != null) {
-                //System.out.println("Entered");
                 String param = request.getParameter("d_dom").toString().trim();
-                //System.out.println("Entered "+param);
                 if (param.equalsIgnoreCase("true")) {
-                    //System.out.println("Entered");
+                    LOG.info("Dominant dataset is A");
                     graphConf.setDominantA(true);
+                } else {
+                    LOG.info("Dominant dataset is B");
                 }
             } else {
-                graphConf.setDominantA(false);
+                graphConf.setDominantA(true);
             }
-            graphConf.setEndpointA(request.getParameter("da_end"));
-            graphConf.setEndpointB(request.getParameter("db_end"));
-            graphConf.setGraphA(request.getParameter("da_name"));
-            graphConf.setGraphB(request.getParameter("db_name"));
-            graphConf.setEndpointT(request.getParameter("t_end"));
-            graphConf.setGraphL(request.getParameter("l_graph"));
-            graphConf.setEndpointL(request.getParameter("l_end"));
-
+            
+            // Construct the names of all TEMP Graphs that FAGI uses
             final String allLinksGraph = "http://localhost:8890/DAV/all_links_" + dbConf.getDBName()+"_fagi" ;
             final String linksGraph = "http://localhost:8890/DAV/links_" + dbConf.getDBName()+"_fagi" ;
             final String sampleLinksGraph = "http://localhost:8890/DAV/links_sample_" + dbConf.getDBName()+"_fagi" ;
@@ -96,6 +93,15 @@ public class DatasetsServlet extends HttpServlet {
             final String metadataGraphB = targetGraph + "_" + dbConf.getDBName() + "B_fagi" ;
             final String targetTempGraph = targetGraph+"_"+dbConf.getDBName()+"_fagi" ;
             
+            // Set graph configuration
+            graphConf.setEndpointA(request.getParameter("da_end"));
+            graphConf.setEndpointB(request.getParameter("db_end"));
+            graphConf.setGraphA(request.getParameter("da_name"));
+            graphConf.setGraphB(request.getParameter("db_name"));
+            graphConf.setEndpointT(request.getParameter("t_end"));
+            graphConf.setGraphL(request.getParameter("l_graph"));
+            graphConf.setEndpointL(request.getParameter("l_end"));
+            // [FAGI_TODOs] add checks 
             graphConf.setTargetGraph(targetGraph);
             graphConf.setTargetTempGraph(targetTempGraph);
             graphConf.setAllLinksGraph(allLinksGraph);
@@ -106,8 +112,8 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setMetadataGraphA(metadataGraphA);
             graphConf.setMetadataGraphB(metadataGraphB);
             
-            System.out.println("Endpoint " + graphConf.getEndpointL() + " ");
-            System.out.println("Graph " + graphConf.getGraphL() + " ");
+            LOG.info("Endpoint " + graphConf.getEndpointL());
+            LOG.info("Graph " + graphConf.getGraphL());
 
             sess.setAttribute("gr_conf", graphConf);
             sess.setAttribute("t_graph", targetGraph);

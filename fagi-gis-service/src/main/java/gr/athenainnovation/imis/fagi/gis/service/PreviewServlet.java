@@ -85,16 +85,51 @@ public class PreviewServlet extends HttpServlet {
             }
             
             final GeometryFuser geometryFuser = new GeometryFuser();
-            try {
-                geometryFuser.connect(dbConf);
-                geometryFuser.loadLinks(lst);
+            /*
+            succeeded = geometryFuser.connect(dbConf);
+            if ( !succeeded ) {
+                LOG.trace("Connection for link upload failed");
+                LOG.debug("Connection for link upload failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem connecting to PostGIS for link upload");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
             }
-            catch (SQLException ex) {
-                throw new RuntimeException(ex);
+            
+            succeeded = geometryFuser.loadLinks(output);
+            if ( !succeeded ) {
+                LOG.trace("Link upload failed");
+                LOG.debug("Link upload failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with PostGIS link upload");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
             }
-            finally {
-                geometryFuser.clean();
-            } 
+            
+            succeeded = geometryFuser.clean();
+            if ( !succeeded ) {
+                LOG.trace("Cleanup failed");
+                LOG.debug("Cleanup failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with link upload cleanup");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }*/
+            
+            geometryFuser.connect(dbConf);
+            geometryFuser.loadLinks(lst);
             
             try{
                 Class.forName("org.postgresql.Driver");     

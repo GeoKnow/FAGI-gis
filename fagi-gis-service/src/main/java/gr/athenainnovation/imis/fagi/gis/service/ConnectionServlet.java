@@ -6,10 +6,10 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.hp.hpl.jena.shared.JenaException;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
-import static gr.athenainnovation.imis.fusion.gis.utils.Constants.DB_URL;
-import static gr.athenainnovation.imis.fusion.gis.utils.Log.getClassFAGILogger;
-import gr.athenainnovation.imis.fusion.gis.json.;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -38,7 +38,7 @@ import virtuoso.jena.driver.VirtGraph;
 @WebServlet(name = "ConnectionServlet", urlPatterns = {"/ConnectionServlet"})
 public class ConnectionServlet extends HttpServlet {
     
-    private static final Logger LOG = getClassFAGILogger(ConnectionServlet.class);    
+    private static final Logger LOG = Log.getClassFAGILogger(ConnectionServlet.class);    
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -59,11 +59,11 @@ public class ConnectionServlet extends HttpServlet {
     DBConfig                dbConf = new DBConfig("", "", "", "", "", "", "");
     Connection              dbConn = null;
     ObjectMapper            mapper = new ObjectMapper();
-    JSONRequestResult         ret = null;      
+    JSONRequestResult       ret = null;      
         
     try {
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        ret = new JSONConnRequest();
+        //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        ret = new JSONRequestResult();
         
         // The only time we need a session if one does not exist
         sess = request.getSession(true);
@@ -150,7 +150,7 @@ public class ConnectionServlet extends HttpServlet {
             //final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
             //databaseInitialiser.initialise(st.getDbConf());
                 
-            String url = DB_URL;
+            String url = Constants.DB_URL;
             dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
             //dbConn.setAutoCommit(false);
         } catch(SQLException sqlex) {

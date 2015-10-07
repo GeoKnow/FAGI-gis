@@ -5,10 +5,13 @@
  */
 package gr.athenainnovation.imis.fagi.gis.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.hp.hpl.jena.graph.BulkUpdateHandler;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
 import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryException;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
@@ -25,6 +28,7 @@ import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
+import static com.vividsolutions.jts.triangulate.quadedge.QuadEdgeTriangle.nextIndex;
 import gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
@@ -35,8 +39,12 @@ import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_R
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.ImporterWorker;
+import gr.athenainnovation.imis.fusion.gis.json.JSONLoadLinksResult;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
 import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -49,6 +57,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -61,7 +70,6 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -75,7 +83,9 @@ import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
+import org.apache.log4j.Logger;
 import virtuoso.jdbc4.VirtuosoConnection;
+import virtuoso.jdbc4.VirtuosoException;
 import virtuoso.jdbc4.VirtuosoPreparedStatement;
 import virtuoso.jena.driver.VirtGraph;
 
@@ -87,25 +97,8 @@ import virtuoso.jena.driver.VirtGraph;
 @MultipartConfig
 public class LinksServlet extends HttpServlet {
 
-    private static final String SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
-    private static final org.apache.log4j.Logger LOG = org.apache.log4j.Logger.getLogger(FusionGISCLI.class);
+    private static final Logger LOG = Log.getClassFAGILogger(LinksServlet.class);
     
-    private class FAGILogger implements ErrorListener {
-
-        @Override
-        public void notifyError(String message) {
-            System.out.println("ERROR:" + message);
-        }
-
-    }
-
-    private static FAGILogger errListen;
-
-    static String convertStreamToString(java.io.InputStream is) {
-        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
-    }
-
     private boolean validateLinking(HttpSession sess, String lsub, String rsub, VirtGraph vSet, GraphConfig grConf) throws SQLException {
         Connection virt_conn = vSet.getConnection();
         PreparedStatement stmt;
@@ -113,88 +106,85 @@ public class LinksServlet extends HttpServlet {
 
         String checkA = "SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + lsub + "> ?p ?o } }";
         String checkB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + lsub + "> ?p ?o } }";
-        System.out.println("Found in A : " + checkA + " B : " + checkB);
-        System.out.println("Left sub : " + lsub + " Right sub : " + rsub);
+        //System.out.println("Found in A : " + checkA + " B : " + checkB);
+        //System.out.println("Left sub : " + lsub + " Right sub : " + rsub);
         
         HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-        //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
         QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(grConf.getEndpointA(), QueryFactory.create(checkA), authenticator);
-        //qeh.addDefaultGraph(grConf.getGraphA());
-        //QueryExecution queryExecution = qeh;
         qeh.setSelectContentType((String)sess.getAttribute("content-type"));
-        System.out.println((String)sess.getAttribute("content-type"));
+        //System.out.println((String)sess.getAttribute("content-type"));
         com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
             
         boolean foundInA = false;
         boolean foundInB = false;
-        for ( String s : resultSet.getResultVars())
-            System.out.println("Result : " + s);
         
         //System.out.println(ResultSetFormatter.asText(resultSet));
         //ResultSetFormatter.outputAsRDF(System.out, "RDF/XML", resultSet);
 
-        while (resultSet.hasNext()) {
-            QuerySolution qs = resultSet.nextSolution();
-            System.out.println("Link subject from A " + qs.getResource("?o").toString());
+        if (resultSet.hasNext())
             foundInA = true;
-            break;
-        }
         
         qeh.close();
         
         qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointB(), QueryFactory.create(checkB), authenticator);
         qeh.setSelectContentType((String)sess.getAttribute("content-type"));
-        //qeh = new QueryEngineHTTP(grConf.getEndpointA(), checkA, authenticator);
-        //qeh.addDefaultGraph(grConf.getGraphB());
-        //queryExecution = qeh;
         resultSet = qeh.execSelect();
         
-        while (resultSet.hasNext()) {
+        if (resultSet.hasNext())
             foundInB = true;
-            break;
-        }
 
         qeh.close();
 
-        System.out.println("Found in A : " + foundInA + " B : " + foundInB);
         if (foundInA) {
             return false;
         } else {
+            LOG.info("Need to swap link subjects order");
             return true;
         }
     }
 
-    InputStream fetchLinkFromEndpoint(HttpSession sess, String e, String g) {
+    /**
+     * Fetch links from provided endpoint and store them in memory
+     *
+     * @param sess servlet session
+     * @param e endpoint URL
+     * @param g graph name
+     * @return InputStream to read links
+     */
+    private InputStream fetchLinkFromEndpoint(HttpSession sess, String e, String g) {
         StringBuilder sb = new StringBuilder(1024);
-        sb.append("");
+        // This query remives the limitation of having only SAME_AS predicates
+        // but we will need additional checks
         String q = "SELECT * WHERE { GRAPH <"+g+"> { ?s ?p ?o } }";
-        System.out.println(q);
-        final Query query = QueryFactory.create(q);
-        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-        QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(e, QueryFactory.create(query), authenticator);
-        //qeh.addDefaultGraph(grConf.getGraphA());
-        //QueryExecution queryExecution = qeh;
-        qeh.setSelectContentType((String)sess.getAttribute("content-type"));
-        final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
-                
-        while ( resultSet.hasNext() ) {
-            final QuerySolution querySolution = resultSet.next();
+        
+        try {
+            final Query query = QueryFactory.create(q);
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(e, QueryFactory.create(query), authenticator);
+            qeh.setSelectContentType((String) sess.getAttribute("content-type"));
+            final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
 
-            final RDFNode subject = querySolution.get("?s");
-            final RDFNode objectNode1 = querySolution.get("?p"); //lat
-            final RDFNode objectNode2 = querySolution.get("?o"); //long
+            while (resultSet.hasNext()) {
+                final QuerySolution querySolution = resultSet.next();
+                final RDFNode subject = querySolution.get("?s");
+                final RDFNode objectNode1 = querySolution.get("?p"); //lat
+                final RDFNode objectNode2 = querySolution.get("?o"); //long
+
+                sb.append("<" + subject + ">");
+                sb.append(" ");
+                sb.append("<" + Constants.SAME_AS + ">");
+                sb.append(" ");
+                sb.append("<" + objectNode2 + ">");
+                sb.append(" . ");
+            }
+        } catch (QueryException qex) {
+            LOG.trace("QueryException thrown");
+            LOG.debug("QueryException thrown : \n" + qex.getMessage() );
             
-            System.out.println("Subject "+subject.toString());
-            System.out.println("Subject "+objectNode1.toString());
-            System.out.println("Subject "+objectNode2.toString());
-            sb.append("<"+subject+">");
-            sb.append(" ");
-            sb.append("<"+SAME_AS+">");
-            sb.append(" ");
-            sb.append("<"+objectNode2+">");
-            sb.append(" . ");
+            return null;
         }
         
+        // Return UTF-8 formatted byte array
         return new ByteArrayInputStream(sb.toString().getBytes(StandardCharsets.UTF_8));
     }
     
@@ -208,25 +198,47 @@ public class LinksServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException, InterruptedException, JWNLException, ExecutionException, Exception {
+            throws ServletException {
         response.setContentType("text/html;charset=UTF-8");
         
         // Per request state
-        PrintWriter     out = response.getWriter();
-        DBConfig        dbConf = null;
-        GraphConfig     grConf =  null;
-        Boolean         makeSwap = false;
-        VirtGraph       vSet = null;
-        HttpSession     sess;
-
+        PrintWriter             out = null;
+        DBConfig                dbConf = null;
+        GraphConfig             grConf =  null;
+        Boolean                 makeSwap = false;
+        VirtGraph               vSet = null;
+        ObjectMapper            mapper = new ObjectMapper();
+        HttpSession             sess;
+        JSONLoadLinksResult     ret;
+        JSONRequestResult       res;
+        boolean                 succeeded = false;
+        
         try {
-            sess = request.getSession(false);
-            
-            if ( sess == null ) {
-                out.print("{}");
+            try {
+                out = response.getWriter();
+            } catch (IOException ex) {
+                LOG.trace("IOException thrown in servlet Writer");
+                LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage() );
                 
                 return;
             }
+            sess = request.getSession(false);
+            
+            if ( sess == null ) {
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Failed to get session");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }
+            
+            StringBuilder htmlCode = new StringBuilder();
+            ret = new JSONLoadLinksResult();
+            res = new JSONRequestResult();
+            ret.setResult(res);
             
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
@@ -239,14 +251,21 @@ public class LinksServlet extends HttpServlet {
                         dbConf.getUsername(),
                         dbConf.getPassword());
             } catch (JenaException connEx) {
-                System.out.println(connEx.getMessage());
-                out.println("Connection to virtuoso failed");
+                LOG.trace("JenaException thrown");
+                LOG.debug("JenaException thrown : \n" + connEx.getMessage() );
+                //out.println("Connection to virtuoso failed");
+                //out.close();
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Connection to virtuoso failed");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
                 out.close();
-
+            
                 return;
             }
             
-            //Checking Content Type allows to know if there is a file provided
+            // Checking Content Type allows to know if there is a file provided
             InputStream filecontent;
             if (request.getContentType() != null) {
                 Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
@@ -256,6 +275,18 @@ public class LinksServlet extends HttpServlet {
                 filecontent = fetchLinkFromEndpoint(sess, grConf.getEndpointL(), grConf.getGraphL());
             }
             
+            if ( filecontent == null ) {
+                LOG.trace("NULL InputStream");
+                LOG.debug("NULL InputStream");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem creating input stream for links");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+            }
+            
+            // Helps to keep links as both a List and Ma ap
             List<Link> output = new ArrayList<Link>();
             HashMap<String, String> linksHashed = (HashMap<String, String>)sess.getAttribute("links");
             
@@ -290,10 +321,8 @@ public class LinksServlet extends HttpServlet {
                 final RDFNode object = statement.getObject();
                 if (object.isResource()) {
                     nodeB = object.asResource().getURI();
-                    //System.out.println(nodeB);
                 } else {
                     nodeB = "";
-                    //throw new ParseException("Failed to parse link (object not a resource): " + statement.toString(), 0);
                 }
 
                 if (!makeSwap) {
@@ -305,7 +334,6 @@ public class LinksServlet extends HttpServlet {
                 }
                 
                 Link l;
-                //System.out.println("Make swap is " + makeSwap);
                 if (!makeSwap) {
                     l = new Link(nodeA, nodeB);
                     linksHashed.put(nodeA, nodeB);
@@ -341,28 +369,71 @@ public class LinksServlet extends HttpServlet {
                 fetchedGeomsA.add(l.getNodeA());
                 fetchedGeomsA.add(l.getNodeB());
                 String check = "chk" + i;
-                out.println("<li><div>");
-                out.println("<label for=\"" + check + "\"><input type=\"checkbox\" value=\"\"name=\"" + check + "\" id=\"" + check + "\" />" + l.getNodeA() + "<-->" + l.getNodeB() + "</label>");
-                out.println("</div>\n</li>");
+                htmlCode.append("<li><div>");
+                htmlCode.append("<label for=\"" + check + "\"><input type=\"checkbox\" value=\"\"name=\"" + check + "\" id=\"" + check + "\" />" + l.getNodeA() + "<-->" + l.getNodeB() + "</label>");
+                htmlCode.append("</div>\n</li>");
+                //out.println("<li><div>");
+                //out.println("<label for=\"" + check + "\"><input type=\"checkbox\" value=\"\"name=\"" + check + "\" id=\"" + check + "\" />" + l.getNodeA() + "<-->" + l.getNodeB() + "</label>");
+                //out.println("</div>\n</li>");
                 i++;
             }
-            out.print("+>>>+");
+            
+            ret.setLinkListHTML(htmlCode.toString());
+            htmlCode.setLength(0);
+            
+            //out.print("+>>>+");
 
+            // Upload Links to PostGIS
             final GeometryFuser geometryFuser = new GeometryFuser();
-            try {
-                geometryFuser.connect(dbConf);
-                geometryFuser.loadLinks(output);
-            } catch (SQLException ex) {
-                throw new RuntimeException(ex);
-            } finally {
-                geometryFuser.clean();
+                
+            succeeded = geometryFuser.connect(dbConf);
+            if ( !succeeded ) {
+                LOG.trace("Connection for link upload failed");
+                LOG.debug("Connection for link upload failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem connecting to PostGIS for link upload");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }
+            
+            succeeded = geometryFuser.loadLinks(output);
+            if ( !succeeded ) {
+                LOG.trace("Link upload failed");
+                LOG.debug("Link upload failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with PostGIS link upload");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }
+            
+            succeeded = geometryFuser.clean();
+            if ( !succeeded ) {
+                LOG.trace("Cleanup failed");
+                LOG.debug("Cleanup failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with link upload cleanup");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
             }
 
+            // Upload links to Virtusoso graph
             createLinksGraph(output, vSet.getConnection(), grConf, dbConf.getBulkDir());
 
             //final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
             Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
-            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, errListen);
+            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, null);
             datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override
                 public void propertyChange(PropertyChangeEvent evt) {
@@ -373,7 +444,7 @@ public class LinksServlet extends HttpServlet {
             });
 
             Dataset sourceBDataset = new Dataset(grConf.getEndpointB(), grConf.getGraphB(), "");
-            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_B, sourceBDataset, null, errListen);
+            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_B, sourceBDataset, null, null);
             datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
                 @Override
                 public void propertyChange(PropertyChangeEvent evt) {
@@ -398,14 +469,30 @@ public class LinksServlet extends HttpServlet {
             final String dropTempGraph = "SPARQL DROP SILENT GRAPH <"+ grConf.getTargetTempGraph()+  ">";
             final String createTempGraph = "SPARQL CREATE GRAPH <"+ grConf.getTargetTempGraph()+ ">";
 
-            PreparedStatement stmt;
-            stmt = virt_conn.prepareStatement(dropTempGraph);
-            stmt.execute();
-            
-            stmt = virt_conn.prepareStatement(dropTempGraph);
-            stmt.execute();
+            try {
+                PreparedStatement stmt;
+                stmt = virt_conn.prepareStatement(dropTempGraph);
 
-            stmt.close();
+                stmt.execute();
+
+                stmt = virt_conn.prepareStatement(dropTempGraph);
+                stmt.execute();
+
+                stmt.close();
+
+            } catch (SQLException ex) {
+                LOG.trace("SQLException thrown");
+                LOG.debug("SQLException thrown : "+ex.getMessage());
+                LOG.debug("SQLException thrown : "+ex.getSQLState());
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with destroying Target Temporary graph");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }
             
             sess.setAttribute("virt_imp", virtImp);
             virtImp.createLinksGraph(output);
@@ -417,17 +504,17 @@ public class LinksServlet extends HttpServlet {
             String fetchFiltersA;
             String fetchFiltersB;
             if (grConf.isDominantA()) {
-                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() +"> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() +"> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
             } else {
-                fetchFiltersA = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "sparql select distinct(?o1) where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
             }
 
-            System.out.println("Fetch from graph A : "+fetchFiltersA);
-            System.out.println("Fetch from graph B : " + fetchFiltersB);
-            System.out.println("Graph A : " + grConf.getGraphA());
-            System.out.println("Graph B : " + grConf.getGraphB());
+            //System.out.println("Fetch from graph A : "+fetchFiltersA);
+            //System.out.println("Fetch from graph B : " + fetchFiltersB);
+            //System.out.println("Graph A : " + grConf.getGraphA());
+            //System.out.println("Graph B : " + grConf.getGraphB());
 
             PreparedStatement filtersStmt;
             filtersStmt = virt_conn.prepareStatement(fetchFiltersA);
@@ -440,7 +527,8 @@ public class LinksServlet extends HttpServlet {
                     //System.out.println(prop);
                     while (rs.next()) {
                         prop = rs.getString(1);
-                        out.println("<option value=\"" + prop + "\">" + prop + "</option>");
+                        htmlCode.append("<option value=\"" + prop + "\">" + prop + "</option>");
+                        //out.println("<option value=\"" + prop + "\">" + prop + "</option>");
                         //System.out.println(prop);
                     }
                 }
@@ -449,7 +537,10 @@ public class LinksServlet extends HttpServlet {
             rs.close();
             filtersStmt.close();
             
-            out.print("+>>>+");
+            ret.setFiltersListAHTML(htmlCode.toString());
+            htmlCode.setLength(0);
+            
+            //out.print("+>>>+");
 
             filtersStmt = virt_conn.prepareStatement(fetchFiltersB);
             rs = filtersStmt.executeQuery();
@@ -467,9 +558,19 @@ public class LinksServlet extends HttpServlet {
                 }
             }
             
+            ret.setFiltersListBHTML(htmlCode.toString());
+            
             rs.close();
             filtersStmt.close();
             
+        } catch (JsonProcessingException ex) {
+            LOG.trace("JsonProcessingException thrown");
+            LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
+            out.println("{}");
+
+            out.close();
+
+            return;
         } finally {
             if ( vSet != null ) {
                 vSet.close();
@@ -488,7 +589,7 @@ public class LinksServlet extends HttpServlet {
         return null;
     }
 
-    private String createBulkLoadDir(String dir) throws IOException {
+    private String createBulkLoadDir(String dir) {
         //dir = dir.replace("\\", "/");
         //dir = "/"+dir;
         //dir = dir.replace(":","");
@@ -534,9 +635,12 @@ public class LinksServlet extends HttpServlet {
         return ret;
     }
 
-    public void createLinksGraph(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) throws SQLException, IOException {
+    public boolean createLinksGraph(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) {
         final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getAllLinksGraph()+  ">";
         final String createGraph = "sparql CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
+        
+        boolean success = true;
+
         //final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
 
         //PreparedStatement endStmt;
@@ -544,88 +648,83 @@ public class LinksServlet extends HttpServlet {
         //endStmt.execute();
         PreparedStatement dropStmt;
         long starttime, endtime;
-        dropStmt = virt_conn.prepareStatement(dropGraph);
-        dropStmt.execute();
+        try {
+            dropStmt = virt_conn.prepareStatement(dropGraph);
+            dropStmt.execute();
+            dropStmt.close();
+            
+        } catch (SQLException ex) {
+            LOG.trace("Dropping "+grConf.getAllLinksGraph()+" failed");
+            LOG.debug("Dropping "+grConf.getAllLinksGraph()+" failed");
+            
+            success = false;
+            return success;
+        }
 
-        dropStmt.close();
-        
         PreparedStatement createStmt;
-        createStmt = virt_conn.prepareStatement(createGraph);
-        createStmt.execute();
+        try {
+            createStmt = virt_conn.prepareStatement(createGraph);
+            createStmt.execute();
+            createStmt.close();
+            
+        } catch (SQLException ex) {
+            LOG.trace("Creating "+grConf.getAllLinksGraph()+" failed");
+            LOG.debug("Creating "+grConf.getAllLinksGraph()+" failed");
+            
+            success = false;
+            return success;
+        }
         
-        createStmt.close();
         
         //bulkInsertLinks(lst, virt_conn, bulkInsertDir);
-        SPARQLInsertLink(lst, grConf);
+        success = SPARQLInsertLink(lst, grConf, virt_conn);
+        
+        return success;
     }
 
-    private void SPARQLInsertLink(List<Link> l, GraphConfig grConf) {
-        boolean updating = true;
-        int addIdx = 0;
-        int cSize = 1;
-        int sizeUp = 1;
-        while (updating) {
-            try {
-                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
-                //queryStr.append("WITH <"+fusedGraph+"> ");
-                queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <"+ grConf.getAllLinksGraph()+ "> { ");
-                int top = 0;
-                if (cSize >= l.size()) {
-                    top = l.size();
-                } else {
-                    top = cSize;
-                }
-                for (int i = addIdx; i < top; i++) {
-                    final String subject = l.get(i).getNodeA();
-                    final String subjectB = l.get(i).getNodeB();
-                    queryStr.appendIri(subject);
-                    queryStr.append(" ");
-                    queryStr.appendIri(SAME_AS);
-                    queryStr.append(" ");
-                    queryStr.appendIri(subjectB);
-                    queryStr.append(" ");
-                    queryStr.append(".");
-                    queryStr.append(" ");
-                }
-                queryStr.append("} }");
-                //System.out.println("Print "+queryStr.toString());
+    private boolean SPARQLInsertLink(List<Link> l, GraphConfig grConf, Connection virt_conn) {
+        boolean success = true;
+        StringBuilder sb = new StringBuilder();
+        try {
+            sb.append("SPARQL WITH <" + grConf.getAllLinksGraph() + "> INSERT {");
+            sb.append("`iri(??)` <" + Constants.SAME_AS + "> `iri(??)` . } ");
+            System.out.println("Statement " + sb.toString());
+            VirtuosoConnection conn = (VirtuosoConnection) virt_conn;
+            VirtuosoPreparedStatement vstmt;
+            vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
 
-                UpdateRequest q = queryStr.asUpdate();
-                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
-                insertRemoteB.execute();
-                //System.out.println("Add at "+addIdx+" Size "+cSize);
-                addIdx += (cSize - addIdx);
-                sizeUp *= 2;
-                cSize += sizeUp;
-                if (cSize >= l.size()) {
-                    cSize = l.size();
-                }
-                if (cSize == addIdx) {
-                    updating = false;
-                }
-            } catch (org.apache.jena.atlas.web.HttpException ex) {
-                System.out.println("Failed at " + addIdx + " Size " + cSize);
-                System.out.println("Crazy Stuff");
-                System.out.println(ex.getLocalizedMessage());
-                ex.printStackTrace();
-                ex.printStackTrace(System.out);
-                sizeUp = 1;
-                cSize = addIdx;
-                cSize += sizeUp;
-                if (cSize >= l.size()) {
-                    cSize = l.size();
-                }
-                //System.out.println("Going back at "+addIdx+" Size "+cSize);
+            int start = 0;
+            int end = l.size();
 
-                break;
-                //System.out.println("Going back at "+addIdx+" Size "+cSize);
-            } catch (Exception ex) {
-                System.out.println(ex.getLocalizedMessage());
-                break;
+            for (int i = start; i < end; ++i) {
+                Link link = l.get(i);
+                vstmt.setString(1, link.getNodeA());
+                vstmt.setString(2, link.getNodeB());
+
+                vstmt.addBatch();
             }
+
+            vstmt.executeBatch();
+
+            vstmt.close();
+
+        } catch (VirtuosoException ex) {
+            LOG.trace("VirtuosoException on "+grConf.getAllLinksGraph()+" failed");
+            LOG.debug("VirtuosoException on "+grConf.getAllLinksGraph()+" failed : " + ex.getMessage());
+            LOG.debug("VirtuosoException on "+grConf.getAllLinksGraph()+" failed : " + ex.getSQLState());
+            
+            success = false;
+            return success;
+        } catch (BatchUpdateException ex) {
+            LOG.trace("BatchUpdateException on "+grConf.getAllLinksGraph()+" failed");
+            LOG.debug("BatchUpdateException on "+grConf.getAllLinksGraph()+" failed : " + ex.getMessage());
+            LOG.debug("BatchUpdateException on "+grConf.getAllLinksGraph()+" failed : " + ex.getSQLState());
+            
+            success = false;
+            return success;
         }
+        
+        return success;
     }
 
     private void bulkInsertLinks(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) throws FileNotFoundException, SQLException {
@@ -653,7 +752,7 @@ public class LinksServlet extends HttpServlet {
 
             for (Link link : lst) {
                 //if (stop++ > 1000) break;
-                String triple = "<" + link.getNodeA() + "> <" + SAME_AS + "> <" + link.getNodeB() + "> .";
+                String triple = "<" + link.getNodeA() + "> <" + Constants.SAME_AS + "> <" + link.getNodeB() + "> .";
 
                 out.println(triple);
             }
@@ -685,8 +784,9 @@ public class LinksServlet extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
+            throws ServletException {
+            processRequest(request, response);
+        /*try {
             processRequest(request, response);
         } catch (SQLException ex) {
             Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
@@ -698,7 +798,7 @@ public class LinksServlet extends HttpServlet {
             Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
         } catch (Exception ex) {
             Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        }*/
     }
 
     /**
@@ -710,9 +810,9 @@ public class LinksServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+            processRequest(request, response);
+        /*try {
             processRequest(request, response);
         } catch (SQLException ex) {
             Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
@@ -724,7 +824,7 @@ public class LinksServlet extends HttpServlet {
             Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
         } catch (Exception ex) {
             Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        }*/
     }
 
     /**
