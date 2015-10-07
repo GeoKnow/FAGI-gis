@@ -28,14 +28,16 @@
         <%
             String str = request.getParameter("dataset-l");
             if ( str == null ) 
-                request.setAttribute("dataset-l", "http://localhost:8890/DAV/links_postgis1");
+                request.setAttribute("dataset-l", "");
+                //request.setAttribute("dataset-l", "http://localhost:8890/DAV/links_postgis1");
                 //request.setAttribute("dataset-l", "http://generator.geoknow.eu/resource/RdfImport_1441965089653");
             else
                 request.setAttribute("dataset-l", request.getParameter("dataset-l"));
             
             str = request.getParameter("endpoint-l");
             if ( str == null ) 
-                request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
+                request.setAttribute("endpoint-l", "");
+                //request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
                 //request.setAttribute("endpoint-l", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
                 //request.setAttribute("endpoint-l", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
@@ -75,18 +77,21 @@
             str = request.getParameter("postgis-username");
             if ( str == null ) 
                 request.setAttribute("postgis-username", "postgres");
+                //request.setAttribute("postgis-username", "fagi");
             else
                 request.setAttribute("postgis-username", request.getParameter("postgis-username"));
             
             str = request.getParameter("postgis-password");
             if ( str == null ) 
                 request.setAttribute("postgis-password", "1111");
+                //request.setAttribute("postgis-password", "fagi");
             else
                 request.setAttribute("postgis-password", request.getParameter("postgis-password"));
             
             str = request.getParameter("postgis-database");
             if ( str == null ) 
                 request.setAttribute("postgis-database", "postgis1");
+                //request.setAttribute("postgis-database", "fagi");
             else
                 request.setAttribute("postgis-database", request.getParameter("postgis-database"));
             

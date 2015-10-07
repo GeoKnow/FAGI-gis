@@ -11,6 +11,7 @@ package gr.athenainnovation.imis.fusion.gis.utils;
  */
 public class Constants {
     
-    private static final String DB_URL = "jdbc:postgresql:";
+    //Postgres URL
+    public static final String DB_URL = "jdbc:postgresql:";
     
 }

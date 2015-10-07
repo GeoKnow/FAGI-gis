@@ -7,27 +7,27 @@ import com.hp.hpl.jena.shared.JenaException;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
-import java.io.File;
-//import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
-//import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
+import static gr.athenainnovation.imis.fusion.gis.utils.Constants.DB_URL;
+import static gr.athenainnovation.imis.fusion.gis.utils.Log.getClassFAGILogger;
+import gr.athenainnovation.imis.fusion.gis.json.;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.Enumeration;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import org.apache.log4j.Appender;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import virtuoso.jena.driver.VirtGraph;
 
 /**
@@ -38,42 +38,8 @@ import virtuoso.jena.driver.VirtGraph;
 @WebServlet(name = "ConnectionServlet", urlPatterns = {"/ConnectionServlet"})
 public class ConnectionServlet extends HttpServlet {
     
-    private JSONConnRequest ret = null;      
-    
-    private class JSONConnRequest {
-        // -1 error 0 success
-        int statusCode;
-        String message;
+    private static final Logger LOG = getClassFAGILogger(ConnectionServlet.class);    
 
-        public JSONConnRequest() {
-            this.statusCode = -1;
-            this.message = "general error";
-        }
-
-        public JSONConnRequest(int statusCode, String message) {
-            this.statusCode = statusCode;
-            this.message = message;
-        }
-
-        public int getStatusCode() {
-            return statusCode;
-        }
-
-        public void setStatusCode(int statusCode) {
-            this.statusCode = statusCode;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public void setMessage(String message) {
-            this.message = message;
-        }
-        
-    }
-    private static final String DB_URL = "jdbc:postgresql:";
-    
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -86,38 +52,60 @@ public class ConnectionServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
     
-    HttpSession sess;
-    PrintWriter out = response.getWriter();
-    VirtGraph vSet = null;
-    FusionState st = new FusionState();
-    DBConfig dbConf = new DBConfig("", "", "", "", "", "", "");
-    Connection dbConn = null;
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-    ret = new JSONConnRequest();
-    
+    HttpSession             sess;
+    PrintWriter             out = response.getWriter();
+    VirtGraph               vSet = null;
+    FusionState             st = new FusionState();
+    DBConfig                dbConf = new DBConfig("", "", "", "", "", "", "");
+    Connection              dbConn = null;
+    ObjectMapper            mapper = new ObjectMapper();
+    JSONRequestResult         ret = null;      
+        
     try {
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        ret = new JSONConnRequest();
         
         // The only time we need a session if one does not exist
         sess = request.getSession(true);
 
+        Logger logger = Logger.getRootLogger();
+        //Appender appender = logger.getAppender("foo");
+        
+        /*
+        Enumeration e = logger.getAllAppenders();
+        System.out.println(e.toString());
+        while ( e.hasMoreElements() ) {
+            FileAppender app = (FileAppender) e.nextElement();
+            
+            System.out.println(app.);
+        }
+        */
         if ( sess == null ) {
-            out.print("{}");
+            ret.setMessage("Failed to create session!");
+            ret.setStatusCode(-1);
+            //System.out.println(connEx.getMessage());      
+            out.println(mapper.writeValueAsString(ret));
+            
+            out.close();
             
             return;
         }
         
+        LOG.info("First Try");
+        LOG.trace("First Try");
         response.setContentType("text/html;charset=UTF-8");
         //System.out.println(Paths.get("").toAbsolutePath().toString());
 
         //System.out.println(System.getProperty("user.dir"));   
         st.setDbConf(dbConf);
-          String relativeWebPath = "/FAGI-gis-WebInterface/lib/stopWords.ser";
-String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
+        String relativeWebPath = "/FAGI-gis-WebInterface/lib/stopWords.ser";
+        String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
 
-                System.out.println("Rel Path "+System.getProperty("user.dir"));
-                System.out.println("Rel Path "+(new File(".")).getAbsolutePath());
-                System.out.println("Rel Path "+System.getenv());
+        //System.out.println("Rel Path "+System.getProperty("user.dir"));
+        //System.out.println("Rel Path "+(new File(".")).getAbsolutePath());
+        //System.out.println("Rel Path "+System.getenv());
+        
+        // Initialize Database configuration with provided values
         dbConf.setUsername(request.getParameter("v_name"));
         dbConf.setPassword(request.getParameter("v_pass"));
         dbConf.setDbURL(request.getParameter("v_url"));
@@ -125,12 +113,14 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
         dbConf.setDbName(request.getParameter("p_data"));
         dbConf.setDbUsername(request.getParameter("p_name"));
         dbConf.setDbPassword(request.getParameter("p_pass"));
-        //System.out.println(dbConf.getDBUsername());
+
+        // Try a dummy connection to Virtuoso
         try {
             vSet = new VirtGraph ("jdbc:virtuoso://" + request.getParameter("v_url") + "/CHARSET=UTF-8",
                                          request.getParameter("v_name"), 
                                          request.getParameter("v_pass"));
         } catch (JenaException connEx) {
+            LOG.error("Virtgraph Create Exception", connEx);
             vSet = null;
             ret.setMessage("Connection to Virtuoso failed!");
             ret.setStatusCode(-1);
@@ -141,31 +131,33 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
             return;
         }
         
-        // Make a connection to check if a database with the same name exists
+        // Try loading the postgres sql driver
         try{
             Class.forName("org.postgresql.Driver");     
         } catch (ClassNotFoundException ex) {
-            System.out.println(ex.getMessage());    
+            LOG.error("Driver Class Not Found Exception", ex);   
             ret.setMessage("Could not load Postgis JDBC Driver!");
             ret.setStatusCode(-1);
-            //System.out.println(connEx.getMessage());      
+
             out.println(mapper.writeValueAsString(ret));
             out.close();
             
             return;
         }
+        
+        // Try a dummy connection to Postgres to check if a database with the same name exists
         try {
             //final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
             //databaseInitialiser.initialise(st.getDbConf());
                 
-            String url = DB_URL;//.concat(dbConf.getDBName());
+            String url = DB_URL;
             dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
             //dbConn.setAutoCommit(false);
         } catch(SQLException sqlex) {
-            System.out.println(sqlex.getMessage());      
+            LOG.error("Postgis Connect Exception", sqlex);   
             ret.setMessage("Connection to Postgis failed!");
             ret.setStatusCode(-1);
-            //System.out.println(connEx.getMessage());      
+            
             out.println(mapper.writeValueAsString(ret));
             out.close();
             
@@ -210,7 +202,7 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
                     dbConn.close();
                     //dbConn.commit();
                 } catch (SQLException ex) {
-                    Logger.getLogger(ConnectionServlet.class.getName()).log(Level.SEVERE, null, ex);
+                    LOG.error("Virtgraph Close Exception", ex);
                 }
             out.close();
         }
@@ -231,7 +223,7 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
         try {
             processRequest(request, response);
         } catch (SQLException ex) {
-            Logger.getLogger(ConnectionServlet.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.error("SQL Exception", ex);
         }
     }
 
@@ -249,7 +241,7 @@ String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
         try {
             processRequest(request, response);
         } catch (SQLException ex) {
-            Logger.getLogger(ConnectionServlet.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.error("SQL Exception", ex);
         }
     }
 

@@ -12,11 +12,11 @@ import java.util.Map;
  *
  * @author nick
  */
-public class ClusteringResults {
-    Map<String, ClusteringResult> results;
+public class JSONClusteringResults {
+    Map<String, JSONClusteringResult> results;
     int numOfClusters;
     
-    public ClusteringResults() {
+    public JSONClusteringResults() {
         results = new HashMap<>();
         numOfClusters = 0;
     }
@@ -29,11 +29,11 @@ public class ClusteringResults {
         this.numOfClusters = numOfClusters;
     }
 
-    public Map<String, ClusteringResult> getResults() {
+    public Map<String, JSONClusteringResult> getResults() {
         return results;
     }
 
-    public void setResults(Map<String, ClusteringResult> results) {
+    public void setResults(Map<String, JSONClusteringResult> results) {
         this.results = results;
     }
 }
