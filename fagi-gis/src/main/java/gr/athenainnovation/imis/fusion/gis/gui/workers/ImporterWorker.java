@@ -16,22 +16,23 @@ import org.apache.log4j.Logger;
  * Exports triples from a dataset using its SPARQL endpoint and then imports them into a PostGIS database.
  * @author Thomas Maroulis
  */
-public class ImporterWorker extends SwingWorker<Void, Void> {    
-    private static final Logger LOG = Log.getClassFAGILogger(ImporterPanel.class);
+public class ImporterWorker extends SwingWorker<Boolean, Void> {    
+    private static final Logger         LOG = Log.getClassFAGILogger(ImporterPanel.class);
     
-    private final ErrorListener errorListener;
+    private final ErrorListener         errorListener;
     
-    private final int datasetIdent;
-    private final Dataset sourceDataset;
-    private final DBConfig dbConfig;
-    private final GraphConfig grConf;
-    private final javax.swing.JLabel statusText;
+    private final int                   datasetIdent;
+    private final Dataset               sourceDataset;
     
-    private int metadataProgress = 0;
-    private int geometryProgress = 0;
+    private final DBConfig              dbConfig;
+    private final GraphConfig           grConf;
+    private final javax.swing.JLabel    statusText;
     
-    private float elapsedTime = 0f; 
-    private int importedTripletsCount = 0;
+    private int                         metadataProgress = 0;
+    private int                         geometryProgress = 0;
+    
+    private float                       elapsedTime = 0f; 
+    private int                         importedTripletsCount = 0;
     
     public int getImportedTripletsCount() {
         return importedTripletsCount;
@@ -73,29 +74,41 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
     }
     
     @Override
-    protected Void doInBackground() {
+    protected Boolean doInBackground() {
+        Boolean success = new Boolean(true);
         Importer importer;
         importer = new Importer(dbConfig, this, grConf);
         
-        if ( !importer.isInitialized() ) 
-            return null;
+        success = importer.isInitialized();
         
-        //importer.importMetadata(datasetIdent, sourceDataset); //we decided not to import the metadata in the DB. 
-        //metadata will get imported straight from the virtuoso graph.
-        importer.importGeometries(datasetIdent, sourceDataset);
-        //System.out.println("importGeometries done");
-        setElapsedTime(importer.getElapsedTime());
-        setImportedTripletsCount(importer.getImportedTripletsCount());
-            
-        importer.clean();
+        System.out.println("BOOL VLAUE " +  success);
 
-        return null;
+        if ( !success )
+            return success;
+        
+        success = importer.importGeometries(datasetIdent, sourceDataset);
+        
+        System.out.println("BOOL VLAUE " +  success);
+
+        if ( !success )
+            return success;
+        
+        success = importer.clean();
+        
+        System.out.println("BOOL VLAUE " +  success);
+        
+        if ( !success )
+            return success;
+        
+        System.out.println("BOOL VLAUE " +  success);
+        
+        return success;
     }
     
     @Override
     protected void done() {
     // Call get despite return type being Void to prevent SwingWorker from swallowing exceptions
-        try {
+        /*try {
             get();
             if(statusText != null)
                 statusText.setText("Imported "+getImportedTripletsCount()+" triplets in "+getElapsedTime()+" secs!");
@@ -125,7 +138,7 @@ public class ImporterWorker extends SwingWorker<Void, Void> {
         }
         finally {
             LOG.info(ANSI_YELLOW+"Dataset A import worker has terminated."+ANSI_RESET);
-        }
+        }*/
     }
 
     /**

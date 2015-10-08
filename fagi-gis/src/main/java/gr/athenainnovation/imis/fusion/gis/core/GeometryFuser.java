@@ -81,7 +81,9 @@ public class GeometryFuser {
         
         // Attempt rollback
         try {
-            connection.rollback();
+            if ( ! success )
+                connection.rollback();
+            
             connection.close();
         } catch (SQLException exroll) {
             LOG.trace("SQLException thrown during rollback");
@@ -202,8 +204,12 @@ public class GeometryFuser {
         }
         
         try {
-            connection.rollback();
-            connection.close();
+            
+            if (!success) {
+                connection.rollback();
+                connection.close();
+            }
+            
         } catch (SQLException exroll) {
             LOG.trace("SQLException thrown during rollback");
             LOG.debug("SQLException thrown during rollback : \n" + exroll.getMessage());

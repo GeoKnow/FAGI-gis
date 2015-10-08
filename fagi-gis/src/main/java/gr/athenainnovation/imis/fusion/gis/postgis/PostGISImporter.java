@@ -271,7 +271,7 @@ public class PostGISImporter {
         }
         
         try {
-            if ( success == false && connection != null )
+            if ( success == false && conn != null )
                 conn.close();
         } catch (SQLException exroll) {
             LOG.trace("SQLException thrown during rollback");
@@ -281,7 +281,7 @@ public class PostGISImporter {
         
         LOG.info(ANSI_YELLOW+"Connection to db established."+ANSI_RESET);
         
-        return connection;
+        return conn;
     }
     
     private boolean prepareStatements() {
@@ -301,6 +301,7 @@ public class PostGISImporter {
 
             success = false;
         }
+        
         return success;
     }
 
