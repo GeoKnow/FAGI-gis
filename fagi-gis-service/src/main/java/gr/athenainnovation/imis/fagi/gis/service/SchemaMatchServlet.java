@@ -16,6 +16,8 @@ import com.hp.hpl.jena.update.UpdateRequest;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONMatches;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.SchemaMatchState;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.ScoredMatch;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
@@ -54,69 +56,7 @@ import virtuoso.jena.driver.VirtGraph;
  */
 @WebServlet(name = "SchemaMatchServlet", urlPatterns = {"/SchemaMatchServlet"})
 public class SchemaMatchServlet extends HttpServlet {
-    private static final String SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
-    
-    private class JSONMatches {
-        HashMap<String, HashSet<ScoredMatch>> foundA;
-        HashMap<String, HashSet<ScoredMatch>> foundB;
-        HashSet<String> otherPropertiesA;
-        HashSet<String> otherPropertiesB;
-        List<String> geomTransforms;
-        List<String> metaTransforms;
-    
-        public JSONMatches() {
-        }
-
-        public HashMap<String, HashSet<ScoredMatch>> getFoundA() {
-            return foundA;
-        }
-
-        public void setFoundA(HashMap<String, HashSet<ScoredMatch>> foundA) {
-            this.foundA = foundA;
-        }
-
-        public HashMap<String, HashSet<ScoredMatch>> getFoundB() {
-            return foundB;
-        }
-
-        public void setFoundB(HashMap<String, HashSet<ScoredMatch>> foundB) {
-            this.foundB = foundB;
-        }
-
-        public HashSet<String> getOtherPropertiesA() {
-            return otherPropertiesA;
-        }
-
-        public void setOtherPropertiesA(HashSet<String> otherPropertiesA) {
-            this.otherPropertiesA = otherPropertiesA;
-        }
-
-        public HashSet<String> getOtherPropertiesB() {
-            return otherPropertiesB;
-        }
-
-        public void setOtherPropertiesB(HashSet<String> otherPropertiesB) {
-            this.otherPropertiesB = otherPropertiesB;
-        }
-
-        public List<String> getGeomTransforms() {
-            return geomTransforms;
-        }
-
-        public void setGeomTransforms(List<String> geomTransforms) {
-            this.geomTransforms = geomTransforms;
-        }
-
-        public List<String> getMetaTransforms() {
-            return metaTransforms;
-        }
-
-        public void setMetaTransforms(List<String> metaTransforms) {
-            this.metaTransforms = metaTransforms;
-        }
         
-    }
-    
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -127,15 +67,17 @@ public class SchemaMatchServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */   
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException, JWNLException, FileNotFoundException, ParseException {
+            throws ServletException {
         response.setContentType("application/json");
         
-        JSONMatches matches = null;
-        DBConfig dbConf;
-        GraphConfig grConf;
-        Connection virt_conn;
-        VirtGraph vSet = null;
-        HttpSession sess;
+        JSONMatches             matches;
+        JSONRequestResult       res;
+        DBConfig                dbConf;
+        GraphConfig             grConf;
+        Connection              virt_conn;
+        VirtGraph               vSet = null;
+        HttpSession             sess;
+        
         try (PrintWriter out = response.getWriter()) {
             
             sess = request.getSession(false);
@@ -146,29 +88,29 @@ public class SchemaMatchServlet extends HttpServlet {
                 return;
             }
             
+            matches = new JSONMatches();
+            res = new JSONRequestResult();
+            matches.setResult(res);
+            
             ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
-            mapper.setDateFormat(outputFormat);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            //mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+            //SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
+            //mapper.setDateFormat(outputFormat);
+            //mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
             
-            matches = new JSONMatches();
-            //System.out.println(sess.getAttribute("links"));
-            //System.out.println(virtImp.scanProperties(2));
-            //System.out.println(request.getParameter("links"));
             String[] selectedLinks = request.getParameterValues("links[]");
             List<Link> lst = new ArrayList<>();
-            //System.out.println(request.getParameterMap());
             for(String s : selectedLinks) {
                 String subs[] = s.split("<-->");
                 Link l = new Link(subs[0], subs[1]);
                 lst.add(l);
                 System.out.println("Link "+s);
             }
+            
             if (vSet == null) {
                 try {
                     vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",

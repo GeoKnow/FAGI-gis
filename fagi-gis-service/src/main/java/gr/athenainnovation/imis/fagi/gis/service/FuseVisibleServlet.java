@@ -201,16 +201,11 @@ public class FuseVisibleServlet extends HttpServlet {
             }
             
             final GeometryFuser geometryFuser = new GeometryFuser();
-            try {
+            
                 geometryFuser.connect(dbConf);
                 geometryFuser.loadLinks(lst);
-            }
-            catch (SQLException ex) {
-                throw new RuntimeException(ex);
-            }
-            finally {
                 geometryFuser.clean();
-            } 
+                
             try{
                 Class.forName("org.postgresql.Driver");     
             } catch (ClassNotFoundException ex) {

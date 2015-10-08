@@ -30,8 +30,8 @@ import gr.athenainnovation.imis.fusion.gis.geotransformations.KeepRightTransform
 import gr.athenainnovation.imis.fusion.gis.gui.FuserPanel;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.utils.Utilities;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
-import static gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter.isThisMyIpAddress;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -544,12 +544,8 @@ public class FuseLinkServlet extends HttpServlet {
      * @throws SQLException if an SQL error occurs
      */
     void UpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws SQLException {
-        boolean isTargetEndpointLocal = false;
-        try
-        {
-            isTargetEndpointLocal = isThisMyIpAddress(InetAddress.getByName(grConf.getEndpointT())); //"localhost" for localhost
-        }
-        catch(UnknownHostException unknownHost) {}
+        
+        boolean isTargetEndpointLocal = Utilities.isURLToLocalInstance(grConf.getTargetGraph());
         
         if ( isTargetEndpointLocal ) {
             LocalUpdateGraphs(grConf, vSet);

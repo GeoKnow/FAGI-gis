@@ -99,47 +99,51 @@ public class LinksServlet extends HttpServlet {
 
     private static final Logger LOG = Log.getClassFAGILogger(LinksServlet.class);
     
-    private boolean validateLinking(HttpSession sess, String lsub, String rsub, VirtGraph vSet, GraphConfig grConf) throws SQLException {
+    private Boolean validateLinking(HttpSession sess, String lsub, String rsub, VirtGraph vSet, GraphConfig grConf) {
         Connection virt_conn = vSet.getConnection();
-        PreparedStatement stmt;
-        ResultSet rs;
 
         String checkA = "SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + lsub + "> ?p ?o } }";
         String checkB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + lsub + "> ?p ?o } }";
-        //System.out.println("Found in A : " + checkA + " B : " + checkB);
-        //System.out.println("Left sub : " + lsub + " Right sub : " + rsub);
-        
-        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-        QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(grConf.getEndpointA(), QueryFactory.create(checkA), authenticator);
-        qeh.setSelectContentType((String)sess.getAttribute("content-type"));
-        //System.out.println((String)sess.getAttribute("content-type"));
-        com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
-            
+       
         boolean foundInA = false;
         boolean foundInB = false;
         
-        //System.out.println(ResultSetFormatter.asText(resultSet));
-        //ResultSetFormatter.outputAsRDF(System.out, "RDF/XML", resultSet);
+        try {
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointA(), QueryFactory.create(checkA), authenticator);
+            qeh.setSelectContentType((String) sess.getAttribute("content-type"));
+            com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
 
-        if (resultSet.hasNext())
-            foundInA = true;
-        
-        qeh.close();
-        
-        qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointB(), QueryFactory.create(checkB), authenticator);
-        qeh.setSelectContentType((String)sess.getAttribute("content-type"));
-        resultSet = qeh.execSelect();
-        
-        if (resultSet.hasNext())
-            foundInB = true;
+            if (resultSet.hasNext()) {
+                foundInA = true;
+            }
 
-        qeh.close();
+            qeh.close();
 
+            qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointB(), QueryFactory.create(checkB), authenticator);
+            qeh.setSelectContentType((String) sess.getAttribute("content-type"));
+            resultSet = qeh.execSelect();
+
+            if (resultSet.hasNext()) {
+                foundInB = true;
+            }
+
+            qeh.close();
+
+        } catch (QueryException qex) {
+            LOG.trace("QueryException thrown during link validation");
+            LOG.debug("QueryException thrown during link validation : \n" + qex.getMessage());
+
+            return null;
+        }
+        
         if (foundInA) {
             return false;
-        } else {
+        } else if ( foundInB ) {
             LOG.info("Need to swap link subjects order");
             return true;
+        } else {
+            return null;
         }
     }
 
@@ -224,6 +228,11 @@ public class LinksServlet extends HttpServlet {
             }
             sess = request.getSession(false);
             
+            StringBuilder htmlCode = new StringBuilder();
+            ret = new JSONLoadLinksResult();
+            res = new JSONRequestResult();
+            ret.setResult(res);
+            
             if ( sess == null ) {
                 ret.getResult().setStatusCode(-1);
                 ret.getResult().setMessage("Failed to get session");
@@ -234,11 +243,6 @@ public class LinksServlet extends HttpServlet {
                 
                 return;
             }
-            
-            StringBuilder htmlCode = new StringBuilder();
-            ret = new JSONLoadLinksResult();
-            res = new JSONRequestResult();
-            ret.setResult(res);
             
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
@@ -266,11 +270,26 @@ public class LinksServlet extends HttpServlet {
             }
             
             // Checking Content Type allows to know if there is a file provided
-            InputStream filecontent;
+            InputStream filecontent = null;
             if (request.getContentType() != null) {
-                Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
-                String filename = getFilename(filePart);
-                filecontent = filePart.getInputStream();
+                Part filePart;
+                try {
+                    filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
+                    String filename = getFilename(filePart);
+                    filecontent = filePart.getInputStream();
+                } catch (IOException ex) {
+                    LOG.trace("IOException thrown during file upload");
+                    LOG.debug("IOException thrown during file upload : \n" + ex.getMessage());
+
+                    ret.getResult().setStatusCode(-1);
+                    ret.getResult().setMessage("File Upload failed");
+
+                    out.println(mapper.writeValueAsString(ret));
+
+                    out.close();
+
+                    return;
+                }
             } else {
                 filecontent = fetchLinkFromEndpoint(sess, grConf.getEndpointL(), grConf.getGraphL());
             }
@@ -459,20 +478,48 @@ public class LinksServlet extends HttpServlet {
             datasetAImportWorker.execute();
             datasetBImportWorker.execute();
             //System.out.println("Print");
-            datasetAImportWorker.get();
-            datasetBImportWorker.get();
-
+            Boolean retA, retB;
+            try {
+                retB = datasetAImportWorker.get();
+                retA = datasetBImportWorker.get();
+            } catch (InterruptedException | ExecutionException ex) {
+                LOG.trace("Thread execution failed");
+                LOG.debug("Thread execution failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Upload thread execution failed");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }
+            System.out.println("The bool " + retA);
+            System.out.println(retB);
+            if ( ( retA == false ) || ( retB == false ) ) {
+                LOG.trace("Thread execution failed");
+                LOG.debug("Thread execution failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with link upload cleanup");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }
+                LOG.trace("SQLException after");
+            
             VirtuosoImporter virtImp = new VirtuosoImporter(dbConf, null, (String) sess.getAttribute("t_graph"), true, grConf);
             Connection virt_conn = vSet.getConnection();
-            
+                LOG.trace("SQLException before");
             // Recreate target temp graph
             final String dropTempGraph = "SPARQL DROP SILENT GRAPH <"+ grConf.getTargetTempGraph()+  ">";
             final String createTempGraph = "SPARQL CREATE GRAPH <"+ grConf.getTargetTempGraph()+ ">";
 
+            PreparedStatement stmt = null;
             try {
-                PreparedStatement stmt;
                 stmt = virt_conn.prepareStatement(dropTempGraph);
-
                 stmt.execute();
 
                 stmt = virt_conn.prepareStatement(dropTempGraph);
@@ -492,11 +539,21 @@ public class LinksServlet extends HttpServlet {
                 out.close();
                 
                 return;
+            } finally {
+                try {
+                    if ( stmt != null )
+                        stmt.close();
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown during statement close");
+                    LOG.debug("SQLException thrown during statement close : "+ex.getMessage());
+                    LOG.debug("SQLException thrown during statement close : "+ex.getSQLState());
+                }
             }
             
             sess.setAttribute("virt_imp", virtImp);
-            virtImp.createLinksGraph(output);
+            //virtImp.createLinksGraph(output);
 
+            System.out.println(mapper.writeValueAsString(ret));
             //virtImp.importGeometriesToVirtuoso((String) sess.getAttribute("t_graph"));
             virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true);
             final String createGraph = "sparql CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
@@ -511,71 +568,105 @@ public class LinksServlet extends HttpServlet {
                 fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
             }
 
-            //System.out.println("Fetch from graph A : "+fetchFiltersA);
-            //System.out.println("Fetch from graph B : " + fetchFiltersB);
-            //System.out.println("Graph A : " + grConf.getGraphA());
-            //System.out.println("Graph B : " + grConf.getGraphB());
+            System.out.println("Fetch from graph A : "+fetchFiltersA);
+            System.out.println("Fetch from graph B : " + fetchFiltersB);
+            System.out.println("Graph A : " + grConf.getGraphA());
+            System.out.println("Graph B : " + grConf.getGraphB());
 
-            PreparedStatement filtersStmt;
-            filtersStmt = virt_conn.prepareStatement(fetchFiltersA);
-            ResultSet rs = filtersStmt.executeQuery();
+            PreparedStatement filtersStmt = null;
+            ResultSet rs = null;
+            try {
+                filtersStmt = virt_conn.prepareStatement(fetchFiltersA);
+                rs = filtersStmt.executeQuery();
 
-            if (rs.isBeforeFirst()) {
-                if (rs.next()) {
-                    String prop = rs.getString(1);
-                    out.println("<option value=\"" + prop + "\" selected=\"selected\">" + prop + "</option>");
-                    //System.out.println(prop);
-                    while (rs.next()) {
-                        prop = rs.getString(1);
-                        htmlCode.append("<option value=\"" + prop + "\">" + prop + "</option>");
-                        //out.println("<option value=\"" + prop + "\">" + prop + "</option>");
+                if (rs.isBeforeFirst()) {
+                    if (rs.next()) {
+                        String prop = rs.getString(1);
+                        htmlCode.append("<option value=\"" + prop + "\" selected=\"selected\">" + prop + "</option>");
                         //System.out.println(prop);
+                        while (rs.next()) {
+                            prop = rs.getString(1);
+                            htmlCode.append("<option value=\"" + prop + "\">" + prop + "</option>");
+                            System.out.println(prop);
+                        }
                     }
+                }
+
+                ret.setFiltersListAHTML(htmlCode.toString());
+                htmlCode.setLength(0);
+
+                filtersStmt = virt_conn.prepareStatement(fetchFiltersB);
+                rs = filtersStmt.executeQuery();
+
+                if (rs.isBeforeFirst()) {
+                    if (rs.next()) {
+                        String prop = rs.getString(1);
+                        htmlCode.append("<option value=\"" + prop + "\" selected=\"selected\">" + prop + "</option>");
+                        //System.out.println(prop);
+                        while (rs.next()) {
+                            prop = rs.getString(1);
+                            htmlCode.append("<option value=\"" + prop + "\">" + prop + "</option>");
+                            System.out.println(prop);
+                        }
+                    }
+                }
+
+                ret.setFiltersListBHTML(htmlCode.toString());
+
+            } catch (SQLException ex) {
+                LOG.trace("SQLException thrown");
+                LOG.debug("SQLException thrown : " + ex.getMessage());
+                LOG.debug("SQLException thrown : " + ex.getSQLState());
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with destroying Target Temporary graph");
+
+                out.println(mapper.writeValueAsString(ret));
+
+                out.close();
+
+                return;
+            } finally {
+                try {
+                    if ( rs != null ) 
+                        rs.close();
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown during statement and result set close");
+                    LOG.debug("SQLException thrown during statement and result set close : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during statement and result set close : " + ex.getSQLState());
                 }
             }
             
-            rs.close();
-            filtersStmt.close();
-            
-            ret.setFiltersListAHTML(htmlCode.toString());
-            htmlCode.setLength(0);
-            
-            //out.print("+>>>+");
-
-            filtersStmt = virt_conn.prepareStatement(fetchFiltersB);
-            rs = filtersStmt.executeQuery();
-
-            if (rs.isBeforeFirst()) {
-                if (rs.next()) {
-                    String prop = rs.getString(1);
-                    out.println("<option value=\"" + prop + "\" selected=\"selected\">" + prop + "</option>");
-                    //System.out.println(prop);
-                    while (rs.next()) {
-                        prop = rs.getString(1);
-                        out.println("<option value=\"" + prop + "\">" + prop + "</option>");
-                        //System.out.println(prop);
-                    }
-                }
-            }
-            
-            ret.setFiltersListBHTML(htmlCode.toString());
-            
-            rs.close();
-            filtersStmt.close();
+            LOG.trace("Thread execution failed");
+            ret.getResult().setStatusCode(0);
+            ret.getResult().setMessage("Link fetching done");
+                
+            out.println(mapper.writeValueAsString(ret));
             
         } catch (JsonProcessingException ex) {
             LOG.trace("JsonProcessingException thrown");
             LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
-            out.println("{}");
+            if (out != null) {
+                out.println("{}");
 
-            out.close();
+                out.close();
+            }
+        } catch ( java.lang.OutOfMemoryError oome) {
+            LOG.trace("OutOfMemoryError thrown");
+            LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
+            if (out != null) {
+                out.println("{}");
 
-            return;
+                out.close();
+            }
         } finally {
             if ( vSet != null ) {
                 vSet.close();
             }
-            out.close();
+            if ( out != null )
+                out.close();
         }
     }
 
@@ -783,22 +874,21 @@ public class LinksServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException {
+        try {
             processRequest(request, response);
-        /*try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (JWNLException ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (Exception ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }*/
+        } catch (ServletException ex) {
+            try {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, ex.getMessage());
+            } catch (IOException ex1) {
+                
+            }
+            
+            LOG.trace("ServletException thrown");
+            LOG.debug("ServletException thrown : " + ex.getMessage());
+            
+            throw ex;
+        } 
     }
 
     /**
@@ -810,21 +900,21 @@ public class LinksServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException {
+        try {
             processRequest(request, response);
-        /*try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (JWNLException ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (Exception ex) {
-            Logger.getLogger(LinksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }*/
+        } catch (ServletException ex) {
+            try {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, ex.getMessage());
+            } catch (IOException ex1) {
+                
+            }
+            
+            LOG.trace("ServletException thrown");
+            LOG.debug("ServletException thrown : " + ex.getMessage());
+            
+            throw ex;
+        } 
     }
 
     /**

@@ -1045,22 +1045,30 @@ function loadLinkedEntities(formData) {
         type: 'POST',
         //Ajax events
         // the type of data we expect back
-        dataType: "text",
-        success: function (responseText) {
-            //alert("All good "+responseText);
+        dataType: "json",
+        success: function (responseJson) {
+            //alert("All good "+responseJson);
             var list = document.getElementById("linksList");
             var typesA = document.getElementById("typeListA");
             var typesB = document.getElementById("typeListB");
-            var arrays = responseText.split("+>>>+");
-            //alert(arrays[1]);
-            list.innerHTML = arrays[0];
-            typesA.innerHTML = arrays[1];
-            typesB.innerHTML = arrays[2];
+            //var arrays = responseText.split("+>>>+");
+            //list.innerHTML = arrays[0];
+            //typesA.innerHTML = arrays[1];
+            //typesB.innerHTML = arrays[2];
+            if (responseJson.result.statusCode == 0) {
+                list.innerHTML = responseJson.linkListHTML;
+                typesA.innerHTML = responseJson.filtersListAHTML;
+                typesB.innerHTML = responseJson.filtersListBHTML;
+            } else {
+                alert(responseJson.result.message);
+            }
             disableSpinner();
         },
-        error: function (responseText) {
+        error: function (xhr, status, errorThrown) {
             disableSpinner();
-            alert("All bad " + responseText);
+            alert("Sorry, there was a problem!");
+                                console.log("Error: " + errorThrown);
+                                console.log("Status: " + status);
             alert("Error");
         },
         data: formData,
@@ -2558,13 +2566,11 @@ function setDatasets()
         // the data to send (will be converted to a query string)
         data: values,
         // the type of data we expect back
-        dataType: "text",
+        dataType: "json",
         // code to run if the request succeeds;
         // the response is passed to the function
-        success: function (responseText) {
-            //$('#dataLabel').text(responseText);
-            //alert(responseText);
-            //alert(responseText == 1);
+        success: function (responseJson) {
+            
             disableSpinner();
             $('#dataLabel').text("Datasets accepted");
             $('#datasetNameA').html($('#idDatasetA').val());
@@ -2577,7 +2583,7 @@ function setDatasets()
             $('#legendLinkSetB').html($('#idDatasetB').val());
             
             //Loaqd links through endpoint
-            if ( responseText == 1 )
+            if ( responseJson.remoteLinks )
                 loadLinkedEntities(null);
             
             //Scan target dataset for any already fused geometry
@@ -2620,10 +2626,10 @@ function scanGeometries() {
         // code to run if the request succeeds;
         // the response is passed to the function
         success: function (responseJSON) {
-            $('#dataLabel').text(responseJSON.message);
+            $('#dataLabel').text(responseJSON.result.message);
             //alert('tom');
             disableSpinner();
-            if (responseJSON.statusCode == 0)
+            if (responseJSON.result.statusCode == 0)
                 addFusedMapDataJson(responseJSON);
         },
         // code to run if the request fails; the raw request and

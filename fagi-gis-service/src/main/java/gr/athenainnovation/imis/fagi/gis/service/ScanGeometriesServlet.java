@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import static com.hp.hpl.jena.enhanced.BuiltinPersonalities.model;
 import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryException;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
@@ -22,6 +23,11 @@ import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONFusedGeometries;
+import gr.athenainnovation.imis.fusion.gis.json.JSONFusedGeometry;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -54,77 +60,7 @@ import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
 @WebServlet(name = "ScanGeometriesServlet", urlPatterns = {"/ScanGeometriesServlet"})
 public class ScanGeometriesServlet extends HttpServlet {
 
-    private static final String HAS_GEOMETRY_REGEX = "http://www.opengis.net/ont/geosparql#hasGeometry";
-    private static final String AS_WKT_REGEX = "http://www.opengis.net/ont/geosparql#asWKT";
-    private static final String LONG_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#long";
-    private static final String LAT_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#lat";
-    
-    private class JSONFusedGeometries {
-        List<JSONFusedGeometry> geoms;
-        String message;
-        int statusCode;
-        
-        public JSONFusedGeometries() {
-            geoms = new ArrayList<>();
-            statusCode = -1;
-            message = "";
-        }
-
-        public List<JSONFusedGeometry> getGeoms() {
-            return geoms;
-        }
-
-        public void setGeoms(List<JSONFusedGeometry> geoms) {
-            this.geoms = geoms;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public void setMessage(String message) {
-            this.message = message;
-        }
-
-        public int getStatusCode() {
-            return statusCode;
-        }
-
-        public void setStatusCode(int statusCode) {
-            this.statusCode = statusCode;
-        }
-
-    }
-    
-    private class JSONFusedGeometry {
-        String geom;
-        String subject;
-
-        public JSONFusedGeometry(String geom, String subject) {
-            this.geom = geom;
-            this.subject = subject;
-        }
-
-        public JSONFusedGeometry() {
-        }
-
-        public String getGeom() {
-            return geom;
-        }
-
-        public void setGeom(String geom) {
-            this.geom = geom;
-        }
-
-        public String getSubject() {
-            return subject;
-        }
-
-        public void setSubject(String subject) {
-            this.subject = subject;
-        }
-        
-    }
+    private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(ScanGeometriesServlet.class);    
     
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -136,71 +72,90 @@ public class ScanGeometriesServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException {
         response.setContentType("text/html;charset=UTF-8");
         
         HttpSession                 sess;
         GraphConfig                 grConf;
         JSONFusedGeometries         ret;
-            
+        JSONRequestResult           res;
+        
         try (PrintWriter out = response.getWriter()) {
             ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 
+            ret = new JSONFusedGeometries();
+            res = new JSONRequestResult();
+            ret.setResult(res);
+            
             sess = request.getSession(false);
             
             if ( sess == null ) {
-                out.print("{}");
+                res.setMessage("Failed to create session!");
+                res.setStatusCode(-1);
+                
+                out.println(mapper.writeValueAsString(ret));
+
+                out.close();
                 
                 return;
             }
             
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
-            ret = new JSONFusedGeometries();
 
-            final String restriction = "?s ?p1 _:a . _:a <" + AS_WKT_REGEX + "> ?g";
-            final String geoQuery = "SELECT ?s ?g WHERE { " + restriction + " }";
+            final String restrictionWGS = "?s ?p1 _:a . _:a <" + Constants.AS_WKT_REGEX + "> ?g";
+            final String geoQuery = "SELECT ?s ?g WHERE { " + restrictionWGS + " }";
 
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-            //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-            QueryEngineHTTP qeh = new QueryEngineHTTP(grConf.getEndpointT(), geoQuery, authenticator);
-            String reqType = "";
-            for ( String s : QueryEngineHTTP.supportedSelectContentTypes) {
-                if ( s.contains("xml"))
-                    reqType = s;
-            }
-            qeh.setSelectContentType(reqType);
-            qeh.addDefaultGraph((String) sess.getAttribute("t_graph"));
-            final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
-
-            //geomColl.append("GEOMETRYCOLLECTION(");
-            while (resultSet.hasNext()) {
-                final QuerySolution querySolution = resultSet.next();
-                //final String predicate = querySolution.getResource("?p").getURI();
-                RDFNode s, p1, g, p2;
-                s = querySolution.get("?s");
-                g = querySolution.get("?g");
-
-                String geo = g.asLiteral().getString();
-                int ind = geo.indexOf("^^");
-                if (ind > 0) {
-                    geo = geo.substring(0, ind);
+            try (QueryEngineHTTP qeh = new QueryEngineHTTP(grConf.getEndpointT(), geoQuery, authenticator)) {
+                
+                // [TODO] Make this more generic
+                String reqType = "";
+                for (String s : QueryEngineHTTP.supportedSelectContentTypes) {
+                    if (s.contains("xml")) {
+                        reqType = s;
+                    }
                 }
-                String sub = s.toString();
-                ret.geoms.add(new JSONFusedGeometry(geo, sub));
-            }
+                
+                qeh.setSelectContentType(reqType);
+                qeh.addDefaultGraph((String) sess.getAttribute("t_graph"));
+                final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
 
-            qeh.close();
+                while (resultSet.hasNext()) {
+                    final QuerySolution querySolution = resultSet.next();
+                    //final String predicate = querySolution.getResource("?p").getURI();
+                    RDFNode s, p1, g, p2;
+                    s = querySolution.get("?s");
+                    g = querySolution.get("?g");
+
+                    String geo = g.asLiteral().getString();
+                    int ind = geo.indexOf("^^");
+                    if (ind > 0) {
+                        geo = geo.substring(0, ind);
+                    }
+                    
+                    String sub = s.toString();
+                    ret.getGeoms().add(new JSONFusedGeometry(geo, sub));
+                }
+            } catch (QueryException ex) {
+                LOG.trace("Scan Geometries Query failed");
+                LOG.debug("Scan Geometries Query failed");
+            }
             
-            if (ret.geoms.size() > 0) {
-                ret.setMessage("Datasets accepted!(Found fused geometries)");
-                ret.setStatusCode(0);
+            if (ret.getGeoms().size() > 0) {
+                res.setMessage("Datasets accepted!(Found fused geometries)");
+                res.setStatusCode(0);
             } else {
-                ret.setMessage("Datasets accepted!(Found NO fused geometries)");
-                ret.setStatusCode(1);
+                res.setMessage("Datasets accepted!(Found NO fused geometries)");
+                res.setStatusCode(1);
             }
 
             out.println(mapper.writeValueAsString(ret));
+        } catch (IOException ex) {
+            LOG.trace("Could not open Servlet Writer stream");
+            LOG.debug("Could not open Servlet Writer stream");
+            
+            throw new ServletException("Servlet Error");
         }
     }
 
