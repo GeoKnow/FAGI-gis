@@ -33,4 +33,10 @@ public class Constants {
     
     // Number of links to use for property matching sampling
     public static final int         SAMPLE_SIZE = 20;  
+    
+    // WordNet paths per OS
+    public static final String      PATH_TO_WORDNET_LINUX = "/usr/share/wordnet";
+    public static final String      PATH_TO_WORDNET_OS_X = "/usr/local/WordNet-3.0/dict";
+    public static final String      PATH_TO_WORDNET_WINDOWS = "C:\\Program Files (x86)\\WordNet\\2.1\\dict";
+    
 }

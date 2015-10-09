@@ -12,6 +12,7 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Scanner;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -19,6 +20,23 @@ import java.util.Scanner;
  */
 public class Utilities {
 
+    public static String getPredicateOntology(String pred )
+    {
+        String onto = StringUtils.substringBefore(pred, "#");
+        onto = onto.concat("#");
+        if (onto.equals(pred)) {
+            onto = StringUtils.substring(pred, 0, StringUtils.lastIndexOf(pred, "/"));
+            onto = onto.concat("/");
+        }
+        
+        return onto;
+    }
+        
+    public static String getPredicateName(String pred )
+    {
+        return null;
+    }
+    
     public static String convertStreamToString(java.io.InputStream is) {
         Scanner s = new Scanner(is).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";

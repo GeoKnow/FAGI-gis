@@ -17,6 +17,7 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.utils.Patterns;
+import gr.athenainnovation.imis.fusion.gis.utils.Utilities;
 import static gr.athenainnovation.imis.fusion.gis.utils.Utilities.isURLToLocalInstance;
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
@@ -29,6 +30,7 @@ import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -95,40 +97,39 @@ public final class VirtuosoImporter {
 
     private static final Logger LOG = Log.getClassFAGILogger(VirtuosoImporter.class);
 
-    private static final String PATH_TO_WORDNET_LINUX = "/usr/share/wordnet";
-    private static final String PATH_TO_WORDNET_OS_X = "/usr/local/WordNet-3.0/dict";
-    private static final String PATH_TO_WORDNET_WINDOWS = "C:\\Program Files (x86)\\WordNet\\2.1\\dict";
-
-    public final TripleHandler trh;
+    
+    private final TripleHandler trh;
 
     private String transformationID;
 
-    private final Connection virt_conn;
-    private HashMap< String, MetadataChain> propertiesA;
-    private HashMap< String, MetadataChain> propertiesB;
-    public final VirtGraph set;
-    public final DBConfig db_c;
-    public final GraphConfig gr_c;
+    private final Connection                        virt_conn;
+    private final VirtGraph                          set;
+    
+    private final DBConfig                           db_c;
+    private final GraphConfig                        gr_c;
 
-    private int wordnetDepth;
-    private int maxParentDepth;
+    private int                                     wordnetDepth;
+    private int                                     maxParentDepth;
 
-    private double raiseToPower;
-    private double wordWeight;
-    private double textWeight;
-    private double typeWeight;
-    private double simThreshold;
+    private double                                  raiseToPower;
+    private double                                  wordWeight;
+    private double                                  textWeight;
+    private double                                  typeWeight;
+    private double                                  simThreshold;
 
-    private boolean initialized = false;
+    // Ωιρτθοσο Ιμπορτερ Στατε
+    private boolean                                 initialized = false;
 
     // Used during property matching
-    HashMap<String, HashSet<ScoredMatch>> foundA = new HashMap<>();
-    HashMap<String, HashSet<ScoredMatch>> foundB = new HashMap<>();
-    HashSet<String> recoveredWords = null;
-    HashSet<String> uniquePropertiesA = new HashSet<>();
-    HashSet<String> uniquePropertiesB = new HashSet<>();
-    HashSet<String> nonMatchedPropertiesA = new HashSet<>();
-    HashSet<String> nonMatchedPropertiesB = new HashSet<>();
+    private HashMap< String, MetadataChain>         propertiesA;
+    private HashMap< String, MetadataChain>         propertiesB;
+    private HashMap<String, HashSet<ScoredMatch>>   foundA = new HashMap<>();
+    private HashMap<String, HashSet<ScoredMatch>>   foundB = new HashMap<>();
+    private HashSet<String>                         recoveredWords = null;
+    private HashSet<String>                         uniquePropertiesA = new HashSet<>();
+    private HashSet<String>                         uniquePropertiesB = new HashSet<>();
+    private HashSet<String>                         nonMatchedPropertiesA = new HashSet<>();
+    private HashSet<String>                         nonMatchedPropertiesB = new HashSet<>();
 
     public VirtuosoImporter(final DBConfig dbConfig, String transformationID, final String fusedGraph, final boolean checkboxIsSelected, final GraphConfig graphConfig) {
         db_c = dbConfig;
@@ -797,18 +798,13 @@ public final class VirtuosoImporter {
     HashMap<String, Schema> schemasA = Maps.newHashMap();
     HashMap<String, Schema> schemasB = Maps.newHashMap();
 
-    private void scanMatches() throws JWNLException, FileNotFoundException, IOException, ParseException {
-        /*Iterator it = propertiesA.entrySet().iterator();
-         while (it.hasNext()) {
-         Map.Entry pairs = (Map.Entry)it.next();
-         System.out.println("Debug kapote "+(pairs.getKey() + " = " + (MetadataChain)pairs.getValue()+"\n"));
-         it.remove(); // avoids a ConcurrentModificationException
-         }
-         */
-        //System.out.println("Schema Match "+tom++);
+    private void scanMatches() {
+        
+        // expand properties chains
         expandChain(schemasA, propertiesA, "");
-        //System.out.println();
         expandChain(schemasB, propertiesB, "");
+        
+        /*
         for (Map.Entry pairs : schemasA.entrySet()) {
             String chain = (String) pairs.getKey();
             Schema sche = (Schema) pairs.getValue();
@@ -819,7 +815,8 @@ public final class VirtuosoImporter {
             Schema sche = (Schema) pairs.getValue();
             System.out.println("B " + chain + " " + sche.predicate + " Size " + sche.indexes.size());
         }
-
+        */
+        
         List<SchemaMatcher> matchers = new ArrayList<>();
         int countA;
         int countB;
@@ -1007,17 +1004,13 @@ public final class VirtuosoImporter {
         }
     }
 
-    private void expandChain(HashMap<String, Schema> lst, HashMap< String, MetadataChain> chains, String chainStr) throws JWNLException, FileNotFoundException, IOException, ParseException {
-
-        //JWNL.initialize(new FileInputStream("/home/nick/NetBeansProjects/test/test/FAGI-gis-WebInterface/lib/jwnl14-rc2/config/file_properties.xml"));
-        //File currentDirectory = new File(new File(".").getAbsolutePath());
-        //JWNL.initialize(new FileInputStream(currentDirectory.getCanonicalPath()+"/src/main/resources/file_properties.xml"));
+    private boolean expandChain(HashMap<String, Schema> lst, HashMap< String, MetadataChain> chains, String chainStr) {
+        boolean success = true;
         Dictionary dictionary = Dictionary.getInstance();
-        //System.out.println("Chain REP : "+chainStr);
         for (Map.Entry pairs : chains.entrySet()) {
             MetadataChain chain = (MetadataChain) pairs.getValue();
-            //System.out.println("Chain REP 2 : "+chainStr+chain.predicate+","); 
-            //System.out.println(System.getenv());
+            
+            // Chains are comma separated
             String pad;
             if (chain.chains != null) {
                 pad = ",";
@@ -1035,18 +1028,27 @@ public final class VirtuosoImporter {
             //System.out.println("Chain Link : " + chain.link);
 
             //URL normalizer can possibly be truned on here
-            String normalizedLink = URLDecoder.decode(chain.link, "UTF-8");
-            //Matcher mat = PATTERN_WORD_BREAKER.matcher(chain.link);
+            String normalizedLink;
+            try {
+                normalizedLink = URLDecoder.decode(chain.link, "UTF-8");
+            } catch (UnsupportedEncodingException ex) {
+                LOG.trace("UnsupportedEncodingException thrown during parsing of \"" + chain.link + "\"");
+                LOG.debug("UnsupportedEncodingException thrown during parsing of \"" + chain.link + "\" " + ex.getMessage());
+                    
+                // A bad decoding should not break the whole FAGI 
+                continue;
+            }
+            
             Matcher mat = Patterns.PATTERN_WORD_BREAKER.matcher(normalizedLink);
             while (mat.find()) {
                 arrl.add(mat.group());
             }
             //System.out.print("Found:");
-            for (String s : arrl) {
+            /*for (String s : arrl) {
                 System.out.print(" " + s);
             }
-            System.out.println();
-            //List<String> arrl = StringUtils.splitByCharacterTypeCamelCase(chain.link);
+            System.out.println();*/
+
             Schema m = new Schema();
             m.predicate = pred;
             m.objectStr = chain.objectStr;
@@ -1061,8 +1063,24 @@ public final class VirtuosoImporter {
                 }
 
                 //System.out.print("Value "+a+" ");
-                System.out.println("Value : " + a + " stemmed : " + englishParser.parse(a).toString());
-                IndexWordSet wordSet = dictionary.lookupAllIndexWords(englishParser.parse(a).toString());
+                //System.out.println("Value : " + a + " stemmed : " + englishParser.parse(a).toString());
+                IndexWordSet wordSet;
+                try {
+                    wordSet = dictionary.lookupAllIndexWords(englishParser.parse(a).toString());
+                } catch (ParseException ex) {
+                    LOG.trace("ParseException thrown during parsing of \"" + a + "\"");
+                    LOG.debug("ParseException thrown during parsing of \"" + a + "\" " + ex.getMessage());
+                    
+                    // A bad word stem should not break the whole FAGI 
+                    continue;
+                } catch (JWNLException ex) {
+                    LOG.trace("JWNLException thrown during parsing of \"" + a + "\"");
+                    LOG.debug("JWNLException thrown during parsing of \"" + a + "\" " + ex.getMessage());
+                    
+                    // A bad word look up should not break the whole FAGI 
+                    continue;
+                }
+                
                 //IndexWordSet wordSet = dictionary.lookupAllIndexWords(a);
                 if (wordSet == null) {
                     continue;
@@ -1085,19 +1103,19 @@ public final class VirtuosoImporter {
                 }
 
                 if (best == null) {
-                    System.out.println("Null Best for " + englishParser.parse(a).toString());
+                    //System.out.println("Null Best for " + englishParser.parse(a).toString());
                     continue;
                 }
 
                 m.addIndex(best);
             }
-            //System.out.println(best.getPOS().getLabel());
-            //System.out.println();
-
+            
             //System.out.println("Inserting predicate: "+ pred);
             lst.put(pred, m);
         }
         //System.out.println();
+        
+        return success;
     }
 
     private void scanChain(HashMap< String, MetadataChain> cont, List<String> chain, List<String> objectChain) {
@@ -1159,36 +1177,49 @@ public final class VirtuosoImporter {
         //System.out.println(root);
     }
 
-    public SchemaMatchState scanProperties(int optDepth, String link) throws SQLException, JWNLException, FileNotFoundException, IOException, ParseException {
-        if (SystemUtils.IS_OS_MAC_OSX) {
-            JWNL.initialize(new ByteArrayInputStream(getJWNL(PATH_TO_WORDNET_OS_X).getBytes(StandardCharsets.UTF_8)));
+    public SchemaMatchState scanProperties(int optDepth, String link) {
+        
+        try {
+            if (SystemUtils.IS_OS_MAC_OSX) {
+                JWNL.initialize(new ByteArrayInputStream(getJWNL(Constants.PATH_TO_WORDNET_OS_X).getBytes(StandardCharsets.UTF_8)));
+
+            }
+            if (SystemUtils.IS_OS_LINUX) {
+                JWNL.initialize(new ByteArrayInputStream(getJWNL(Constants.PATH_TO_WORDNET_LINUX).getBytes(StandardCharsets.UTF_8)));
+            }
+            if (SystemUtils.IS_OS_WINDOWS) {
+                JWNL.initialize(new ByteArrayInputStream(getJWNL(Constants.PATH_TO_WORDNET_WINDOWS).getBytes(StandardCharsets.UTF_8)));
+            }
+        } catch (JWNLException ex) {
+            LOG.trace("JWNLException thrown during set up of the Dictionary");
+            LOG.debug("JWNLException thrown during set up of the Dictionary : \n" + ex.getMessage());
         }
-        if (SystemUtils.IS_OS_LINUX) {
-            JWNL.initialize(new ByteArrayInputStream(getJWNL(PATH_TO_WORDNET_LINUX).getBytes(StandardCharsets.UTF_8)));
-        }
-        if (SystemUtils.IS_OS_WINDOWS) {
-            JWNL.initialize(new ByteArrayInputStream(getJWNL(PATH_TO_WORDNET_WINDOWS).getBytes(StandardCharsets.UTF_8)));
-        }
+        
         try (
-                //InputStream file = new FileInputStream("/home/nick/NetBeansProjects/test/test/FAGI-gis-CLI/src/main/resources/stopWords.ser");
-                //InputStream file = new FileInputStream("/var/lib/tomcat7/webapps/FAGI-WebInterface/images/stopWords.ser");
-                InputStream file = this.getClass().getResourceAsStream("/stopWords.ser");
-                InputStream buffer = new BufferedInputStream(file);
-                ObjectInput input = new ObjectInputStream(buffer);) {
-            //deserialize the List
+            // StopWords are stored in a serialized HashSet
+            InputStream file = this.getClass().getResourceAsStream("/stopWords.ser");
+            InputStream buffer = new BufferedInputStream(file);
+            ObjectInput input = new ObjectInputStream(buffer);) {
+            
             recoveredWords = (HashSet) input.readObject();
 
-          //for(String word: recoveredWords){
-            // System.out.println("Recovered Quark: " + word);
-            //}
         } catch (ClassNotFoundException ex) {
-            System.out.println("No class");
+            LOG.trace("ClassNotFoundException thrown during loading of the StopWords file");
+            LOG.debug("ClassNotFoundException thrown during loading of the StopWords file : \n" + ex.getMessage());
+            
+            recoveredWords = new HashSet();
         } catch (IOException ex) {
-            System.out.println("No input");
+            LOG.trace("IOException thrown during loading of the StopWords file");
+            LOG.debug("IOException thrown during loading of the StopWords file : \n" + ex.getMessage());
+            
+            recoveredWords = new HashSet();
         }
 
+        // Clear previous findings
         foundA.clear();
         foundB.clear();
+        
+        // If it' s a per link matching
         if (link != null) {
             for (int i = 0; i < optDepth + 1; i++) {
                 //System.out.println("DEPTH: "+i);
@@ -1226,83 +1257,91 @@ public final class VirtuosoImporter {
 
                 System.out.println("DEPTH: " + i);
                 System.out.println("QUERY FOR PREDICATES : " + query.toString());
+                
+                try (PreparedStatement fetchProperties = virt_conn.prepareStatement(query.toString());
+                        ResultSet propertiesRS = fetchProperties.executeQuery()) {
 
-                PreparedStatement fetchProperties;
-                fetchProperties = virt_conn.prepareStatement(query.toString());
-                ResultSet propertiesRS = fetchProperties.executeQuery();
+                    String prevSubject = link;
+                    while (propertiesRS.next()) {
+                        List<String> chainA = new ArrayList<>();
+                        List<String> chainB = new ArrayList<>();
+                        List<String> objectChainA = new ArrayList<>();
+                        List<String> objectChainB = new ArrayList<>();
+                        for (int j = 0; j <= i; j++) {
+                            int step_over = 2 * (i + 1);
 
-                String prevSubject = link;
-                while (propertiesRS.next()) {
-                    List<String> chainA = new ArrayList<>();
-                    List<String> chainB = new ArrayList<>();
-                    List<String> objectChainA = new ArrayList<>();
-                    List<String> objectChainB = new ArrayList<>();
-                    for (int j = 0; j <= i; j++) {
-                        int step_over = 2 * (i + 1);
+                            String predicateA = propertiesRS.getString(2 * (j + 1) - 1);
+                            String objectA = propertiesRS.getString(2 * (j + 1));
+                            String predicateB = propertiesRS.getString(2 * (j + 1) + step_over - 1);
+                            String objectB = propertiesRS.getString(2 * (j + 1) + step_over);
 
-                        String predicateA = propertiesRS.getString(2 * (j + 1) - 1);
-                        String objectA = propertiesRS.getString(2 * (j + 1));
-                        String predicateB = propertiesRS.getString(2 * (j + 1) + step_over - 1);
-                        String objectB = propertiesRS.getString(2 * (j + 1) + step_over);
+                            if (predicateA != null) {
+                                //predicateA = URLDecoder.decode(predicateA, "UTF-8");
+                            }
+                            if (predicateB != null) {
+                                //predicateB = URLDecoder.decode(predicateB, "UTF-8");
+                            }
 
-                        if (predicateA != null) {
-                            //predicateA = URLDecoder.decode(predicateA, "UTF-8");
+                            /*
+                             if (predicateA != null) {
+                             if (!uniquePropertiesA.contains(predicateA)) {
+                             //uniquePropertiesA.add(predicateA);
+                             }
+                             if (predicateA.contains("posSeq")) {
+                             continue;
+                             }
+                             if (predicateA.contains("asWKT")) {
+                             continue;
+                             }
+                             if (predicateA.contains("geometry")) {
+                             continue;
+                             }
+                             }
+                             if (predicateB != null) {
+                             if (!uniquePropertiesB.contains(predicateB)) {
+                             //uniquePropertiesB.add(predicateB);
+                             }
+                             if (predicateB.contains("posSeq")) {
+                             continue;
+                             }
+                             if (predicateB.contains("asWKT")) {
+                             continue;
+                             }
+                             if (predicateB.contains("geometry")) {
+                             continue;
+                             }
+                             }
+                             */
+                            chainA.add(predicateA);
+                            objectChainA.add(objectA);
+                            chainB.add(predicateB);
+                            objectChainB.add(objectB);
                         }
-                        if (predicateB != null) {
-                            //predicateB = URLDecoder.decode(predicateB, "UTF-8");
-                        }
 
-                        /*
-                         if (predicateA != null) {
-                         if (!uniquePropertiesA.contains(predicateA)) {
-                         //uniquePropertiesA.add(predicateA);
-                         }
-                         if (predicateA.contains("posSeq")) {
-                         continue;
-                         }
-                         if (predicateA.contains("asWKT")) {
-                         continue;
-                         }
-                         if (predicateA.contains("geometry")) {
-                         continue;
-                         }
-                         }
-                         if (predicateB != null) {
-                         if (!uniquePropertiesB.contains(predicateB)) {
-                         //uniquePropertiesB.add(predicateB);
-                         }
-                         if (predicateB.contains("posSeq")) {
-                         continue;
-                         }
-                         if (predicateB.contains("asWKT")) {
-                         continue;
-                         }
-                         if (predicateB.contains("geometry")) {
-                         continue;
-                         }
-                         }
-                         */
-                        chainA.add(predicateA);
-                        objectChainA.add(objectA);
-                        chainB.add(predicateB);
-                        objectChainB.add(objectB);
+                        scanChain(propertiesA, chainA, objectChainA);
+                        scanChain(propertiesB, chainB, objectChainB);
+
                     }
 
-                    scanChain(propertiesA, chainA, objectChainA);
-                    scanChain(propertiesB, chainB, objectChainB);
-
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown during set up of the Dictionary");
+                    LOG.debug("SQLException thrown during set up of the Dictionary : \n" + ex.getMessage());
+                    LOG.debug("SQLException thrown during set up of the Dictionary : \n" + ex.getSQLState());
                 }
-
+                
                 scanMatches();
                 propertiesA.clear();
                 propertiesB.clear();
 
-                propertiesRS.close();
-                fetchProperties.close();
+                        //propertiesRS.close();
+                   
+                //fetchProperties.close();
             }
         } else {
-            final String dropSamplesGraph = "sparql DROP SILENT GRAPH <" + gr_c.getSampleLinksGraph() + ">";
-            final String createSamplesGraph = "sparql CREATE GRAPH <" + gr_c.getSampleLinksGraph() + ">";
+            // For bulk matching we need to create a Sample Links Graph
+            // because matching on all links would be very slow
+            final String dropSamplesGraph = "SPARQL DROP SILENT GRAPH <" + gr_c.getSampleLinksGraph() + ">";
+            final String createSamplesGraph = "SPARQL CREATE GRAPH <" + gr_c.getSampleLinksGraph() + ">";
             final String createLinksSample = "SPARQL INSERT\n"
                     + " { GRAPH <" + gr_c.getSampleLinksGraph() + "> {\n"
                     + " ?s ?p ?o\n"
@@ -1315,27 +1354,27 @@ public final class VirtuosoImporter {
                     + "} limit " + Constants.SAMPLE_SIZE + "\n"
                     + "}}";
 
-            PreparedStatement dropSamplesStmt;
-            dropSamplesStmt = virt_conn.prepareStatement(dropSamplesGraph);
-            dropSamplesStmt.execute();
+            try (PreparedStatement dropSamplesStmt = virt_conn.prepareStatement(dropSamplesGraph);
+                PreparedStatement insertLinksSample = virt_conn.prepareStatement(createLinksSample);
+                PreparedStatement createSamplesStmt = virt_conn.prepareStatement(createSamplesGraph) ) {
 
-            PreparedStatement createSamplesStmt;
-            createSamplesStmt = virt_conn.prepareStatement(createSamplesGraph);
-            createSamplesStmt.execute();
+                dropSamplesStmt.execute();
+                createSamplesStmt.execute();
+                insertLinksSample.execute();
 
-            PreparedStatement insertLinksSample;
-            insertLinksSample = virt_conn.prepareStatement(createLinksSample);
-            insertLinksSample.execute();
-
-            dropSamplesStmt.close();
-            createSamplesStmt.close();
-            insertLinksSample.close();
-
+            } catch (SQLException ex) {
+                LOG.trace("SQLException thrown during sample creation");
+                LOG.debug("SQLException thrown during sample creation : \n" + ex.getMessage());
+                LOG.debug("SQLException thrown during sample creation : \n" + ex.getSQLState());
+                                
+                return null;
+            }
+            
             foundA.clear();
             foundB.clear();
-            //for (int i = optDepth; i >= 0; i--) {
             for (int i = 0; i < optDepth + 1; i++) {
-                //System.out.println("DEPTH: "+i);
+                
+                // Dynamically construct properties query
                 StringBuilder query = new StringBuilder();
                 query.append("sparql SELECT distinct(?s) ?pa1 ?oa1 ");
                 for (int j = 0; j < i; j++) {
@@ -1389,143 +1428,150 @@ public final class VirtuosoImporter {
                         + "} ORDER BY (?s)");
 
                 System.out.println("Properties Query : " + query.toString());
-                PreparedStatement fetchProperties;
-                fetchProperties = virt_conn.prepareStatement(query.toString());
-                ResultSet propertiesRS = fetchProperties.executeQuery();
-
+                
                 String prevSubject = "";
-                while (propertiesRS.next()) {
-                    final String subject = propertiesRS.getString(1);
-                    //propertiesRS.
-                    if (!prevSubject.equals(subject) && !prevSubject.equals("")) {
-                        //if (i == optDepth) {
-                        //System.out.println(subject);
-                        scanMatches();
-                        propertiesA.clear();
-                        propertiesB.clear();
-                        //}
-                    }
-                    //System.out.println(subject);
+                try (PreparedStatement fetchProperties = virt_conn.prepareStatement(query.toString());
+                        ResultSet propertiesRS = fetchProperties.executeQuery()) {
+
                     List<String> chainA = new ArrayList<>();
                     List<String> chainB = new ArrayList<>();
                     List<String> objectChainA = new ArrayList<>();
                     List<String> objectChainB = new ArrayList<>();
-                    for (int j = 0; j <= i; j++) {
-                        //int ind = j+2;
-                        //int prev = ind - 1;
-                        int step_over = 2 * (i + 1);
-
-                        String predicateA = propertiesRS.getString(2 * (j + 1));
-                        String objectA = propertiesRS.getString(2 * (j + 1) + 1);
-                        String predicateB = propertiesRS.getString(2 * (j + 1) + step_over);
-                        String objectB = propertiesRS.getString(2 * (j + 1) + 1 + step_over);
-                        /*if (objectA != null) {
-                         System.out.println("Object A "+objectA+" "+PATTERN_INT.asPredicate().test(objectA));
-                         }
-                         if (objectB != null) {
-                         System.out.println("Object B "+objectB+" "+PATTERN_INT.asPredicate().test(objectB));
-                         }*/
-
-                        if (predicateA != null) {
-                            //predicateA = URLDecoder.decode(predicateA, "UTF-8");
+                        
+                    while (propertiesRS.next()) {
+                        final String subject = propertiesRS.getString(1);
+                        //propertiesRS.
+                        if (!prevSubject.equals(subject) && !prevSubject.equals("")) {
+                        //if (i == optDepth) {
+                            //System.out.println(subject);
+                            scanMatches();
+                            propertiesA.clear();
+                            propertiesB.clear();
+                            //}
                         }
-                        if (predicateB != null) {
-                            //predicateB = URLDecoder.decode(predicateB, "UTF-8");
-                        }
+                        
+                        chainA.clear();
+                        chainB.clear();
+                        objectChainA.clear();
+                        objectChainB.clear();
+                        
+                        for (int j = 0; j <= i; j++) {
+                            int step_over = 2 * (i + 1);
 
-                        if (predicateA != null) {
-                            if (!nonMatchedPropertiesA.contains(predicateA)) {
-                                //nonMatchedPropertiesA.add(predicateA);
-                            }
-                            if (!uniquePropertiesA.contains(predicateA)) {
-                                uniquePropertiesA.add(predicateA);
-                            }
-                            if (predicateA.contains("posSeq")) {
-                                //continue;
-                            }
-                            if (predicateA.contains("asWKT")) {
-                                //continue;
-                            }
-                            if (predicateA.contains("geometry")) {
-                                //continue;
-                            }
-                        }
-                        if (predicateB != null) {
-                            if (!nonMatchedPropertiesB.contains(predicateB)) {
-                                //nonMatchedPropertiesB.add(predicateB);
-                            }
-                            if (!uniquePropertiesB.contains(predicateB)) {
-                                uniquePropertiesB.add(predicateB);
-                            }
-                            if (predicateB.contains("posSeq")) {
-                                //continue;
-                            }
-                            if (predicateB.contains("asWKT")) {
-                                //continue;
-                            }
-                            if (predicateB.contains("geometry")) {
-                                //continue;
-                            }
-                        }
+                            final String predicateA = propertiesRS.getString(2 * (j + 1));
+                            final String objectA = propertiesRS.getString(2 * (j + 1) + 1);
+                            final String predicateB = propertiesRS.getString(2 * (j + 1) + step_over);
+                            final String objectB = propertiesRS.getString(2 * (j + 1) + 1 + step_over);
+                            /*if (objectA != null) {
+                             System.out.println("Object A "+objectA+" "+PATTERN_INT.asPredicate().test(objectA));
+                             }
+                             if (objectB != null) {
+                             System.out.println("Object B "+objectB+" "+PATTERN_INT.asPredicate().test(objectB));
+                             }*/
 
-                        chainA.add(predicateA);
-                        objectChainA.add(objectA);
-                        chainB.add(predicateB);
-                        objectChainB.add(objectB);
+                            if (predicateA != null) {
+                                //predicateA = URLDecoder.decode(predicateA, "UTF-8");
+                            }
+                            if (predicateB != null) {
+                                //predicateB = URLDecoder.decode(predicateB, "UTF-8");
+                            }
+
+                            if (predicateA != null) {
+                                if (!nonMatchedPropertiesA.contains(predicateA)) {
+                                    //nonMatchedPropertiesA.add(predicateA);
+                                }
+                                if (!uniquePropertiesA.contains(predicateA)) {
+                                    uniquePropertiesA.add(predicateA);
+                                }
+                                if (predicateA.contains("posSeq")) {
+                                    //continue;
+                                }
+                                if (predicateA.contains("asWKT")) {
+                                    //continue;
+                                }
+                                if (predicateA.contains("geometry")) {
+                                    //continue;
+                                }
+                            }
+                            if (predicateB != null) {
+                                if (!nonMatchedPropertiesB.contains(predicateB)) {
+                                    //nonMatchedPropertiesB.add(predicateB);
+                                }
+                                if (!uniquePropertiesB.contains(predicateB)) {
+                                    uniquePropertiesB.add(predicateB);
+                                }
+                                if (predicateB.contains("posSeq")) {
+                                    //continue;
+                                }
+                                if (predicateB.contains("asWKT")) {
+                                    //continue;
+                                }
+                                if (predicateB.contains("geometry")) {
+                                    //continue;
+                                }
+                            }
+
+                            chainA.add(predicateA);
+                            objectChainA.add(objectA);
+                            chainB.add(predicateB);
+                            objectChainB.add(objectB);
 
                         //System.out.println(" "+predicateA+" "+objectA);
-                        //System.out.println(" "+predicateB+" "+objectB);
-                    }
+                            //System.out.println(" "+predicateB+" "+objectB);
+                        }
+                        
                     //System.out.println("Chain A "+chainA);
-                    //System.out.println("Chain B "+chainB);
-                    scanChain(propertiesA, chainA, objectChainA);
-                    scanChain(propertiesB, chainB, objectChainB);
+                        //System.out.println("Chain B "+chainB);
+                        
+                        scanChain(propertiesA, chainA, objectChainA);
+                        scanChain(propertiesB, chainB, objectChainB);
 
-                    prevSubject = subject;
+                        prevSubject = subject;
+                    }
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown during set up of the Dictionary");
+                    LOG.debug("SQLException thrown during set up of the Dictionary : \n" + ex.getMessage());
+                    LOG.debug("SQLException thrown during set up of the Dictionary : \n" + ex.getSQLState());
+
+                    return null;
                 }
-
+                
                 scanMatches();
                 propertiesA.clear();
                 propertiesB.clear();
 
-                propertiesRS.close();
-                fetchProperties.close();
-                //System.out.println(query2.toString());
             }
         }
 
-        StringBuilder sb = new StringBuilder();
-        Iterator it = propertiesA.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry pairs = (Map.Entry) it.next();
-            sb.append(pairs.getKey()).append(" = ").append((MetadataChain) pairs.getValue()).append("\n");
-            it.remove(); // avoids a ConcurrentModificationException
-        }
+        // Close WordNet resources
         if (JWNL.isInitialized()) {
             JWNL.shutdown();
         }
-
+        
+        // A frequncy map of ontology substring in each predicate
         HashMap<String, Integer> freqMap = Maps.newHashMap();
+        
+        // Find dominant ontology in Dataset A
         for (String key : uniquePropertiesA) {
             //System.out.println(key);
-            String onto = StringUtils.substringBefore(key, "#");
-            onto = onto.concat("#");
-            if (onto.equals(key)) {
-                onto = StringUtils.substring(key, 0, StringUtils.lastIndexOf(key, "/"));
-                onto = onto.concat("/");
-            }
-            //System.out.println("Onto "+onto+" "+StringUtils.lastIndexOf(key, "/"));
+            
+            // Get meaningful part
+            String onto = Utilities.getPredicateOntology(key);
+            
+            // If previously encountered, bump the number
             if (freqMap.containsKey(onto)) {
                 freqMap.put(onto, freqMap.get(onto) + 1);
             } else {
                 freqMap.put(onto, 1);
             }
+            
         }
+        
         int max = -1;
         String domOntologyA = "";
         for (Map.Entry<String, Integer> entry : freqMap.entrySet()) {
             String key = entry.getKey();
-            Integer value = (Integer) entry.getValue();
+            Integer value = entry.getValue();
             if (value > max) {
                 if (key.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns")) {
                     continue;
@@ -1535,7 +1581,11 @@ public final class VirtuosoImporter {
             }
             //System.out.println("Entry "+key+" : "+value);
         }
+        
+        // Clear frequencies
         freqMap.clear();
+        
+        // Find dominant ontology in Dataset A
         for (String key : uniquePropertiesB) {
             //System.out.println(key);
             String onto = StringUtils.substringBefore(key, "#");
@@ -1551,6 +1601,7 @@ public final class VirtuosoImporter {
                 freqMap.put(onto, 1);
             }
         }
+        
         max = -1;
         String domOntologyB = "";
         for (Map.Entry<String, Integer> entry : freqMap.entrySet()) {
@@ -1572,6 +1623,8 @@ public final class VirtuosoImporter {
         //    System.out.println(key);
         //}
         //System.out.println("Found A");
+        
+        /*
         Iterator iter = foundA.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry pairs = (Map.Entry) iter.next();
@@ -1591,7 +1644,8 @@ public final class VirtuosoImporter {
             //System.out.println(s.getRep());
             //}
         }
-
+        */
+        
         return new SchemaMatchState(foundA, foundB, domOntologyA, domOntologyB, nonMatchedPropertiesA, nonMatchedPropertiesB);
     }
 

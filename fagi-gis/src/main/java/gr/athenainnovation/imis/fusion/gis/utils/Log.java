@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
  * @author nick
  */
 public class Log {
+    
     private static final Logger FAGI_ROOT_LOG = Logger.getRootLogger();    
     
     public static final Logger getFAGILogger() {
