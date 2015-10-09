@@ -45,6 +45,7 @@ import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
 import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
+import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -381,8 +382,12 @@ public class LinksServlet extends HttpServlet {
             fetchedGeomsA.clear();
             fetchedGeomsB.clear();
             
+            // Save both containers of links
             sess.setAttribute("links", linksHashed);
             sess.setAttribute("links_list", output);
+            
+            // Create the HTML for the link list
+            // [TODO] Could be inproved ( Too much work on the server )
             int i = 0;
             for (Link l : output) {
                 fetchedGeomsA.add(l.getNodeA());
@@ -391,16 +396,13 @@ public class LinksServlet extends HttpServlet {
                 htmlCode.append("<li><div>");
                 htmlCode.append("<label for=\"" + check + "\"><input type=\"checkbox\" value=\"\"name=\"" + check + "\" id=\"" + check + "\" />" + l.getNodeA() + "<-->" + l.getNodeB() + "</label>");
                 htmlCode.append("</div>\n</li>");
-                //out.println("<li><div>");
-                //out.println("<label for=\"" + check + "\"><input type=\"checkbox\" value=\"\"name=\"" + check + "\" id=\"" + check + "\" />" + l.getNodeA() + "<-->" + l.getNodeB() + "</label>");
-                //out.println("</div>\n</li>");
                 i++;
             }
             
+            // Set the links HTML and reset buffer
             ret.setLinkListHTML(htmlCode.toString());
             htmlCode.setLength(0);
             
-            //out.print("+>>>+");
 
             // Upload Links to PostGIS
             final GeometryFuser geometryFuser = new GeometryFuser();
@@ -448,8 +450,19 @@ public class LinksServlet extends HttpServlet {
             }
 
             // Upload links to Virtusoso graph
-            createLinksGraph(output, vSet.getConnection(), grConf, dbConf.getBulkDir());
-
+            succeeded = SPARQLUtilities.createLinksGraph(output, vSet.getConnection(), grConf, dbConf.getBulkDir());
+            if ( !succeeded ) {
+                LOG.trace("Link graph creation failed");
+                LOG.debug("Link graph creation failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with link upload to Virtuoso");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }
             //final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
             Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
             final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, null);
@@ -665,6 +678,7 @@ public class LinksServlet extends HttpServlet {
             if ( vSet != null ) {
                 vSet.close();
             }
+            
             if ( out != null )
                 out.close();
         }
@@ -726,143 +740,6 @@ public class LinksServlet extends HttpServlet {
         return ret;
     }
 
-    public boolean createLinksGraph(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) {
-        final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getAllLinksGraph()+  ">";
-        final String createGraph = "sparql CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
-        
-        boolean success = true;
-
-        //final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
-
-        //PreparedStatement endStmt;
-        //endStmt = virt_conn.prepareStatement(endDesc);
-        //endStmt.execute();
-        PreparedStatement dropStmt;
-        long starttime, endtime;
-        try {
-            dropStmt = virt_conn.prepareStatement(dropGraph);
-            dropStmt.execute();
-            dropStmt.close();
-            
-        } catch (SQLException ex) {
-            LOG.trace("Dropping "+grConf.getAllLinksGraph()+" failed");
-            LOG.debug("Dropping "+grConf.getAllLinksGraph()+" failed");
-            
-            success = false;
-            return success;
-        }
-
-        PreparedStatement createStmt;
-        try {
-            createStmt = virt_conn.prepareStatement(createGraph);
-            createStmt.execute();
-            createStmt.close();
-            
-        } catch (SQLException ex) {
-            LOG.trace("Creating "+grConf.getAllLinksGraph()+" failed");
-            LOG.debug("Creating "+grConf.getAllLinksGraph()+" failed");
-            
-            success = false;
-            return success;
-        }
-        
-        
-        //bulkInsertLinks(lst, virt_conn, bulkInsertDir);
-        success = SPARQLInsertLink(lst, grConf, virt_conn);
-        
-        return success;
-    }
-
-    private boolean SPARQLInsertLink(List<Link> l, GraphConfig grConf, Connection virt_conn) {
-        boolean success = true;
-        StringBuilder sb = new StringBuilder();
-        try {
-            sb.append("SPARQL WITH <" + grConf.getAllLinksGraph() + "> INSERT {");
-            sb.append("`iri(??)` <" + Constants.SAME_AS + "> `iri(??)` . } ");
-            System.out.println("Statement " + sb.toString());
-            VirtuosoConnection conn = (VirtuosoConnection) virt_conn;
-            VirtuosoPreparedStatement vstmt;
-            vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
-
-            int start = 0;
-            int end = l.size();
-
-            for (int i = start; i < end; ++i) {
-                Link link = l.get(i);
-                vstmt.setString(1, link.getNodeA());
-                vstmt.setString(2, link.getNodeB());
-
-                vstmt.addBatch();
-            }
-
-            vstmt.executeBatch();
-
-            vstmt.close();
-
-        } catch (VirtuosoException ex) {
-            LOG.trace("VirtuosoException on "+grConf.getAllLinksGraph()+" failed");
-            LOG.debug("VirtuosoException on "+grConf.getAllLinksGraph()+" failed : " + ex.getMessage());
-            LOG.debug("VirtuosoException on "+grConf.getAllLinksGraph()+" failed : " + ex.getSQLState());
-            
-            success = false;
-            return success;
-        } catch (BatchUpdateException ex) {
-            LOG.trace("BatchUpdateException on "+grConf.getAllLinksGraph()+" failed");
-            LOG.debug("BatchUpdateException on "+grConf.getAllLinksGraph()+" failed : " + ex.getMessage());
-            LOG.debug("BatchUpdateException on "+grConf.getAllLinksGraph()+" failed : " + ex.getSQLState());
-            
-            success = false;
-            return success;
-        }
-        
-        return success;
-    }
-
-    private void bulkInsertLinks(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) throws FileNotFoundException, SQLException {
-        long starttime, endtime;
-        /*
-         set2 = getVirtuosoSet("+ grConf.getAllLinksGraph()+ , db_c.getDBURL(), db_c.getUsername(), db_c.getPassword());
-         BulkUpdateHandler buh2 = set2.getBulkUpdateHandler();*/
-        LOG.info(ANSI_YELLOW + "Loaded " + lst.size() + " links" + ANSI_RESET);
-
-        starttime = System.nanoTime();
-        System.out.println("FILE " + bulkInsertDir + "bulk_inserts" + File.separator + "selected_links.nt");
-        //File f = new File(bulkInsertDir+"bulk_inserts/selected_links.nt");
-        //f.mkdirs();
-        //f.getParentFile().mkdirs();
-        //PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(bulkInsertDir+"bulk_inserts/selected_links.nt")));
-        String dir = bulkInsertDir.replace("\\", "/");
-        System.out.println("DIR " + dir);
-        //dir = "/"+dir;
-        //dir = dir.replace(":","");
-        PrintWriter out = new PrintWriter(bulkInsertDir + "bulk_inserts/selected_links.nt");
-        final String bulk_insert = "DB.DBA.TTLP_MT (file_to_string_output ('" + dir + "bulk_inserts/selected_links.nt'), '', "
-                + "'" + grConf.getAllLinksGraph()+ "')";
-        //int stop = 0;
-        if (lst.size() > 0) {
-
-            for (Link link : lst) {
-                //if (stop++ > 1000) break;
-                String triple = "<" + link.getNodeA() + "> <" + Constants.SAME_AS + "> <" + link.getNodeB() + "> .";
-
-                out.println(triple);
-            }
-            out.close();
-
-            PreparedStatement uploadBulkFileStmt;
-            uploadBulkFileStmt = virt_conn.prepareStatement(bulk_insert);
-            uploadBulkFileStmt.executeUpdate();
-        }
-
-        endtime = System.nanoTime();
-        LOG.info(ANSI_YELLOW + "Links Graph created in " + ((endtime - starttime) / 1000000000f) + "" + ANSI_RESET);
-
-        starttime = System.nanoTime();
-
-        virt_conn.commit();
-        //endtime =  System.nanoTime();
-        LOG.info(ANSI_YELLOW + "Links Graph created in " + ((endtime - starttime) / 1000000000f) + "" + ANSI_RESET);
-    }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**

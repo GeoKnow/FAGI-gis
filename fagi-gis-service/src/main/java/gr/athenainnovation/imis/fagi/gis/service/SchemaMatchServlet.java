@@ -6,6 +6,7 @@
 package gr.athenainnovation.imis.fagi.gis.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
@@ -18,6 +19,7 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.json.JSONMatches;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.SchemaMatchState;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.ScoredMatch;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
@@ -57,6 +59,8 @@ import virtuoso.jena.driver.VirtGraph;
 @WebServlet(name = "SchemaMatchServlet", urlPatterns = {"/SchemaMatchServlet"})
 public class SchemaMatchServlet extends HttpServlet {
         
+    private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(SchemaMatchServlet.class);
+    
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -68,8 +72,11 @@ public class SchemaMatchServlet extends HttpServlet {
      */   
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException {
+        
         response.setContentType("application/json");
         
+        // Per request state
+        PrintWriter             out = null;
         JSONMatches             matches;
         JSONRequestResult       res;
         DBConfig                dbConf;
@@ -78,7 +85,16 @@ public class SchemaMatchServlet extends HttpServlet {
         VirtGraph               vSet = null;
         HttpSession             sess;
         
-        try (PrintWriter out = response.getWriter()) {
+        try {
+            
+            try {
+                out = response.getWriter();
+            } catch (IOException ex) {
+                LOG.trace("IOException thrown in servlet Writer");
+                LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage() );
+                
+                return;
+            }
             
             sess = request.getSession(false);
 
@@ -130,18 +146,19 @@ public class SchemaMatchServlet extends HttpServlet {
             StringBuilder sb = new StringBuilder();
             
             VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
-            SchemaMatchState sms = virtImp.scanProperties(1, null);
+            SchemaMatchState sms = virtImp.scanProperties(3, null);
+            
             System.out.println("Dom A "+sms.domOntoA+" Dom B "+sms.domOntoB);
             sess.setAttribute("domA", sms.domOntoA);
             sess.setAttribute("domB", sms.domOntoB);
             
             //sms.foundA.put("lalalala"+sess.getCreationTime(), new HashSet<String>());
-            matches.foundA = sms.foundA;
-            matches.foundB = sms.foundB;
-            matches.otherPropertiesA = sms.otherPropertiesA;
-            matches.otherPropertiesB = sms.otherPropertiesB;
-            matches.geomTransforms = sms.geomTransforms;
-            matches.metaTransforms = sms.metaTransforms;
+            matches.setFoundA(sms.foundA);
+            matches.setFoundB(sms.foundB);
+            matches.setOtherPropertiesA(sms.otherPropertiesA);
+            matches.setOtherPropertiesB(sms.otherPropertiesB);
+            matches.setGeomTransforms(sms.geomTransforms);
+            matches.setMetaTransforms(sms.metaTransforms);
             
             sess.setAttribute("property_patternsA", sms.getPropertyList("A"));
             sess.setAttribute("property_patternsB", sms.getPropertyList("B"));
@@ -152,10 +169,22 @@ public class SchemaMatchServlet extends HttpServlet {
             //System.out.println("Matches : "+mapper.writeValueAsString(matches));
             //System.out.println(sb);
             out.println(mapper.writeValueAsString(matches));
+        } catch (JsonProcessingException ex) {
+        } catch ( java.lang.OutOfMemoryError oome) {
+            LOG.trace("OutOfMemoryError thrown");
+            LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
+            if (out != null) {
+                out.println("{}");
+
+                out.close();
+            }
         } finally {
             if ( vSet != null ) {
                 vSet.close();
             }
+            
+            if ( out != null )
+                out.close();
         }
     }
 
