@@ -76,22 +76,22 @@
             
             str = request.getParameter("postgis-username");
             if ( str == null ) 
-                request.setAttribute("postgis-username", "postgres");
-                //request.setAttribute("postgis-username", "fagi");
+                //request.setAttribute("postgis-username", "postgres");
+                request.setAttribute("postgis-username", "fagi");
             else
                 request.setAttribute("postgis-username", request.getParameter("postgis-username"));
             
             str = request.getParameter("postgis-password");
             if ( str == null ) 
-                request.setAttribute("postgis-password", "1111");
-                //request.setAttribute("postgis-password", "fagi");
+                //request.setAttribute("postgis-password", "1111");
+                request.setAttribute("postgis-password", "fagi");
             else
                 request.setAttribute("postgis-password", request.getParameter("postgis-password"));
             
             str = request.getParameter("postgis-database");
             if ( str == null ) 
-                request.setAttribute("postgis-database", "postgis1");
-                //request.setAttribute("postgis-database", "fagi");
+                //request.setAttribute("postgis-database", "postgis1");
+                request.setAttribute("postgis-database", "fagi");
             else
                 request.setAttribute("postgis-database", request.getParameter("postgis-database"));
             
@@ -323,7 +323,7 @@
                             <tbody>
                                 <tr>
                                     <td style="padding-right: 20px;" align="left" valign="bottom">Preview geometries from target dataset:</td>
-                                    <td style="padding-right: 20px;"><div><input id="fg-fetch-fused-check" name="t" value="true" type="checkbox" checked="false"/></div></td>
+                                    <td style="padding-right: 20px;"><div><input id="fg-fetch-fused-check" name="t" value="false" type="checkbox" checked="false"/></div></td>
                                 </tr>
                             </tbody>
                         </table>

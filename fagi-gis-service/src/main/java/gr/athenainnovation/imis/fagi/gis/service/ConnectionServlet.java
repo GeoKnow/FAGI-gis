@@ -1,6 +1,7 @@
 
 package gr.athenainnovation.imis.fagi.gis.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.hp.hpl.jena.shared.JenaException;
@@ -50,18 +51,21 @@ public class ConnectionServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException {
+            throws ServletException {
 
         HttpSession                     sess;
-        PrintWriter                     out = response.getWriter();
+        PrintWriter                     out = null;
         VirtGraph                       vSet = null;
         FusionState                     st = new FusionState();
         DBConfig                        dbConf = new DBConfig("", "", "", "", "", "", "");
         Connection                      dbConn = null;
         ObjectMapper                    mapper = new ObjectMapper();
         JSONRequestResult               ret = null;
-
+        boolean                         succeded = true;
+        
         try {
+            out = response.getWriter();
+            
             //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             ret = new JSONRequestResult();
 
@@ -70,7 +74,7 @@ public class ConnectionServlet extends HttpServlet {
 
             Logger logger = Log.getFAGILogger();
             logger.setLevel(Level.DEBUG);
-
+            
             /*
              Enumeration e = logger.getAllAppenders();
              System.out.println(e.toString());
@@ -146,9 +150,6 @@ public class ConnectionServlet extends HttpServlet {
 
             // Try a dummy connection to Postgres to check if a database with the same name exists
             try {
-            //final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
-                //databaseInitialiser.initialise(st.getDbConf());
-
                 String url = Constants.DB_URL;
                 dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
                 //dbConn.setAutoCommit(false);
@@ -164,26 +165,46 @@ public class ConnectionServlet extends HttpServlet {
             }
 
             // Check database existance ( PostgreSQL specific )
-            PreparedStatement stmt = dbConn.prepareStatement("SELECT 1 from pg_database WHERE datname = ? ");
-            stmt.setString(1, dbConf.getDBName());
-            ResultSet rs = stmt.executeQuery();
-
+            PreparedStatement stmt;
             // If it has a row then the database exists
             boolean createDB = true;
-            if (rs.next()) {
-                System.out.println("Database already exists");
-                createDB = false;
-            }
+            try {
+                stmt = dbConn.prepareStatement("SELECT 1 from pg_database WHERE datname = ? ");
 
+                stmt.setString(1, dbConf.getDBName());
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()) {
+                    System.out.println("Database already exists");
+                    createDB = false;
+                }
+            } catch (SQLException ex) {
+                LOG.trace("SQLException thrown table probing");
+                LOG.debug("SQLException thrown table probing : " + ex.getMessage());
+                LOG.debug("SQLException thrown table probing : " + ex.getSQLState());
+            }
+            
             // Create if needed
             if (createDB) {
                 final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
-                databaseInitialiser.initialise(dbConf);
+                succeded = databaseInitialiser.initialise(dbConf);
             } else {
                 final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
-                databaseInitialiser.clearTables(dbConf);
+                succeded = databaseInitialiser.clearTables(dbConf);
             }
 
+            if ( !succeded ) {
+                LOG.error("Postgis database could not be set up");
+                ret.setMessage("Postgis database could not be set up!");
+                ret.setStatusCode(-1);
+
+                out.println(mapper.writeValueAsString(ret));
+                
+                out.close();
+                
+                return;
+            }
+            
             ret.setMessage("Virtuoso and PostGIS connection established!");
             ret.setStatusCode(0);
 
@@ -194,11 +215,18 @@ public class ConnectionServlet extends HttpServlet {
         } catch (java.lang.OutOfMemoryError oome) {
             LOG.trace("OutOfMemoryError thrown");
             LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
-            if (out != null) {
-                out.println("{}");
-
-                out.close();
-            }
+            
+            throw new ServletException("OutOfMemoryError thrown by Tomcat");
+        } catch (JsonProcessingException ex) {
+            LOG.trace("JsonProcessingException thrown");
+            LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
+            
+            throw new ServletException("JsonProcessingException thrown by Tomcat");
+        } catch (IOException ex) {
+            LOG.trace("IOException thrown");
+            LOG.debug("IOException thrown : " + ex.getMessage());
+            
+            throw new ServletException("IOException opening the servlet writer");
         } finally {
             if (vSet != null) {
                 vSet.close();
@@ -212,7 +240,8 @@ public class ConnectionServlet extends HttpServlet {
                     LOG.error("Virtgraph Close Exception", ex);
                 }
             }
-            out.close();
+            if (out != null )
+                out.close();
         }
     }
 
@@ -227,12 +256,9 @@ public class ConnectionServlet extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            LOG.error("SQL Exception", ex);
-        }
+            throws ServletException {
+        processRequest(request, response);
+        
     }
 
     /**
@@ -246,11 +272,8 @@ public class ConnectionServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            LOG.error("SQL Exception", ex);
-        }
+        processRequest(request, response);
+        
     }
 
     /**

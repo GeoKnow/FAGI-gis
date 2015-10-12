@@ -91,6 +91,14 @@
                                     </mapper>
                                 </data>
                                 <data>
+                                    <src>${project.basedir}/log.txt</src>
+                                    <type>file</type>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <prefix>/var/log/fagi-gis-service</prefix>
+                                    </mapper>
+                                </data>
+                                <data>
                                     <src>${project.basedir}/config</src>
                                     <type>directory</type>
                                     <mapper>

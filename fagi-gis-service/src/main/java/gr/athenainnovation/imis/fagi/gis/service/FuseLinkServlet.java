@@ -477,7 +477,8 @@ public class FuseLinkServlet extends HttpServlet {
             
                 virtImp.importGeometriesToVirtuoso((String)sess.getAttribute("t_graph"));
             
-                virtImp.trh.finish();
+                //virtImp.trh.finish();
+                virtImp.finishUpload();
             
                 String queryGeoms = "SELECT links.nodea as la, links.nodeb as lb, ST_asText(b.geom) as g\n" +
                                  "FROM links INNER JOIN fused_geometries AS b\n" +

@@ -521,7 +521,8 @@ public class BatchFusionServlet extends HttpServlet {
                 //virtImp.importGeometriesToVirtuoso((String)sess.getAttribute("t_graph"));
                 virtImp.importGeometriesToVirtuoso(grConf.getTargetTempGraph());
             
-                virtImp.trh.finish();
+                //virtImp.trh.finish();
+                virtImp.finishUpload();
                 
                 break;
             }
