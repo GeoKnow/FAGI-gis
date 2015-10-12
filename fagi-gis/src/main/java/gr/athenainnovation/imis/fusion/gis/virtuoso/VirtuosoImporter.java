@@ -1649,34 +1649,16 @@ public final class VirtuosoImporter {
         return new SchemaMatchState(foundA, foundB, domOntologyA, domOntologyB, nonMatchedPropertiesA, nonMatchedPropertiesB);
     }
 
-    private class Namespace {
-
-        String ontology;
-        int freq = 0;
-
-        public Namespace(String ontology) {
-            this.ontology = ontology;
-            freq = 1;
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            return ontology.equals(object);
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 67 * hash + Objects.hashCode(this.ontology);
-            return hash;
-        }
-    }
-
     //int maxParentDepth = 3;
-    private int scanSense(Synset i, Synset j) throws JWNLException {
+    private int scanSense(Synset i, Synset j) {
         //RelationshipList list = RelationshipFinder.getInstance().findRelationships(i, j, PointerType.HYPERNYM);
         //RelationshipList listLvl1 = RelationshipFinder.getInstance().findRelationships(i, j, PointerType.HYPERNYM, 1);
-        RelationshipList listLvl2 = RelationshipFinder.getInstance().findRelationships(i, j, PointerType.HYPERNYM, wordnetDepth);
+        RelationshipList listLvl2;
+        try {
+            listLvl2 = RelationshipFinder.getInstance().findRelationships(i, j, PointerType.HYPERNYM, wordnetDepth);
+        } catch (JWNLException ex) {
+            return -1;
+        }
 	//System.out.println("Hypernym relationship between \"" + start.getLemma() + "\" and \"" + end.getLemma() + "\":");
         //int ret = -1;
         int tom;
@@ -1703,7 +1685,7 @@ public final class VirtuosoImporter {
         }
     }
 
-    private float calculateAsymmetricRelationshipOperation(IndexWord start, IndexWord end, SchemaMatcher m) throws JWNLException {
+    private float calculateAsymmetricRelationshipOperation(IndexWord start, IndexWord end, SchemaMatcher m) {
 		// Try to find a relationship between the first sense of <var>start</var> and the first sense of <var>end</var>
         //System.out.println("Asymetric relationship between \"" + start.getLemma() + "\" and \"" + end.getLemma() + "\":");	
         if (start == null || end == null) {
@@ -1718,8 +1700,15 @@ public final class VirtuosoImporter {
         //System.out.println("NEW WORD");
         //System.out.print(start.getLemma()+" VS "); 
         //System.out.println(end.getLemma()); 
-        Synset[] setA = start.getSenses();
-        Synset[] setB = end.getSenses();
+        Synset[] setA = null;
+        Synset[] setB = null;
+        try {
+            setA = start.getSenses();
+            setB = end.getSenses();
+        } catch (JWNLException ex) {
+            
+        }
+        
         if (setA == null || setB == null) {
             return (float) 0.0;
         }
@@ -1943,17 +1932,36 @@ public final class VirtuosoImporter {
          */
     }
 
+     /**
+     * Use the Triple Handler to upload data to Virtuoso
+     *
+     */
+    public void finishUpload() {
+        trh.finish();
+    }
+    
+     /**
+     * Create connection to Virtuoso through Jena
+     *
+     */
     private VirtGraph getVirtuosoSet(String graph, String url, String username, String password) {
         //Class.forName("virtuoso.jdbc4.Driver");
         VirtGraph vSet = null;
         try {
             vSet = new VirtGraph(graph, "jdbc:virtuoso://" + url + "/CHARSET=UTF-8", username, password);
         } catch (JenaException ex) {
-
+            LOG.trace("JenaException thrown during VirtGraph creatinon");
+            LOG.debug("JenaException thrown during VirtGraph creatinon : " + ex.getMessage());
         }
+        
         return vSet;
     }
 
+    /**
+     * Clean up Virtuoso Importer
+     *
+     * @return success
+     */
     public boolean clean() {
         boolean success = true;
         try {

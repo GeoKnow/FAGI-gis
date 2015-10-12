@@ -79,11 +79,10 @@ public class SPARQLUtilities {
         StringBuilder sb = new StringBuilder();
         
         VirtuosoConnection conn = (VirtuosoConnection) virt_conn;
+        sb.append("SPARQL WITH <" + grConf.getAllLinksGraph() + "> INSERT {");
+        sb.append("`iri(??)` <" + Constants.SAME_AS + "> `iri(??)` . } ");
         try ( VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());) {
-            sb.append("SPARQL WITH <" + grConf.getAllLinksGraph() + "> INSERT {");
-            sb.append("`iri(??)` <" + Constants.SAME_AS + "> `iri(??)` . } ");
             System.out.println("Statement " + sb.toString());
-            
             int start = 0;
             int end = l.size();
 

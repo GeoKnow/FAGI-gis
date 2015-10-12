@@ -87,7 +87,8 @@ public class FuseWorker extends SwingWorker<Void, Void> {
                 //virtImp.insertLinksMetadata(links, fusedGraph);    //this method is used here to insert metadata the polygons graph to the new graph
                 //virtImp.insertMetadataToFusedGraph(links, fusedGraph); //insert from graphA (unister) to the new graph
                 
-                virtImp.trh.finish();
+                virtImp.finishUpload();
+                //virtImp.trh.finish();
                 //LOG.info("Bulk Insert lasted "+(endtime-starttime)/1000000000f);
              
                 //virtImp.set.getConnection().commit();
@@ -110,7 +111,8 @@ public class FuseWorker extends SwingWorker<Void, Void> {
                 virtImp.importGeometriesToVirtuoso();
                 virtImp.insertLinksMetadata(links); //insert metadata from links to graphA
                 
-                virtImp.trh.finish();
+                virtImp.finishUpload();
+                //virtImp.trh.finish();
                 //LOG.info("Bulk Insert lasted "+(endtime-starttime)/1000000000f);
              
                 //virtImp.set.getConnection().commit();
