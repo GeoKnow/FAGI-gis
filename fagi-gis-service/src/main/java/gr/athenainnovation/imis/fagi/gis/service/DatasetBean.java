@@ -14,7 +14,7 @@ import javax.inject.Named;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 /*
 @Named("DatasetBean")

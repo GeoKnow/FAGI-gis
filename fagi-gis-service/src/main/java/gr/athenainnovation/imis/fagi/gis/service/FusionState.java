@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class FusionState implements Serializable {
     public List<String> objsA;

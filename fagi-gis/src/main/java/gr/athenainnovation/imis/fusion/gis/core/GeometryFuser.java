@@ -9,6 +9,8 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
 import gr.athenainnovation.imis.fusion.gis.geotransformations.AbstractFusionTransformation;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -18,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.log4j.Logger;
 
@@ -28,38 +31,68 @@ import org.apache.log4j.Logger;
  */
 public class GeometryFuser {
     
-    private static final Logger LOG = Logger.getLogger(GeometryFuser.class);    
-    private static final String DB_URL = "jdbc:postgresql:";    
+    private static final Logger LOG = Log.getClassFAGILogger(GeometryFuser.class);    
+    
     private Connection connection;
     
-    public void loadLinks(final List<Link> links) throws SQLException {
+    /**
+     * Connect to the database
+     * @param links List of links
+     * @return boolean whether load of links succeeded
+     */
+    public boolean loadLinks(final List<Link> links) {
+        boolean success = false;
         
-        //delete old geometries from fused_geometries table. 
+        if ( connection == null )
+            return success;
+        
+        // Delete old entries in links table
+        // and insert new ones
         try{
             
-           String deleteLinksTable = "DELETE FROM links";
-           PreparedStatement statement = connection.prepareStatement(deleteLinksTable); 
-           statement.executeUpdate(); //jan 
+            final String deleteLinksTable = "DELETE FROM links";
+            final PreparedStatement statement = connection.prepareStatement(deleteLinksTable); 
+            statement.executeUpdate(); //jan 
            
-           connection.commit();
-           
+            connection.commit();
+            
+            final String insertLinkQuery = "INSERT INTO links (nodea, nodeb) VALUES (?,?)";
+            final PreparedStatement insertLinkStmt = connection.prepareStatement(insertLinkQuery);
+
+            for (Link link : links) {
+                insertLinkStmt.setString(1, link.getNodeA());
+                insertLinkStmt.setString(2, link.getNodeB());
+
+                insertLinkStmt.addBatch();
+            }
+            insertLinkStmt.executeBatch();
+            
+            connection.commit();
+
+            success = true;
         }
         catch (SQLException ex)
         {
-          connection.rollback();  
-          LOG.warn(ex.getMessage(), ex);
-        }
-        String insertLinkQuery = "INSERT INTO links (nodea, nodeb) VALUES (?,?)"; 
-        final PreparedStatement insertLinkStmt = connection.prepareStatement(insertLinkQuery);
+            LOG.trace("SQLException thrown");
+            LOG.debug("SQLException thrown : \n" + ex.getMessage());
+
+            success = false;
+        }        
         
-        for(Link link : links) {         
-            insertLinkStmt.setString(1, link.getNodeA());
-            insertLinkStmt.setString(2, link.getNodeB());
+        // Attempt rollback
+        try {
+            if ( ! success )
+                connection.rollback();
             
-            insertLinkStmt.addBatch();
-        }    
-        insertLinkStmt.executeBatch();
-        connection.commit();
+            connection.close();
+        } catch (SQLException exroll) {
+            LOG.trace("SQLException thrown during rollback");
+            LOG.debug("SQLException thrown during rollback : \n" + exroll.getMessage());
+
+            success = false;
+        }
+        
+        return success;
     }
     
     public void fuseAll(final AbstractFusionTransformation transformation) throws SQLException {
@@ -151,28 +184,62 @@ public class GeometryFuser {
     /**
      * Connect to the database
      * @param dbConfig database configuration
+     * @return boolean whether connection succeeded
      * @throws SQLException 
      */
-    public void connect(final DBConfig dbConfig) throws SQLException {
-        final String url = DB_URL.concat(dbConfig.getDBName());
-        connection = DriverManager.getConnection(url, dbConfig.getDBUsername(), dbConfig.getDBPassword());
-        connection.setAutoCommit(false);
-        LOG.info(ANSI_YELLOW+"Connection to db established."+ANSI_RESET);
+    public boolean connect(final DBConfig dbConfig) {
+        
+        boolean success = false;
+        try {
+            final String url = Constants.DB_URL.concat(dbConfig.getDBName());
+            connection = DriverManager.getConnection(url, dbConfig.getDBUsername(), dbConfig.getDBPassword());
+            connection.setAutoCommit(false);
+            
+            success = true;
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during connection");
+            LOG.debug("SQLException thrown during connection : \n" + ex.getMessage());
+            
+            success = false;
+        }
+        
+        try {
+            
+            if (!success) {
+                connection.rollback();
+                connection.close();
+            }
+            
+        } catch (SQLException exroll) {
+            LOG.trace("SQLException thrown during rollback");
+            LOG.debug("SQLException thrown during rollback : \n" + exroll.getMessage());
+
+            success = false;
+        }
+        return success;
     }
     
     /**
      * Clean-up. Close held resources.
      */
-    public void clean() {
+    public boolean clean() {
+        boolean success = true;
         try {
             if(connection != null) {
                 connection.close();
             }
             
             LOG.info(ANSI_YELLOW+"Database connection closed."+ANSI_RESET);
+            
+            success = true;
         }
         catch (SQLException ex) {
-            LOG.warn(ex.getMessage(), ex);
+            LOG.trace("SQLException thrown during cleanup");
+            LOG.debug("SQLException thrown during cleanup : \n" + ex.getMessage());
+
+            success = false;
         }
+        
+        return success;
     }
 }

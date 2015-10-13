@@ -35,8 +35,8 @@ import gr.athenainnovation.imis.fusion.gis.gui.FuserPanel;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.utils.Utilities;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
-import static gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter.isThisMyIpAddress;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -83,7 +83,7 @@ import virtuoso.jena.driver.VirtuosoUpdateRequest;
  * Batch fusion of geometric and other metadata
  * The servlet returns fusion results stored in JSON format
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "BatchFusionServlet", urlPatterns = {"/BatchFusionServlet"})
 public class BatchFusionServlet extends HttpServlet {
@@ -521,7 +521,8 @@ public class BatchFusionServlet extends HttpServlet {
                 //virtImp.importGeometriesToVirtuoso((String)sess.getAttribute("t_graph"));
                 virtImp.importGeometriesToVirtuoso(grConf.getTargetTempGraph());
             
-                virtImp.trh.finish();
+                //virtImp.trh.finish();
+                virtImp.finishUpload();
                 
                 break;
             }
@@ -594,18 +595,14 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if an SQL error occurs
      */
     void UpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws SQLException {
-        boolean isTargetEndpointLocal = false;
-        try
-        {
-            isTargetEndpointLocal = isThisMyIpAddress(InetAddress.getByName(grConf.getEndpointT())); //"localhost" for localhost
-        }
-        catch(UnknownHostException unknownHost) {}
-        
+       boolean isTargetEndpointLocal = Utilities.isURLToLocalInstance(grConf.getTargetGraph());
+
         if ( isTargetEndpointLocal ) {
             LocalUpdateGraphs(grConf, vSet);
         } else {
             SPARQLUpdateRemoteEndpoint(grConf, vSet);
         }
+        
     }
     
     /**
@@ -931,21 +928,6 @@ public class BatchFusionServlet extends HttpServlet {
     }
     
     private void sendEntities(GraphConfig gc) {
-        boolean isEndpointLocal = false;
-        
-        try
-        {
-            URL endAURL = new URL(gc.getEndpointT());
-            isEndpointLocal = isThisMyIpAddress(InetAddress.getByName(endAURL.getHost())); //"localhost" for localhost
-        } catch(UnknownHostException unknownHost) {
-            System.out.println("It is not");
-        } catch (MalformedURLException ex) {
-            System.out.println("Malformed URL");
-        }
-        
-        if ( isEndpointLocal ) 
-            return;
-        
         
     }
     

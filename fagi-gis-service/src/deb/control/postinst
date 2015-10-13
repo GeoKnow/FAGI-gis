@@ -7,5 +7,6 @@ echo "Setting up FAGI user permissions"
 
 2>/dev/null 1>/dev/null sudo echo $SUDO_USER >> /usr/share/fagi-gis-service/config/user.conf&
 2>/dev/null 1>/dev/null sudo chmod 777 -R /usr/share/fagi-gis-service/models&
+2>/dev/null 1>/dev/null sudo chmod 777 -R /var/log/fagi-gis-service&
 
 wait

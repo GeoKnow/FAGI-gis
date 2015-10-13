@@ -6,6 +6,7 @@
 package gr.athenainnovation.imis.fagi.gis.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
@@ -16,6 +17,12 @@ import com.hp.hpl.jena.update.UpdateRequest;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONLoadLinksResult;
+import gr.athenainnovation.imis.fusion.gis.json.JSONMatches;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
+import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.SchemaMatchState;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.ScoredMatch;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
@@ -50,72 +57,12 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "SchemaMatchServlet", urlPatterns = {"/SchemaMatchServlet"})
 public class SchemaMatchServlet extends HttpServlet {
-    private static final String SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
-    
-    private class JSONMatches {
-        HashMap<String, HashSet<ScoredMatch>> foundA;
-        HashMap<String, HashSet<ScoredMatch>> foundB;
-        HashSet<String> otherPropertiesA;
-        HashSet<String> otherPropertiesB;
-        List<String> geomTransforms;
-        List<String> metaTransforms;
-    
-        public JSONMatches() {
-        }
-
-        public HashMap<String, HashSet<ScoredMatch>> getFoundA() {
-            return foundA;
-        }
-
-        public void setFoundA(HashMap<String, HashSet<ScoredMatch>> foundA) {
-            this.foundA = foundA;
-        }
-
-        public HashMap<String, HashSet<ScoredMatch>> getFoundB() {
-            return foundB;
-        }
-
-        public void setFoundB(HashMap<String, HashSet<ScoredMatch>> foundB) {
-            this.foundB = foundB;
-        }
-
-        public HashSet<String> getOtherPropertiesA() {
-            return otherPropertiesA;
-        }
-
-        public void setOtherPropertiesA(HashSet<String> otherPropertiesA) {
-            this.otherPropertiesA = otherPropertiesA;
-        }
-
-        public HashSet<String> getOtherPropertiesB() {
-            return otherPropertiesB;
-        }
-
-        public void setOtherPropertiesB(HashSet<String> otherPropertiesB) {
-            this.otherPropertiesB = otherPropertiesB;
-        }
-
-        public List<String> getGeomTransforms() {
-            return geomTransforms;
-        }
-
-        public void setGeomTransforms(List<String> geomTransforms) {
-            this.geomTransforms = geomTransforms;
-        }
-
-        public List<String> getMetaTransforms() {
-            return metaTransforms;
-        }
-
-        public void setMetaTransforms(List<String> metaTransforms) {
-            this.metaTransforms = metaTransforms;
-        }
         
-    }
+    private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(SchemaMatchServlet.class);
     
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -127,96 +74,140 @@ public class SchemaMatchServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */   
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException, JWNLException, FileNotFoundException, ParseException {
+            throws ServletException {
+        
         response.setContentType("application/json");
         
-        JSONMatches matches = null;
-        DBConfig dbConf;
-        GraphConfig grConf;
-        Connection virt_conn;
-        VirtGraph vSet = null;
-        HttpSession sess;
-        try (PrintWriter out = response.getWriter()) {
-            
-            sess = request.getSession(false);
+        // Per request state
+        PrintWriter             out = null;
+        JSONMatches             matches;
+        JSONRequestResult       res;
+        DBConfig                dbConf;
+        GraphConfig             grConf;
+        Connection              virt_conn;
+        VirtGraph               vSet = null;
+        HttpSession             sess;
+        ObjectMapper            mapper = new ObjectMapper();
 
-            if ( sess == null ) {
-                out.print("{}");
+        try {
+            
+            try {
+                out = response.getWriter();
+            } catch (IOException ex) {
+                LOG.trace("IOException thrown in servlet Writer");
+                LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage() );
                 
                 return;
             }
             
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
-            mapper.setDateFormat(outputFormat);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            sess = request.getSession(false);
+            matches = new JSONMatches();
+            res = new JSONRequestResult();
+            matches.setResult(res);
+            
+            if ( sess == null ) {
+                LOG.trace("Not a valid session");
+                LOG.debug("Not a valid session" );
+                
+                matches.getResult().setMessage("Failed to create session!");
+                matches.getResult().setStatusCode(-1);
+                
+                out.println(mapper.writeValueAsString(matches));
+
+                out.close();
+
+                return;
+            }
+            
+            //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            //mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+            //SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
+            //mapper.setDateFormat(outputFormat);
+            //mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
             
-            matches = new JSONMatches();
-            //System.out.println(sess.getAttribute("links"));
-            //System.out.println(virtImp.scanProperties(2));
-            //System.out.println(request.getParameter("links"));
             String[] selectedLinks = request.getParameterValues("links[]");
             List<Link> lst = new ArrayList<>();
-            //System.out.println(request.getParameterMap());
             for(String s : selectedLinks) {
-                String subs[] = s.split("<-->");
-                Link l = new Link(subs[0], subs[1]);
+                final String subs[] = s.split("<-->");
+                final Link l = new Link(subs[0], subs[1]);
                 lst.add(l);
-                System.out.println("Link "+s);
             }
+            
             if (vSet == null) {
                 try {
                     vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
                             dbConf.getUsername(),
                             dbConf.getPassword());
                 } catch (JenaException connEx) {
-                    System.out.println(connEx.getMessage());
+                    LOG.trace("Failed to create Jena VirtGraph");
+                    LOG.trace("Failed to create Jena VirtGraph : " + connEx.getMessage());
 
+                    matches.getResult().setMessage("Failed to perform property matching!");
+                    matches.getResult().setStatusCode(-1);
+                
+                    out.println(mapper.writeValueAsString(matches));
+
+                    out.close();
+                
                     return;
                 }
             }
             
             virt_conn = vSet.getConnection();
-            createLinksGraph(lst, virt_conn, grConf, "");
-            
-            System.out.println(request.getParameterMap());
-            StringBuilder sb = new StringBuilder();
+            SPARQLUtilities.createLinksGraph(lst, virt_conn, grConf, "");
             
             VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
-            SchemaMatchState sms = virtImp.scanProperties(1, null);
+            SchemaMatchState sms = virtImp.scanProperties(3, null);
+            
+            if ( sms == null ) {
+                matches.getResult().setMessage("Failed to perform property matching!");
+                matches.getResult().setStatusCode(-1);
+                
+                out.println(mapper.writeValueAsString(matches));
+
+                out.close();
+
+                return;
+            }
+            
             System.out.println("Dom A "+sms.domOntoA+" Dom B "+sms.domOntoB);
             sess.setAttribute("domA", sms.domOntoA);
             sess.setAttribute("domB", sms.domOntoB);
             
-            //sms.foundA.put("lalalala"+sess.getCreationTime(), new HashSet<String>());
-            matches.foundA = sms.foundA;
-            matches.foundB = sms.foundB;
-            matches.otherPropertiesA = sms.otherPropertiesA;
-            matches.otherPropertiesB = sms.otherPropertiesB;
-            matches.geomTransforms = sms.geomTransforms;
-            matches.metaTransforms = sms.metaTransforms;
+            matches.setFoundA(sms.foundA);
+            matches.setFoundB(sms.foundB);
+            matches.setOtherPropertiesA(sms.otherPropertiesA);
+            matches.setOtherPropertiesB(sms.otherPropertiesB);
+            matches.setGeomTransforms(sms.geomTransforms);
+            matches.setMetaTransforms(sms.metaTransforms);
             
             sess.setAttribute("property_patternsA", sms.getPropertyList("A"));
             sess.setAttribute("property_patternsB", sms.getPropertyList("B"));
             sess.setAttribute("predicates_matches", sms);
-            System.out.println("Problem");
-            sb.append("{");
             
-            //System.out.println("Matches : "+mapper.writeValueAsString(matches));
-            //System.out.println(sb);
             out.println(mapper.writeValueAsString(matches));
+        } catch (JsonProcessingException ex) {
+            LOG.trace("JsonProcessingException thrown");
+            LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
+        } catch ( java.lang.OutOfMemoryError oome) {
+            LOG.trace("OutOfMemoryError thrown");
+            LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
+            
+            throw new ServletException("OutOfMemoryError thrown by Tomcat");
         } finally {
             if ( vSet != null ) {
                 vSet.close();
             }
+            
+            if ( out != null )
+                out.close();
         }
     }
 
+    /*
     public void createLinksGraph(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) throws SQLException, IOException {
         final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getLinksGraph()+  ">";
         final String createGraph = "sparql CREATE GRAPH <"+ grConf.getLinksGraph()+ ">";
@@ -261,7 +252,7 @@ public class SchemaMatchServlet extends HttpServlet {
                     final String subjectB = l.get(i).getNodeB();
                     queryStr.appendIri(subject);
                     queryStr.append(" ");
-                    queryStr.appendIri(SAME_AS);
+                    queryStr.appendIri(Constants.SAME_AS);
                     queryStr.append(" ");
                     queryStr.appendIri(subjectB);
                     queryStr.append(" ");
@@ -307,6 +298,8 @@ public class SchemaMatchServlet extends HttpServlet {
             }
         }
     }
+    */
+    
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**
      * Handles the HTTP <code>GET</code> method.
@@ -318,18 +311,8 @@ public class SchemaMatchServlet extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(SchemaMatchServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (JWNLException ex) {
-            Logger.getLogger(SchemaMatchServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(SchemaMatchServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ParseException ex) {
-            Logger.getLogger(SchemaMatchServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            throws ServletException {
+        processRequest(request, response);
     }
 
     /**
@@ -342,18 +325,8 @@ public class SchemaMatchServlet extends HttpServlet {
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(SchemaMatchServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (JWNLException ex) {
-            Logger.getLogger(SchemaMatchServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(SchemaMatchServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ParseException ex) {
-            Logger.getLogger(SchemaMatchServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            throws ServletException {
+        processRequest(request, response);
     }
 
     /**

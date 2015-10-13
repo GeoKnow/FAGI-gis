@@ -47,7 +47,7 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(urlPatterns = {"/BatchFindLinkServlet"})
 public class BatchFindLinkServlet extends HttpServlet {

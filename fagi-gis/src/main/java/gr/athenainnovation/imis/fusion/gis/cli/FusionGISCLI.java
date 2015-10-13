@@ -45,7 +45,7 @@ import virtuoso.jena.driver.VirtGraph;
 /**
  * Entry of the program
  * 
- * @author nicks
+ * @author Nick Vitsass
  */
 
 public class FusionGISCLI {
@@ -311,13 +311,6 @@ public class FusionGISCLI {
                 return;
             }
             Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            //Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
-            SQLException exception = ex;
-            while(exception != null) {
-                Logger.getLogger(FusionGISCLI.class.getName()).log(Level.SEVERE, null, exception);
-                exception = exception.getNextException();
-            }
         } catch (InterruptedException ex) {
             Logger.getLogger("Int "+FusionGISCLI.class.getName()).log(Level.SEVERE, null, ex);
         } catch (ExecutionException ex) {

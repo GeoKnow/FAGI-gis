@@ -7,7 +7,7 @@ package gr.athenainnovation.imis.fusion.gis.clustering;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class Vector2D {
 

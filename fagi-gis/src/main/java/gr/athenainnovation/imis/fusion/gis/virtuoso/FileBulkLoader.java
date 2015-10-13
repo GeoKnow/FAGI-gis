@@ -27,7 +27,7 @@ import virtuoso.jena.driver.VirtuosoUpdateRequest;
 
 /**
  *
- * @author nickvitsas
+ * @author Nick Vitsasvitsas
  */
 public class FileBulkLoader implements TripleHandler {
     

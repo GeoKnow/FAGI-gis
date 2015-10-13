@@ -375,10 +375,6 @@ public class ImporterPanel extends javax.swing.JPanel implements DBConfigListene
                 errorListener.notifyError(ex.getCause().getClass() + " : " + ex.getCause().getMessage());
             }
         }
-        catch (SQLException ex) {
-            LOG.error(ex.getMessage(), ex);
-            errorListener.notifyError(ex.getMessage());
-        }
     }//GEN-LAST:event_importButtonActionPerformed
 
     private void setGraphsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_setGraphsButtonActionPerformed

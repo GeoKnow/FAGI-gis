@@ -47,7 +47,7 @@ import org.apache.commons.io.FileUtils;
 /**
  *
  * @author imis-nkarag
- * @author nick
+ * @author Nick Vitsas
  */
 
 @WebServlet(name = "LearningServlet", urlPatterns = {"/LearningServlet"})

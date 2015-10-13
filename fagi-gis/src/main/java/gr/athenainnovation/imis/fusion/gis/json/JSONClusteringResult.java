@@ -7,17 +7,17 @@ package gr.athenainnovation.imis.fusion.gis.json;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
-public class ClusteringResult {
+public class JSONClusteringResult {
 
     int cluster;
 
-    public ClusteringResult(int cluster) {
+    public JSONClusteringResult(int cluster) {
         this.cluster = cluster;
     }
 
-    public ClusteringResult() {
+    public JSONClusteringResult() {
         this.cluster = -1;
     }
 

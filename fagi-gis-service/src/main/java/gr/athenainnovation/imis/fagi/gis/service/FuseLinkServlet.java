@@ -30,8 +30,8 @@ import gr.athenainnovation.imis.fusion.gis.geotransformations.KeepRightTransform
 import gr.athenainnovation.imis.fusion.gis.gui.FuserPanel;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.utils.Utilities;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
-import static gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter.isThisMyIpAddress;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -76,7 +76,7 @@ import virtuoso.jena.driver.VirtuosoUpdateRequest;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "FuseLinkServlet", urlPatterns = {"/FuseLinkServlet"})
 public class FuseLinkServlet extends HttpServlet {
@@ -477,7 +477,8 @@ public class FuseLinkServlet extends HttpServlet {
             
                 virtImp.importGeometriesToVirtuoso((String)sess.getAttribute("t_graph"));
             
-                virtImp.trh.finish();
+                //virtImp.trh.finish();
+                virtImp.finishUpload();
             
                 String queryGeoms = "SELECT links.nodea as la, links.nodeb as lb, ST_asText(b.geom) as g\n" +
                                  "FROM links INNER JOIN fused_geometries AS b\n" +
@@ -544,12 +545,8 @@ public class FuseLinkServlet extends HttpServlet {
      * @throws SQLException if an SQL error occurs
      */
     void UpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws SQLException {
-        boolean isTargetEndpointLocal = false;
-        try
-        {
-            isTargetEndpointLocal = isThisMyIpAddress(InetAddress.getByName(grConf.getEndpointT())); //"localhost" for localhost
-        }
-        catch(UnknownHostException unknownHost) {}
+        
+        boolean isTargetEndpointLocal = Utilities.isURLToLocalInstance(grConf.getTargetGraph());
         
         if ( isTargetEndpointLocal ) {
             LocalUpdateGraphs(grConf, vSet);

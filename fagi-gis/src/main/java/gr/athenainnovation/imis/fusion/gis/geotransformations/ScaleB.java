@@ -7,7 +7,7 @@ package gr.athenainnovation.imis.fusion.gis.geotransformations;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class ScaleB {
     

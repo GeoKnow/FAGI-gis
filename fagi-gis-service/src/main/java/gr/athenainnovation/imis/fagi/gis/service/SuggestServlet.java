@@ -21,7 +21,7 @@ import javax.servlet.http.HttpServletResponse;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "SuggestServlet", urlPatterns = {"/SuggestServlet"})
 public class SuggestServlet extends HttpServlet {

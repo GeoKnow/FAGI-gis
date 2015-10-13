@@ -14,7 +14,7 @@ import java.sql.SQLException;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class ScaleA extends AbstractFusionTransformation {
     private static final String ID = "ScaleA";  

@@ -11,7 +11,7 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nickvitsas
+ * @author Nick Vitsasvitsas
  */
 public class VirtLoader implements TripleHandler{
     

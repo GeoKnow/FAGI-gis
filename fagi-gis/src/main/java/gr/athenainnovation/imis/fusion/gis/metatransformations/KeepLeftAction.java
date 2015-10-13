@@ -7,7 +7,7 @@ import java.sql.SQLException;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class KeepLeftAction extends AbstractFusionAction {
     

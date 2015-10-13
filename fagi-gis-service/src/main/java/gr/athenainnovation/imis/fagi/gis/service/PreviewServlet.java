@@ -5,10 +5,16 @@
  */
 package gr.athenainnovation.imis.fagi.gis.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONPreviewResult;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -30,15 +36,13 @@ import javax.servlet.http.HttpSession;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "PreviewServlet", urlPatterns = {"/PreviewServlet"})
 public class PreviewServlet extends HttpServlet {
 
-    private static final String DB_URL = "jdbc:postgresql:";
-    private PreparedStatement stmt = null;
-    private Connection dbConn = null;
-    private ResultSet rs = null;
+    private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(PreviewServlet.class);
+
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -49,33 +53,51 @@ public class PreviewServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException {
+            throws ServletException {
         response.setContentType("text/html;charset=UTF-8");
         
         // Per request data
-        PrintWriter out = response.getWriter();
-        PreparedStatement stmt = null;
-        Connection dbConn = null;
-        ResultSet rs = null;
-        String[] selectedLinks;
-        HttpSession sess;            
-        DBConfig dbConf;
-        HashMap<String, String> hashLinks;
-            
+        PrintWriter                 out = null;
+        Connection                  dbConn = null;
+        String[]                    selectedLinks;
+        HttpSession                 sess;            
+        DBConfig                    dbConf;
+        HashMap<String, String>     hashLinks;
+        JSONRequestResult           res;
+        JSONPreviewResult           ret;
+        ObjectMapper                mapper = new ObjectMapper();
+        boolean                     succeeded;
+        
         try {
-            sess = request.getSession(false);
-            if (sess == null ) {
-                out.print("{}");
+            try {
+                out = response.getWriter();
+            } catch (IOException ex) {
+                LOG.trace("IOException thrown in servlet Writer");
+                LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage() );
                 
                 return;
             }
+                    
+            ret = new JSONPreviewResult();
+            res = new JSONRequestResult();
+            ret.setResult(res);
+            sess = request.getSession(false);
             
-            /* TODO output your page here. You may use following sample code. */
+            if (sess == null ) {
+                ret.getResult().setMessage("Failed to create session!");
+                ret.getResult().setStatusCode(-1);
+                
+                out.println(mapper.writeValueAsString(ret));
+
+                out.close();
+
+                return;
+            }
+            
             selectedLinks = request.getParameterValues("links[]");
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             hashLinks = (HashMap<String, String>)sess.getAttribute("links");
             
-            System.out.println("Hash "+hashLinks);
             List<Link> lst = new ArrayList<Link>();
             for ( String s : selectedLinks) {
                 if (hashLinks.containsKey(s)) {
@@ -85,34 +107,74 @@ public class PreviewServlet extends HttpServlet {
             }
             
             final GeometryFuser geometryFuser = new GeometryFuser();
-            try {
-                geometryFuser.connect(dbConf);
-                geometryFuser.loadLinks(lst);
+            
+            succeeded = geometryFuser.connect(dbConf);
+            if ( !succeeded ) {
+                LOG.trace("Connection for link upload failed");
+                LOG.debug("Connection for link upload failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem connecting to PostGIS for link upload");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
             }
-            catch (SQLException ex) {
-                throw new RuntimeException(ex);
+            
+            succeeded = geometryFuser.loadLinks(lst);
+            if ( !succeeded ) {
+                LOG.trace("Link upload failed");
+                LOG.debug("Link upload failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with PostGIS link upload");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
             }
-            finally {
-                geometryFuser.clean();
-            } 
+            
+            succeeded = geometryFuser.clean();
+            if ( !succeeded ) {
+                LOG.trace("Cleanup failed");
+                LOG.debug("Cleanup failed");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Problem with link upload cleanup");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }
             
             try{
                 Class.forName("org.postgresql.Driver");     
             } catch (ClassNotFoundException ex) {
-                System.out.println(ex.getMessage());      
-                out.println("Class of postgis failed");
+                LOG.trace("Driver Class Not Found Exception");
+                LOG.debug("Driver Class Not Found Exception : " + ex);
+                ret.getResult().setMessage("Could not load Postgis JDBC Driver!");
+                ret.getResult().setStatusCode(-1);
+
+                out.println(mapper.writeValueAsString(ret));
                 out.close();
-            
+
                 return;
             }
     
             try {
-                String url = DB_URL.concat(dbConf.getDBName());
+                String url = Constants.DB_URL.concat(dbConf.getDBName());
                 dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
-                //dbConn.setAutoCommit(false);
             } catch(SQLException sqlex) {
-                System.out.println(sqlex.getMessage());      
-                out.println("Connection to postgis failed");
+                LOG.trace("Postgis Connect Exception");
+                LOG.debug("Postgis Connect Exception : " + sqlex);
+                LOG.debug("Postgis Connect Exception : " + sqlex);
+                ret.getResult().setMessage("Connection to Postgis failed!");
+                ret.getResult().setStatusCode(-1);
+
+                out.println(mapper.writeValueAsString(ret));
                 out.close();
             
                 return;
@@ -137,35 +199,51 @@ public class PreviewServlet extends HttpServlet {
                                         "		FROM dataset_a_geometries, dataset_b_geometries) AS geoms \n" +
                                         "		ON(links.nodea = geoms.a_s AND links.nodeb = geoms.b_s)";
             
-            stmt = dbConn.prepareStatement(selectLinkedGeoms);
-            rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                String gb = rs.getString("gb");
-                String lb = rs.getString("lb");
-                String ga = rs.getString("ga");
-                String la = rs.getString("la");
-                //System.out.println(la);
-                //System.out.println(ga);
-                //System.out.println(lb);
-                //System.out.println(gb);
-                geomColl.append(lb);
-                geomColl.append(";");
-                geomColl.append(gb);
-                geomColl.append(";");
-                geomColl.append(la);
-                geomColl.append(";");
-                geomColl.append(ga);
-                geomColl.append(";");
+            try (PreparedStatement stmt = dbConn.prepareStatement(selectLinkedGeoms);
+                    ResultSet rs = stmt.executeQuery()) {
+                
+                while (rs.next()) {
+                    final String gb = rs.getString("gb");
+                    final String lb = rs.getString("lb");
+                    final String ga = rs.getString("ga");
+                    final String la = rs.getString("la");
+                    
+                    geomColl.append(lb);
+                    geomColl.append(";");
+                    geomColl.append(gb);
+                    geomColl.append(";");
+                    geomColl.append(la);
+                    geomColl.append(";");
+                    geomColl.append(ga);
+                    geomColl.append(";");
+                }
+                
+            } catch (SQLException ex) {
+                LOG.trace("Postgis Connect Exception");
+                LOG.debug("Postgis Connect Exception : " + ex);
+                LOG.debug("Postgis Connect Exception : " + ex);
+                ret.getResult().setMessage("Connection to Postgis failed!");
+                ret.getResult().setStatusCode(-1);
+
+                out.println(mapper.writeValueAsString(ret));
+                out.close();
             }
             
-            rs.close();
-            stmt.close();
-            dbConn.close();
-            
             out.print(geomColl);
+        } catch (JsonProcessingException ex) {
+            LOG.trace("JsonProcessingException thrown");
+            LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
         } finally {
-            out.close();
+            try {
+                if ( dbConn != null )
+                    dbConn.close();
+            } catch (SQLException ex) {
+                LOG.trace("Postgis Connection could not be closed");
+                LOG.debug("Postgis Connection could not be closed : " + ex.getMessage());
+                LOG.debug("Postgis Connection could not be closed : " + ex.getSQLState());
+            }
+            if ( out != null )
+                out.close();
         }
     }
 
@@ -180,12 +258,8 @@ public class PreviewServlet extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            throws ServletException {
+        processRequest(request, response);
     }
 
     /**
@@ -199,33 +273,7 @@ public class PreviewServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (dbConn != null) {
-                try {
-                    dbConn.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        }
+        processRequest(request, response);
     }
 
     /**

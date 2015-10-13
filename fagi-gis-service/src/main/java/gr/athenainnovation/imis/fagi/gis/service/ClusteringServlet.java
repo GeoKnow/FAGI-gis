@@ -25,7 +25,7 @@ import javax.servlet.http.HttpSession;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "ClusteringServlet", urlPatterns = {"/ClusteringServlet"})
 public class ClusteringServlet extends HttpServlet {

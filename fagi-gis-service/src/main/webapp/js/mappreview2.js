@@ -1,3 +1,6 @@
+// Attempting to be structured for once.....
+var FAGI = new Object();
+
 // Map
 var map;
 
@@ -7,6 +10,33 @@ var wkt;
 //BBox
 var box;
 var transform;
+
+//Utilities class
+FAGI.Utilities = {
+    
+     getPropertyName: function ( property ) {
+        var trunc_pos = property.lastIndexOf("#");
+        var trunc = property;
+        if (trunc_pos < 0)
+            trunc_pos = property.lastIndexOf("/");
+        if (trunc_pos >= 0)
+            trunc = property.substring(trunc_pos + 1);
+        
+        return trunc;
+    },
+     
+     getPropertyOntology: function ( property ) {
+         var trunc_pos = property.lastIndexOf("#");
+        var trunc = property;
+        if (trunc_pos < 0)
+            trunc_pos = property.lastIndexOf("/");
+        if (trunc_pos >= 0)
+            trunc = property.substring(0, trunc_pos);
+        
+        return trunc;
+     }
+     
+};
 
 var MAX_CLUSTERS = 10;
 // Vector Layer Styles
@@ -2524,29 +2554,6 @@ function onLinkFeatureSelect(event) {
     
 }
 
-/*
- * 
- * Very nice function
- $('.myElements').each(function() {
-   var elem = $(this);
-
-   // Save current value of element
-   elem.data('oldVal', elem.val());
-
-   // Look for changes in the value
-   elem.bind("propertychange change click keyup input paste", function(event){
-      // If value has changed...
-      if (elem.data('oldVal') != elem.val()) {
-       // Updated stored value
-       elem.data('oldVal', elem.val());
-
-       // Do action
-       ....
-     }
-   });
- });
- */
-
 // upda
 function updateBFusionTable(node) {
     var $list = $("#matchList");
@@ -2558,26 +2565,17 @@ function updateBFusionTable(node) {
     opt.long_name = node.long_name;
     opt.newPred = property;
     node.rowIndex = rowCount+1;
-    //alert("OPT NAME "+node.long_name);
-    //alert("OPT NAME "+node.newPred);
-    var trunc_pos = property.lastIndexOf("#");
-    var trunc = property;
-    if (trunc_pos < 0)
-        trunc_pos = property.lastIndexOf("/");
-    if (trunc_pos >= 0)
-        trunc = property.substring(trunc_pos + 1);
+    
+    var trunc = FAGI.Utilities.getPropertyName(porperty);
+    
     var entry = " <td>" + "Metadata from A" + "</td>\n" +
             " <td>" + trunc + "</td>\n" +
-            " <td>" + "Metadat from B" + "</td>\n" +
+            " <td>" + "Metadata from B" + "</td>\n" +
             " <td><select style=\"color: black; width: 100%;\">" + avail_meta_trans + "</select></td>\n"
-//" <td style=\"width:216; text-align: center;\" align=\"left\" valign=\"bottom\">Result</td>\n";
 
     opt.innerHTML = entry;
-    //alert(opt);
-    //alert("HURRAY");
 
     $tbl.append($(opt));
-    //});
 }
 
 function updateFusionTable(node) {
@@ -2595,12 +2593,9 @@ function updateFusionTable(node) {
         listItem = list.getElementsByTagName("li");
         for (var i = 1; i < listItem.length; i++) {
             var inputItem = listItem[i].getElementsByTagName("input");
-            //alert('Long name = '+listItem[i].long_name);
             sendData[sendData.length] = inputItem[0].value;
-            //alert(selectedProperties['id'+(i-1)]);
             sendData[sendData.length] = listItem[i].long_name;
             console.log("Long name : "+listItem[i].long_name);
-            //alert(sendData[sendData.length-1]);
         }
         //alert(event.feature.attributes.a);
         //alert("done");
@@ -2780,12 +2775,9 @@ function fusionPanel(event, val, node) {
             if ( opt.long_name == node.long_name ) {
                 node.rowIndex = $("#fusionTable").find("tr").length;
             }
-            var trunc_pos = element1.property.lastIndexOf("#");
-            var trunc = element1.property;
-            if (trunc_pos < 0)
-                trunc_pos = element1.property.lastIndexOf("/");
-            if (trunc_pos >= 0)
-                trunc = element1.property.substring(trunc_pos + 1);
+            
+            var trunc = FAGI.Utilities.getPropertyName(element1.property);
+            
             var entry = " <td>" + element1.valueA + "</td>\n" +
                     " <td>" + trunc + "</td>\n" +
                     " <td>" + element1.valueB + "</td>\n" +

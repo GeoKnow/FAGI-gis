@@ -43,7 +43,7 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "FindLinkServlet", urlPatterns = {"/FindLinkServlet"})
 public class FindLinkServlet extends HttpServlet {

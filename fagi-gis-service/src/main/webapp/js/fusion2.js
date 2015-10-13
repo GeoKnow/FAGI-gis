@@ -749,11 +749,12 @@ $('#addLinkSchema').click(function () {
         return;
     }
 
+    // Property result
     var strA = "";
     var strB = "";
-    //alert(strB);
+    
+    // Add properties from A
     var listA = document.getElementById("linkSchemasA");
-    //alert('pls');
     var listItemsA = listA.getElementsByTagName("li");
     $.each(listItemsA, function (index, element) {
         element.style.backgroundColor = element.backColor;
@@ -763,12 +764,14 @@ $('#addLinkSchema').click(function () {
         }
         if ( linkLastSelectedFromA === null )
             linkLastSelectedFromA = element;
+        
         if (element.prev_selected === true) {
             strA += element.long_name+"|";
             element.prev_selected = false;
         }
     });
 
+    // Add propertiesfromB
     var listB = document.getElementById("linkSchemasB");
     var listItemsB = listB.getElementsByTagName("li");
     $.each(listItemsB, function (index, element) {
@@ -779,11 +782,13 @@ $('#addLinkSchema').click(function () {
         }
         if ( linkLastSelectedFromB === null )
             linkLastSelectedFromB = element;
+        
         if (element.prev_selected === true) {
             strB +=  element.long_name+"|";
             element.prev_selected = false;
         }
     });
+    
     strA = strA.substring(0, strA.length - 1);
     strB = strB.substring(0, strB.length - 1);
     //alert(strA);
@@ -827,6 +832,11 @@ $('#addLinkSchema').click(function () {
     next_link_id++;
     document.getElementById("linkMatchList").appendChild(node);
     
+    //Reset selections
+    linkLastSelectedFromA = null;
+    linkLastSelectedFromB = null;
+    
+    // Update tables
     updateFusionTable(node);
 });
 
@@ -836,7 +846,6 @@ function getText(obj) {
 
 $('#addSchema').click(function () {
     if (lastSelectedFromA === null && lastSelectedFromB === null) {
-        //alert("tom");
         alert("No matching selected");
         return;
     }
@@ -916,9 +925,11 @@ $('#addSchema').click(function () {
     next_id++;
     document.getElementById("matchList").appendChild(node);
     
+    //Reset Selection
     lastSelectedFromA = null;
     lastSelectedFromB = null;
     
+    // Update fusion table
     updateBFusionTable(node);
 });
 
@@ -1045,22 +1056,30 @@ function loadLinkedEntities(formData) {
         type: 'POST',
         //Ajax events
         // the type of data we expect back
-        dataType: "text",
-        success: function (responseText) {
-            //alert("All good "+responseText);
+        dataType: "json",
+        success: function (responseJson) {
+            //alert("All good "+responseJson);
             var list = document.getElementById("linksList");
             var typesA = document.getElementById("typeListA");
             var typesB = document.getElementById("typeListB");
-            var arrays = responseText.split("+>>>+");
-            //alert(arrays[1]);
-            list.innerHTML = arrays[0];
-            typesA.innerHTML = arrays[1];
-            typesB.innerHTML = arrays[2];
+            //var arrays = responseText.split("+>>>+");
+            //list.innerHTML = arrays[0];
+            //typesA.innerHTML = arrays[1];
+            //typesB.innerHTML = arrays[2];
+            if (responseJson.result.statusCode == 0) {
+                list.innerHTML = responseJson.linkListHTML;
+                typesA.innerHTML = responseJson.filtersListAHTML;
+                typesB.innerHTML = responseJson.filtersListBHTML;
+            } else {
+                alert(responseJson.result.message);
+            }
             disableSpinner();
         },
-        error: function (responseText) {
+        error: function (xhr, status, errorThrown) {
             disableSpinner();
-            alert("All bad " + responseText);
+            alert("Sorry, there was a problem!");
+                                console.log("Error: " + errorThrown);
+                                console.log("Status: " + status);
             alert("Error");
         },
         data: formData,
@@ -1601,34 +1620,25 @@ function schemaMatch() {
             
             initBatchFusionTable(responseJson);
             
+            // Add properties from dataset A
             $.each(responseJson.foundA, function (index, element) {
                 var opt = document.createElement("li");
                 //console.log(opt);
                 var optlbl = document.createElement("div");
                 $(optlbl).addClass("scored");
                 optlbl.innerHTML = "";
-                //alert(index);
-                /*var tokens = index.split(",");
-                 for (var i = 0; i < tokens.length; i++) {
-                 
-                 }*/
+                
                 var tokens = index.split(",");
                 var result_str = "";
-                //alert(tokens);
                 for (var i = 0; i < tokens.length; i++) {
-                    var trunc_pos = tokens[i].lastIndexOf("#");
-                    var trunc = tokens[i];
-                    if (trunc_pos < 0)
-                        trunc_pos = tokens[i].lastIndexOf("/");
-                    if (trunc_pos >= 0)
-                        trunc = tokens[i].substring(trunc_pos + 1);
-
+                    
+                    var trunc = FAGI.Utilities.getPropertyName(tokens[i]);
+                    
                     result_str += trunc;
                     if (i != (tokens.length - 1)) {
-                        result_str += ","
+                        result_str += ",";
                     }
                 }
-                //alert(result_str);
                 
                 opt.innerHTML = decodeURIComponent(result_str);
                 //alert(index);
@@ -2558,13 +2568,11 @@ function setDatasets()
         // the data to send (will be converted to a query string)
         data: values,
         // the type of data we expect back
-        dataType: "text",
+        dataType: "json",
         // code to run if the request succeeds;
         // the response is passed to the function
-        success: function (responseText) {
-            //$('#dataLabel').text(responseText);
-            //alert(responseText);
-            //alert(responseText == 1);
+        success: function (responseJson) {
+            
             disableSpinner();
             $('#dataLabel').text("Datasets accepted");
             $('#datasetNameA').html($('#idDatasetA').val());
@@ -2577,7 +2585,7 @@ function setDatasets()
             $('#legendLinkSetB').html($('#idDatasetB').val());
             
             //Loaqd links through endpoint
-            if ( responseText == 1 )
+            if ( responseJson.remoteLinks )
                 loadLinkedEntities(null);
             
             //Scan target dataset for any already fused geometry
@@ -2620,10 +2628,10 @@ function scanGeometries() {
         // code to run if the request succeeds;
         // the response is passed to the function
         success: function (responseJSON) {
-            $('#dataLabel').text(responseJSON.message);
+            $('#dataLabel').text(responseJSON.result.message);
             //alert('tom');
             disableSpinner();
-            if (responseJSON.statusCode == 0)
+            if (responseJSON.result.statusCode == 0)
                 addFusedMapDataJson(responseJSON);
         },
         // code to run if the request fails; the raw request and

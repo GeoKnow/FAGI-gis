@@ -10,8 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Maps;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
-import gr.athenainnovation.imis.fusion.gis.json.ClusteringResult;
-import gr.athenainnovation.imis.fusion.gis.json.ClusteringResults;
+import gr.athenainnovation.imis.fusion.gis.json.JSONClusteringResult;
+import gr.athenainnovation.imis.fusion.gis.json.JSONClusteringResults;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -38,7 +38,7 @@ import weka.core.Instances;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class GeoClusterer {
     public static enum GeoAttribute {
@@ -230,12 +230,12 @@ public class GeoClusterer {
             clusterer.buildClusterer(data);    // build the clusterer
             System.out.println("Clustering.....");
             System.out.println(clusterer.toString());
-            ClusteringResults ret = new ClusteringResults();
+            JSONClusteringResults ret = new JSONClusteringResults();
             for (int i = 0; i < data.size(); i++) {
                 int ass_cluster = clusterer.clusterInstance(data.get(i));
                 System.out.println("Assignement "+orderedAttrList.get(i).nodeA+" : "+ass_cluster);
                 //System.out.println("Assignement "+orderedAttrList.get(i).nodeA+" : "+clusterer.getAssignments()[i]);
-                ClusteringResult res = new ClusteringResult(ass_cluster);
+                JSONClusteringResult res = new JSONClusteringResult(ass_cluster);
                 ret.getResults().put(orderedAttrList.get(i).nodeA, res);
             }
             ret.setNumOfClusters(clusterer.getNumClusters());
