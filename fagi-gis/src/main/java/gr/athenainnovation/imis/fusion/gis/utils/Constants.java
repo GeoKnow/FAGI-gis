@@ -7,12 +7,14 @@ package gr.athenainnovation.imis.fusion.gis.utils;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class Constants {
     
     //Postgres URL
     public static final String      DB_URL = "jdbc:postgresql:";
+    
+    public static final String      OWL_CLASS_PROPERTY = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
     
     // This is the FAGI-gis prefered hasGeometry predicate
     public static final String      HAS_GEOMETRY_REGEX = "http://www.opengis.net/ont/geosparql#hasGeometry";

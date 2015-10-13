@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class JSONFusedGeometries {
 

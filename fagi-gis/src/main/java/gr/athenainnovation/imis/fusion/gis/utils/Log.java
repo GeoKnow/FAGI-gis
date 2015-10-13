@@ -14,7 +14,7 @@ import org.apache.log4j.Logger;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class Log {
     

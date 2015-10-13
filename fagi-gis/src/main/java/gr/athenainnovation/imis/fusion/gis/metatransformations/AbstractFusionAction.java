@@ -11,7 +11,7 @@ import java.sql.SQLException;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 /**
  * Abstract class for the definition of fusion transformations on metadata.

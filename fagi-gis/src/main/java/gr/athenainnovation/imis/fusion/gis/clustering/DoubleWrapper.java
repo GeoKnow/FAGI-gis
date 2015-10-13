@@ -9,7 +9,7 @@ import java.util.Comparator;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class DoubleWrapper implements Comparator<DoubleWrapper>, Comparable<DoubleWrapper> {
 

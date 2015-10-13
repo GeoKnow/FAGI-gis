@@ -28,7 +28,7 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nickvitsas
+ * @author Nick Vitsasvitsas
  */
 public class BulkLoader implements TripleHandler {
     

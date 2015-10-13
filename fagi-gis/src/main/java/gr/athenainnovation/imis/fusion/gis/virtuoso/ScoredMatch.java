@@ -10,7 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class ScoredMatch {
     String rep;

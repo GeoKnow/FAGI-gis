@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 /**
  * Regex patterns used in various parts of FAGI-gis
- * @author nick
+ * @author Nick Vitsas
  */
 public class Patterns {
     

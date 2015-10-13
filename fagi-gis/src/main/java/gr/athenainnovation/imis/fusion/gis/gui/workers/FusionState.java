@@ -8,7 +8,7 @@ import static gr.athenainnovation.imis.fusion.gis.gui.FuserPanel.registerTransfo
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class FusionState {
     /*

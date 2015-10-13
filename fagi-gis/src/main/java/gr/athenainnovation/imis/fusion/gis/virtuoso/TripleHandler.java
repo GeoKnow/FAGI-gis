@@ -7,7 +7,7 @@ import com.hp.hpl.jena.graph.Triple;
 
 /**
  *
- * @author nickvitsas
+ * @author Nick Vitsasvitsas
  */
 public interface TripleHandler {
     void addTriple(Triple tr);

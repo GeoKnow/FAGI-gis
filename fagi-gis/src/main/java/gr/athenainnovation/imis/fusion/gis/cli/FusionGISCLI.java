@@ -45,7 +45,7 @@ import virtuoso.jena.driver.VirtGraph;
 /**
  * Entry of the program
  * 
- * @author nicks
+ * @author Nick Vitsass
  */
 
 public class FusionGISCLI {

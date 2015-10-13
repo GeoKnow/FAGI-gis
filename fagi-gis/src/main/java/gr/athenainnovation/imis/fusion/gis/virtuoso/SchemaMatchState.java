@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class SchemaMatchState {
     public HashMap<String, HashSet<ScoredMatch>> foundA;

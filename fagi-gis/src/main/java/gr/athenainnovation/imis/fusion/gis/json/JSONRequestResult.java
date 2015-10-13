@@ -7,7 +7,7 @@ package gr.athenainnovation.imis.fusion.gis.json;
 
 /**
  * Used as return status report for Requests
- * @author nick
+ * @author Nick Vitsas
  */
 public class JSONRequestResult {
 

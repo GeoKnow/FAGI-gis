@@ -24,7 +24,7 @@ import virtuoso.jdbc4.VirtuosoPreparedStatement;
 
 /**
  *
- * @author nickvitsas
+ * @author Nick Vitsasvitsas
  */
 public class SPARQLUtilities {
     

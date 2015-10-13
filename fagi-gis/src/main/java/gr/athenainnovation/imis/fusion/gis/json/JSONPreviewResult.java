@@ -7,7 +7,7 @@ package gr.athenainnovation.imis.fusion.gis.json;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class JSONPreviewResult {
     

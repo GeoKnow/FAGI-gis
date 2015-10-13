@@ -13,7 +13,7 @@ import java.util.List;
 /**
  *
  * Property Matching State
- * @author nick
+ * @author Nick Vitsas
  */
 public class JSONMatches {
 

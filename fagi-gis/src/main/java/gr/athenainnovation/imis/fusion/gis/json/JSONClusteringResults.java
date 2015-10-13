@@ -10,7 +10,7 @@ import java.util.Map;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class JSONClusteringResults {
     Map<String, JSONClusteringResult> results;

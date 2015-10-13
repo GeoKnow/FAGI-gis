@@ -7,7 +7,7 @@ package gr.athenainnovation.imis.fusion.gis.json;
 
 /**
  * Contain the results from LinkServlet
- * @author nick
+ * @author Nick Vitsas
  */
 public class JSONLoadLinksResult {
     

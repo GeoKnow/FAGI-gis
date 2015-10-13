@@ -12,7 +12,7 @@ import java.sql.SQLException;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class Concatenation extends AbstractFusionTransformation {
     private static final String ID = "Concatenation";  

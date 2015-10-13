@@ -7,7 +7,7 @@ package gr.athenainnovation.imis.fusion.gis.json;
 
 /**
  * Holds a single geometry with its associated subject
- * @author nick
+ * @author Nick Vitsas
  */
 public class JSONFusedGeometry {
 

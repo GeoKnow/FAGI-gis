@@ -10,7 +10,7 @@ import virtuoso.jena.driver.VirtuosoUpdateRequest;
 
 /**
  *
- * @author nickvitsas
+ * @author Nick Vitsasvitsas
  */
 public class SparqlLoader implements TripleHandler{
 

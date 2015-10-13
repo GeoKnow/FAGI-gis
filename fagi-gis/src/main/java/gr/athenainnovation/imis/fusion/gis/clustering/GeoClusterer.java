@@ -38,7 +38,7 @@ import weka.core.Instances;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 public class GeoClusterer {
     public static enum GeoAttribute {
