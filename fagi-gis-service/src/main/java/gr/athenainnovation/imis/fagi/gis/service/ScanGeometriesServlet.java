@@ -55,7 +55,7 @@ import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "ScanGeometriesServlet", urlPatterns = {"/ScanGeometriesServlet"})
 public class ScanGeometriesServlet extends HttpServlet {

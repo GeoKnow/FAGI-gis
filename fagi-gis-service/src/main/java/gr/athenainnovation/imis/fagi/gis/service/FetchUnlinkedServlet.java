@@ -36,7 +36,7 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "FetchUnlinkedServlet", urlPatterns = {"/FetchUnlinkedServlet"})
 public class FetchUnlinkedServlet extends HttpServlet {

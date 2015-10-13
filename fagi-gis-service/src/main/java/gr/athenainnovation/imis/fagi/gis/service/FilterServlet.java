@@ -30,7 +30,7 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "FilterServlet", urlPatterns = {"/FilterServlet"})
 public class FilterServlet extends HttpServlet {

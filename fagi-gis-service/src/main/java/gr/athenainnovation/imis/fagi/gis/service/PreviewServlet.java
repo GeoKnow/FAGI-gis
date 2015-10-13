@@ -36,7 +36,7 @@ import javax.servlet.http.HttpSession;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "PreviewServlet", urlPatterns = {"/PreviewServlet"})
 public class PreviewServlet extends HttpServlet {

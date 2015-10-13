@@ -10,6 +10,9 @@ import gr.athenainnovation.imis.fusion.gis.gui.FuserPanel;
 //import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONPropertyMatch;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.Schema;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.SchemaMatchState;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
@@ -43,13 +46,11 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 
 @WebServlet(name = "FusionServlet", urlPatterns = {"/FusionServlet"})
 public class FusionServlet extends HttpServlet {
-    private static final String OWL_CLASS_PROPERTY = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-    private static final String DB_URL = "jdbc:postgresql:";
 
     private class JSONFusion {
         List<String> geomsA;
@@ -128,64 +129,6 @@ public class FusionServlet extends HttpServlet {
                 
     }
     
-    private class JSONPropertyMatch {
-        String valueA;
-        String valueB;
-        String property;
-        String propertyLong;
-        String result;
-
-        public JSONPropertyMatch() {
-            valueA = "";
-            valueB = "";
-            property = "";
-            propertyLong = "";
-            result = "";
-        }
-
-        public String getPropertyLong() {
-            return propertyLong;
-        }
-
-        public void setPropertyLong(String propertyLong) {
-            this.propertyLong = propertyLong;
-        }
-
-        public String getValueA() {
-            return valueA;
-        }
-
-        public void setValueA(String valueA) {
-            this.valueA = valueA;
-        }
-
-        public String getValueB() {
-            return valueB;
-        }
-
-        public void setValueB(String valueB) {
-            this.valueB = valueB;
-        }
-
-        public String getProperty() {
-            return property;
-        }
-
-        public void setProperty(String property) {
-            this.property = property;
-        }
-
-        public String getResult() {
-            return result;
-        }
-
-        public void setResult(String result) {
-            this.result = result;
-        }
-        
-        
-    }
-    
     private void analyzeChain(List<String> a, List<String> b, String qa, String qb, SchemaMatchState sms) {
         for (Map.Entry pairs : sms.foundA.entrySet()) {
             String key = (String)pairs.getKey();
@@ -236,26 +179,24 @@ public class FusionServlet extends HttpServlet {
         return conn.prepareStatement(query.toString());
     }
     
-    private String queryChains(HttpSession sess, JSONFusion ret, List<FusionState> ft, List<String> a, List<String> b, String p, String pl, String reg, Connection co, DBConfig dbConf) throws SQLException {
+    private String queryChains(HttpSession sess, JSONFusion ret, List<FusionState> ft, List<String> a, List<String> b, String p, String pl, String reg, Connection co, DBConfig dbConf, GraphConfig grConf) throws SQLException {
         ResultSet rsa;
         ResultSet rsb;
         StringBuilder sb = new StringBuilder();
         JSONPropertyMatch pm = new JSONPropertyMatch();
-        pm.property = p;
-        pm.propertyLong = pl;
-        sb.append("{\""+"property"+"\":"+"\""+p+"\",");
-        sb.append("\""+"left"+"\":");
-        sb.append("\"");
+        pm.setProperty(p);
+        pm.setPropertyLong(pl);
         ft.get(ft.size()-1).preds.add(p);
         String graph = (String)sess.getAttribute("t_graph");
         String result;
+        
         for(int i = 0; i < a.size(); i++){
             ft.get(ft.size()-1).predsA.add(a.get(i));
             String[] toks = a.get(i).split("\\|");
             for (String s : toks) {
                 String[] pieces = s.split(",");
                 System.out.println("Pieces size :" + pieces.length + " " + pieces);
-                PreparedStatement stmt = constructQuery(pieces, graph + "_" + dbConf.getDBName() + "A", reg, co);
+                PreparedStatement stmt = constructQuery(pieces, grConf.getMetadataGraphA(), reg, co);
                 rsa = stmt.executeQuery();
                 StringBuilder param = new StringBuilder();
                 boolean found = false;
@@ -280,9 +221,7 @@ public class FusionServlet extends HttpServlet {
                 pm.valueA += param.toString() + " ";
             }
         }
-        sb.setLength(sb.length()-1);
-        sb.append("\",\""+"right"+"\":");
-        sb.append("\"");
+        
         System.out.println(b);
         for(int i = 0; i < b.size(); i++){
             ft.get(ft.size()-1).predsB.add(b.get(i));
@@ -292,7 +231,7 @@ public class FusionServlet extends HttpServlet {
                 String[] pieces = s.split(",");
                 System.out.println("Pieces size :" + pieces.length + " " + pieces);
                 StringBuilder param = new StringBuilder();
-                PreparedStatement stmt = constructQuery(pieces, graph + "_" + dbConf.getDBName() + "B", reg, co);
+                PreparedStatement stmt = constructQuery(pieces, grConf.getMetadataGraphB(), reg, co);
                 rsb = stmt.executeQuery();
                 boolean found = false;
                 while (rsb.next()) {
@@ -300,8 +239,6 @@ public class FusionServlet extends HttpServlet {
                     sb.append(rsb.getString(pieces.length) + " ");
                     param.append(rsb.getString(pieces.length) + " ");
                     ft.get(ft.size() - 1).objsB.add(rsb.getString(pieces.length));
-                //sb.append("\""+"right"+"\":"+"\""+rightVal+"\"");
-                    //sb.append(" },");
                 }
 
                 rsb.close();
@@ -318,11 +255,7 @@ public class FusionServlet extends HttpServlet {
         }
         System.out.println(pm.valueA+" "+pm.valueB);
         ret.properties.add(pm);
-        sb.setLength(sb.length()-1);
-        sb.append("\"");
-        sb.append(" },");
-        System.out.println("Some hopes "+sb.toString());
-        System.out.println("END FUSION");
+        
         return sb.toString();
     }
     
@@ -338,7 +271,7 @@ public class FusionServlet extends HttpServlet {
              
             Connection dbConn = null;
             try {
-                String url = DB_URL.concat(dbConf.getDBName());
+                String url = Constants.DB_URL.concat(dbConf.getDBName());
                 dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
                 //dbConn.setAutoCommit(false);
             } catch(SQLException sqlex) {
@@ -406,168 +339,169 @@ public class FusionServlet extends HttpServlet {
         HttpSession             sess;
         JSONFusion              ret;      
     
-        try {       
-            sess = request.getSession(false); 
+        try {
+            out = response.getWriter();
+
+            sess = request.getSession(false);
             
-            if (sess == null ) {
+            //res = new JSONRequestResult();
+            //ret.setResult(res);
+            
+            sess = request.getSession(false);
+
+            if (sess == null) {
                 out.print("{}");
-                
+
                 return;
-                
+
             }
-            
+
             ret = new JSONFusion();
             ObjectMapper mapper = new ObjectMapper();
-            System.out.println(request.getParameterMap());
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            System.out.println(request.getParameterMap());
-            mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
-            mapper.setDateFormat(outputFormat);
-            System.out.println(request.getParameterMap());
+            //System.out.println(request.getParameterMap());
+            //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            //System.out.println(request.getParameterMap());
+            //mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+            //SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
+            //mapper.setDateFormat(outputFormat);
+            //System.out.println(request.getParameterMap());
 
-            System.out.println(request.getParameterMap());
-
-            mapper.setSerializationInclusion(Include.NON_EMPTY);
-            
-            System.out.println(request.getParameterMap());
+            //System.out.println(request.getParameterMap());
+            //mapper.setSerializationInclusion(Include.NON_EMPTY);
+            //System.out.println(request.getParameterMap());
             ft = new ArrayList<>();
             String[] selectedPreds = request.getParameterValues("props[]");
-              
-            GraphConfig grConf = (GraphConfig)sess.getAttribute("gr_conf");
-            dbConf = (DBConfig)sess.getAttribute("db_conf");
-            HashMap<String, String> hashLinks = (HashMap<String, String>)sess.getAttribute("links");
-            
+
+            GraphConfig grConf = (GraphConfig) sess.getAttribute("gr_conf");
+            dbConf = (DBConfig) sess.getAttribute("db_conf");
+            HashMap<String, String> hashLinks = (HashMap<String, String>) sess.getAttribute("links");
+
             VirtGraph vSet = null;
-        try {    
-            vSet = new VirtGraph ("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
-                                         dbConf.getUsername(), 
-                                         dbConf.getPassword());
-        } catch (JenaException connEx) {
-            System.out.println(connEx.getMessage());      
-            out.println("Connection to virtuoso failed");
-            out.close();
-            
-            return;
-        }
-        
-        conn = vSet.getConnection();
-        //System.out.println("Selected Preds : ");
-            for ( String s : selectedPreds) {
+            try {
+                vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
+                        dbConf.getUsername(),
+                        dbConf.getPassword());
+            } catch (JenaException connEx) {
+                System.out.println(connEx.getMessage());
+                out.println("Connection to virtuoso failed");
+                out.close();
+
+                return;
+            }
+
+            conn = vSet.getConnection();
+            //System.out.println("Selected Preds : ");
+            for (String s : selectedPreds) {
                 System.out.println(s);
             }
             reg = selectedPreds[0];
-            
+
             String geom_json = getGeom(reg, dbConf, ret);
-            System.out.println("Geom JSON "+mapper.writeValueAsString(ret));
+            System.out.println("Geom JSON " + mapper.writeValueAsString(ret));
             String getLink = "";
             if (grConf.isDominantA()) {
-                getLink = "sparql select ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> {<"+reg+"> ?p ?o} }";
+                getLink = "sparql select ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> {<" + reg + "> ?p ?o} }";
             } else {
-                getLink = "sparql select ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> {?o ?p <"+reg+">} }";
+                getLink = "sparql select ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> {?o ?p <" + reg + ">} }";
             }
-            
+
             stmt = null;
             stmt = conn.prepareStatement(getLink);
             rs = stmt.executeQuery();
-            
+
             String linked = "";
             while (rs.next()) {
                 linked = rs.getString(1);
             }
             sess.setAttribute("nodeA", reg);
             sess.setAttribute("nodeB", linked);
-            
+
             rs.close();
             stmt.close();
-            
+
             String getClassA = "sparql SELECT ?owlClass"
-                    + "  WHERE {GRAPH <"+ grConf.getAllLinksGraph()+ ">"
-                    + " { <"+reg+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n" +
-                      " GRAPH <" + grConf.getMetadataGraphA() + "> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
-            
+                    + "  WHERE {GRAPH <" + grConf.getAllLinksGraph() + ">"
+                    + " { <" + reg + "> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n"
+                    + " GRAPH <" + grConf.getMetadataGraphA() + "> {<" + reg + "> <" + Constants.OWL_CLASS_PROPERTY + "> ?owlClass } }";
+
             String getClassB = "sparql SELECT ?owlClass"
-                    + "  WHERE {GRAPH <"+ grConf.getAllLinksGraph()+ ">"
-                    + " { <"+reg+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n" +
-                      " GRAPH <"+ grConf.getMetadataGraphB() + "> {<"+reg+"> <"+OWL_CLASS_PROPERTY+"> ?owlClass } }";
-            
-            
+                    + "  WHERE {GRAPH <" + grConf.getAllLinksGraph() + ">"
+                    + " { <" + reg + "> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n"
+                    + " GRAPH <" + grConf.getMetadataGraphB() + "> {<" + reg + "> <" + Constants.OWL_CLASS_PROPERTY + "> ?owlClass } }";
+
             stmt = null;
             stmt = conn.prepareStatement(getClassA);
             rs = stmt.executeQuery();
-            
-            System.out.println("Class from A "+getClassA);
-            System.out.println("Class from B "+getClassB);
+
+            System.out.println("Class from A " + getClassA);
+            System.out.println("Class from B " + getClassB);
             while (rs.next()) {
                 ret.classesA.add(rs.getString(1));
             }
-            
+
             stmt.close();
             rs.close();
-            
+
             stmt = null;
             stmt = conn.prepareStatement(getClassB);
             rs = stmt.executeQuery();
-            
+
             while (rs.next()) {
                 ret.classesB.add(rs.getString(1));
             }
             rs.close();
             stmt.close();
-            
+
             sess.setAttribute("nodeA", reg);
             sess.setAttribute("nodeB", linked);
-            
+
             StringBuilder sb = new StringBuilder();
             sb.append("{\"fusions\":[");
-                
-            SchemaMatchState sms = (SchemaMatchState)sess.getAttribute("predicates_matches");
+
+            SchemaMatchState sms = (SchemaMatchState) sess.getAttribute("predicates_matches");
             //System.out.println(sms.foundA);
             //System.out.println(sms.foundB);
-            if ( selectedPreds.length == 1 ) {
+            if (selectedPreds.length == 1) {
                 JSONPropertyMatch pm = new JSONPropertyMatch();
-                pm.property ="dummy";
+                pm.setProperty("dummy");
                 ret.properties.add(pm);
             }
-            for ( int j = 1; j < selectedPreds.length; j+=2) {
-                if (selectedPreds[j+1].equals("http://www.opengis.net/ont/geosparql#asWKT"))
+            for (int j = 1; j < selectedPreds.length; j += 2) {
+                if (selectedPreds[j + 1].equals("http://www.opengis.net/ont/geosparql#asWKT")) {
                     continue;
+                }
                 String newPropertyName = selectedPreds[j];
-                String prevPropertyName = selectedPreds[j+1];
-                System.out.println("Breaking on "+prevPropertyName);      
+                String prevPropertyName = selectedPreds[j + 1];
+                System.out.println("Breaking on " + prevPropertyName);
                 String[] queryStrings = prevPropertyName.split("=>");
                 String queryA = queryStrings[0];
                 String queryB = queryStrings[1];
-                
+
                 List<String> presA = new ArrayList<String>();
                 List<String> presB = new ArrayList<String>();
                 ft.add(new FusionState());
                 analyzeChain(presA, presB, queryA, queryB, sms);
-                String json_obj = queryChains(sess, ret, ft, presA, presB, newPropertyName, prevPropertyName, reg, conn, dbConf);
-                sb.append(json_obj);
+                String json_obj = queryChains(sess, ret, ft, presA, presB, newPropertyName, prevPropertyName, reg, conn, dbConf, grConf);
             }
-            System.out.println("Geom JSON "+mapper.writeValueAsString(ret));
+            System.out.println("Geom JSON " + mapper.writeValueAsString(ret));
 
-            
-            for (Map.Entry<String, AbstractFusionTransformation> entry : FuserPanel.transformations .entrySet())
-            {
+            for (Map.Entry<String, AbstractFusionTransformation> entry : FuserPanel.transformations.entrySet()) {
                 //System.out.println("Transformation "+entry.getKey());
                 ret.geomTransforms.add(entry.getKey());
             }
-            
-            for (Map.Entry<String, String> entry : FuserPanel.meta_transformations .entrySet())
-            {
+
+            for (Map.Entry<String, String> entry : FuserPanel.meta_transformations.entrySet()) {
                 //System.out.println("Transformation "+entry.getKey());
                 ret.metaTransforms.add(entry.getKey());
             }
-            
+
             sess.setAttribute("fstate", ft);
-            
+
             int newLen = sb.length() - 1;
             sb.setLength(newLen);
             sb.append(geom_json);
-            
-            System.out.println(mapper.writeValueAsString(ret));   
+
+            System.out.println(mapper.writeValueAsString(ret));
             out.println(mapper.writeValueAsString(ret));
         } finally {
             out.close();

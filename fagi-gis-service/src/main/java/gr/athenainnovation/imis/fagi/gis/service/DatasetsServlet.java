@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "DatasetsServlet", urlPatterns = {"/DatasetsServlet"})
 public class DatasetsServlet extends HttpServlet {

@@ -92,7 +92,7 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "LinksServlet", urlPatterns = {"/LinksServlet"})
 @MultipartConfig

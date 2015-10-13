@@ -48,7 +48,7 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "CreateLinkServlet", urlPatterns = {"/CreateLinkServlet"})
 public class CreateLinkServlet extends HttpServlet {

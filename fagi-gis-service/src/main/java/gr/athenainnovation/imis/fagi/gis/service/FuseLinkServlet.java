@@ -76,7 +76,7 @@ import virtuoso.jena.driver.VirtuosoUpdateRequest;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "FuseLinkServlet", urlPatterns = {"/FuseLinkServlet"})
 public class FuseLinkServlet extends HttpServlet {

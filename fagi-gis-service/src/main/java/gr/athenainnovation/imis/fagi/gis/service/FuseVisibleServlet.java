@@ -35,7 +35,7 @@ import javax.servlet.http.HttpSession;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "FuseVisibleServlet", urlPatterns = {"/FuseVisibleServlet"})
 public class FuseVisibleServlet extends HttpServlet {

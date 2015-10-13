@@ -57,7 +57,7 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "SchemaMatchServlet", urlPatterns = {"/SchemaMatchServlet"})
 public class SchemaMatchServlet extends HttpServlet {

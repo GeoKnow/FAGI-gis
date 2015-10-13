@@ -83,7 +83,7 @@ import virtuoso.jena.driver.VirtuosoUpdateRequest;
  * Batch fusion of geometric and other metadata
  * The servlet returns fusion results stored in JSON format
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "BatchFusionServlet", urlPatterns = {"/BatchFusionServlet"})
 public class BatchFusionServlet extends HttpServlet {

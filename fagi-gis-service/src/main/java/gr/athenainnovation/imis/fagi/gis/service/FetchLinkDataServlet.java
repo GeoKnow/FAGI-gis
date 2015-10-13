@@ -40,7 +40,7 @@ import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
- * @author nick
+ * @author Nick Vitsas
  */
 @WebServlet(name = "FetchLinkDataServlet", urlPatterns = {"/FetchLinkDataServlet"})
 public class FetchLinkDataServlet extends HttpServlet {
