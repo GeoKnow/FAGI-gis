@@ -30,9 +30,12 @@ FAGI.MapUI.MapControls = {
 
 FAGI.Constants = {
     
-    PROPERTY_SEPARATOR: '   Constants.PROPERTY_SEPARATOR',
+    PROPERTY_SEPARATOR      :       '=>',
     
-    MAX_CLUSTERS:           10
+    MAX_CLUSTERS            :        10,
+    
+    CLUSTER_COLORS          :       ['silver', 'gray', 'black', 'navy', 'maroon', 'yellow', 'olive', 'lime', 'aqua', 'teal']
+
 };
 
 FAGI.Utilities = {
@@ -61,7 +64,10 @@ FAGI.Utilities = {
      
 };
 
-//Utility classes
+FAGI.NavigationUI.Callbacks = {
+    
+};
+
 FAGI.MapUI.Callbacks = {
     
     onClusterSelectionChange: function() {
@@ -105,9 +111,52 @@ FAGI.MapUI.Callbacks = {
      
 };
 
+FAGI.MapUI.Contexts = {
+    
+    contextB: {
+        getSubject: function (feature) {
+            return feature.attributes.a;
+        },
+        getTitle: function (feature) {
+            return "Name : " + feature.attributes.a + "\nCluster : " + feature.attributes.cluster;
+        },
+        getOpacity: function (feature) {
+            return feature.attributes.opacity + 0.5;
+        },
+        getColor: function (feature) {
+            return 'green';
+            if (feature.attributes.cluster == 'Unset') {
+                return 'green';
+            } else {
+                return FAGI.Constants.CLUSTER_COLORS[feature.attributes.cluster];
+            }
+        }
+    },
+    
+    contextA: {
+        getSubject: function (feature) {
+            return feature.attributes.a;
+        },
+        getTitle: function (feature) {
+            return "Name : " + feature.attributes.a + "\nCluster : " + feature.attributes.cluster;
+        },
+        getOpacity: function (feature) {
+            return feature.attributes.opacity + 0.5;
+        },
+        getColor: function (feature) {
+            return 'blue';
+            if (feature.attributes.cluster == 'Unset') {
+                return 'blue';
+            } else {
+                return FAGI.Constants.CLUSTER_COLORS[feature.attributes.cluster];
+            }
+        }
+    }
+     
+};
+
 var MAX_CLUSTERS = 10;
 // Vector Layer Styles
-var clusterColors = ['silver', 'gray', 'black', 'navy', 'maroon', 'yellow', 'olive', 'lime', 'aqua', 'teal'];
 
 var contextB = {
     getSubject: function (feature) {
@@ -124,7 +173,7 @@ var contextB = {
         if (feature.attributes.cluster == 'Unset') {
             return 'green';
         } else {
-            return clusterColors[feature.attributes.cluster];
+            return FAGI.Constants.CLUSTER_COLORS[feature.attributes.cluster];
         }
     }      
 };
@@ -144,7 +193,7 @@ var contextA = {
         if (feature.attributes.cluster == 'Unset') {
             return 'blue';
         } else {
-            return clusterColors[feature.attributes.cluster];
+            return FAGI.Constants.CLUSTER_COLORS[feature.attributes.cluster];
         }
     }
 };
