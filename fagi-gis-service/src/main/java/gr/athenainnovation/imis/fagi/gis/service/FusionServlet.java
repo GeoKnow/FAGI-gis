@@ -2,6 +2,7 @@
 package gr.athenainnovation.imis.fagi.gis.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.hp.hpl.jena.shared.JenaException;
@@ -10,9 +11,11 @@ import gr.athenainnovation.imis.fusion.gis.gui.FuserPanel;
 //import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONFusion;
 import gr.athenainnovation.imis.fusion.gis.json.JSONPropertyMatch;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.Schema;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.SchemaMatchState;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
@@ -52,82 +55,7 @@ import virtuoso.jena.driver.VirtGraph;
 @WebServlet(name = "FusionServlet", urlPatterns = {"/FusionServlet"})
 public class FusionServlet extends HttpServlet {
 
-    private class JSONFusion {
-        List<String> geomsA;
-        List<String> geomsB;
-        List<String> classesA;
-        List<String> classesB;
-        List<JSONPropertyMatch> properties;
-        List<String> geomTransforms;
-        List<String> metaTransforms;
-        
-        public JSONFusion() {
-            this.geomsA = new ArrayList<>();
-            this.geomsB = new ArrayList<>();
-            this.classesA = new ArrayList<>();
-            this.classesB = new ArrayList<>();
-            this.properties = new ArrayList<>();
-            this.geomTransforms = new ArrayList<>();
-            this.metaTransforms = new ArrayList<>();
-        }
-
-        public List<JSONPropertyMatch> getProperties() {
-            return properties;
-        }
-
-        public void setProperties(List<JSONPropertyMatch> properties) {
-            this.properties = properties;
-        }
-
-        public List<String> getGeomsA() {
-            return geomsA;
-        }
-
-        public void setGeomsA(List<String> geomsA) {
-            this.geomsA = geomsA;
-        }
-
-        public List<String> getGeomsB() {
-            return geomsB;
-        }
-
-        public void setGeomsB(List<String> geomsB) {
-            this.geomsB = geomsB;
-        }
-
-        public List<String> getGeomTransforms() {
-            return geomTransforms;
-        }
-
-        public void setGeomTransforms(List<String> geomTransforms) {
-            this.geomTransforms = geomTransforms;
-        }
-
-        public List<String> getMetaTransforms() {
-            return metaTransforms;
-        }
-
-        public void setMetaTransforms(List<String> metaTransforms) {
-            this.metaTransforms = metaTransforms;
-        }
-
-        public List<String> getClassesA() {
-            return classesA;
-        }
-
-        public void setClassesA(List<String> classesA) {
-            this.classesA = classesA;
-        }
-
-        public List<String> getClassesB() {
-            return classesB;
-        }
-
-        public void setClassesB(List<String> classesB) {
-            this.classesB = classesB;
-        }
-                
-    }
+    private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(FusionServlet.class);
     
     private void analyzeChain(List<String> a, List<String> b, String qa, String qb, SchemaMatchState sms) {
         for (Map.Entry pairs : sms.foundA.entrySet()) {
@@ -158,7 +86,8 @@ public class FusionServlet extends HttpServlet {
             System.out.println(s);
     }
     
-    private PreparedStatement constructQuery (String[] a, String queryGraph, String reg, Connection conn) throws SQLException {         
+    private PreparedStatement constructQuery (String[] a, String queryGraph, String reg, Connection conn) {      
+        PreparedStatement stmt = null;
         StringBuilder query = new StringBuilder();
         query.append("sparql SELECT ");
         for(int i = 0; i < a.length; i++) {
@@ -175,13 +104,20 @@ public class FusionServlet extends HttpServlet {
         }
         query.append("\n} }");
         System.out.println("What to query "+query.toString());
-        //PreparedStatement stmt1 = conn.prepareStatement(query.toString());
-        return conn.prepareStatement(query.toString());
+        
+        try {
+            stmt = conn.prepareStatement(query.toString());
+        } catch (SQLException ex) {
+            stmt = null;
+        }
+                
+        return stmt;
     }
     
-    private String queryChains(HttpSession sess, JSONFusion ret, List<FusionState> ft, List<String> a, List<String> b, String p, String pl, String reg, Connection co, DBConfig dbConf, GraphConfig grConf) throws SQLException {
-        ResultSet rsa;
-        ResultSet rsb;
+    private String queryChains(HttpSession sess, JSONFusion ret, List<FusionState> ft, List<String> a, List<String> b, String p, String pl, String reg, Connection co, DBConfig dbConf, GraphConfig grConf) {
+        ResultSet rsa = null;
+        ResultSet rsb = null;
+        PreparedStatement stmt =null;
         StringBuilder sb = new StringBuilder();
         JSONPropertyMatch pm = new JSONPropertyMatch();
         pm.setProperty(p);
@@ -196,29 +132,48 @@ public class FusionServlet extends HttpServlet {
             for (String s : toks) {
                 String[] pieces = s.split(",");
                 System.out.println("Pieces size :" + pieces.length + " " + pieces);
-                PreparedStatement stmt = constructQuery(pieces, grConf.getMetadataGraphA(), reg, co);
-                rsa = stmt.executeQuery();
-                StringBuilder param = new StringBuilder();
-                boolean found = false;
-                while (rsa.next()) {
-                    found = true;
-                    sb.append(rsa.getString(pieces.length) + " ");
-                    param.append(rsa.getString(pieces.length) + " ");
-                    ft.get(ft.size() - 1).objsA.add(rsa.getString(pieces.length));
-                //sb.append("\""+"right"+"\":"+"\""+rightVal+"\"");
-                    //sb.append(" },");
-                }
                 
-                rsa.close();
-                stmt.close();
-                
-                if (!found) {
-                    continue;
-                }
+                try {
+                    stmt = constructQuery(pieces, grConf.getMetadataGraphA(), reg, co);
+                    rsa = stmt.executeQuery();
+                    
+                    StringBuilder param = new StringBuilder();
+                    boolean found = false;
+                    while (rsa.next()) {
+                        found = true;
+                        sb.append(rsa.getString(pieces.length) + " ");
+                        param.append(rsa.getString(pieces.length) + " ");
+                        ft.get(ft.size() - 1).objsA.add(rsa.getString(pieces.length));
 
-                int prevLen = param.length();
-                param.setLength(prevLen - 1);
-                pm.valueA += param.toString() + " ";
+                    }
+
+                    rsa.close();
+
+                    stmt.close();
+
+                    if (!found) {
+                        continue;
+                    }
+
+                    int prevLen = param.length();
+                    param.setLength(prevLen - 1);
+                    pm.valueA += param.toString() + " ";
+                } catch (SQLException ex) {
+                    Logger.getLogger(FusionServlet.class.getName()).log(Level.SEVERE, null, ex);
+                } finally {
+                    if ( rsa != null ) {
+                        try {
+                            rsa.close();
+                        } catch (SQLException ex) {
+                        }
+                    }
+                    if ( stmt != null ) {
+                        try {
+                            stmt.close();
+                        } catch (SQLException ex) {
+                        }
+                    }
+                }
             }
         }
         
@@ -231,86 +186,137 @@ public class FusionServlet extends HttpServlet {
                 String[] pieces = s.split(",");
                 System.out.println("Pieces size :" + pieces.length + " " + pieces);
                 StringBuilder param = new StringBuilder();
-                PreparedStatement stmt = constructQuery(pieces, grConf.getMetadataGraphB(), reg, co);
-                rsb = stmt.executeQuery();
-                boolean found = false;
-                while (rsb.next()) {
-                    found = true;
-                    sb.append(rsb.getString(pieces.length) + " ");
-                    param.append(rsb.getString(pieces.length) + " ");
-                    ft.get(ft.size() - 1).objsB.add(rsb.getString(pieces.length));
-                }
+                try {
+                    stmt = constructQuery(pieces, grConf.getMetadataGraphB(), reg, co);
+                    rsb = stmt.executeQuery();
+                    boolean found = false;
+                    while (rsb.next()) {
+                        found = true;
+                        sb.append(rsb.getString(pieces.length) + " ");
+                        param.append(rsb.getString(pieces.length) + " ");
+                        ft.get(ft.size() - 1).objsB.add(rsb.getString(pieces.length));
+                    }
 
-                rsb.close();
-                stmt.close();
-                
-                if (!found) {
-                    continue;
-                }
+                    rsb.close();
+                    stmt.close();
 
-                int prevLen = param.length();
-                param.setLength(prevLen - 1);
-                pm.valueB += param.toString() + " ";
+                    if (!found) {
+                        continue;
+                    }
+
+                    int prevLen = param.length();
+                    param.setLength(prevLen - 1);
+                    pm.valueB += param.toString() + " ";
+                } catch (SQLException ex) {
+                } finally {
+                    if ( rsa != null ) {
+                        try {
+                            rsa.close();
+                        } catch (SQLException ex) {
+                        }
+                    }
+                    if ( stmt != null ) {
+                        try {
+                            stmt.close();
+                        } catch (SQLException ex) {
+                        }
+                    }
+                }
             }
         }
+        
         System.out.println(pm.valueA+" "+pm.valueB);
-        ret.properties.add(pm);
+        ret.getProperties().add(pm);
         
         return sb.toString();
     }
     
-    private String getGeom(String reg, DBConfig dbConf, JSONFusion ret) throws SQLException {
+    private boolean getGeom(String reg, DBConfig dbConf, JSONFusion ret) {
+        boolean success = true;
         
-        try{
-                Class.forName("org.postgresql.Driver");     
+        try {
+            Class.forName("org.postgresql.Driver");
         } catch (ClassNotFoundException ex) {
-                System.out.println(ex.getMessage());      
-                
-                return "";
-            }
-             
-            Connection dbConn = null;
+            LOG.trace("ClassNotFoundException thrown");
+            LOG.debug("ClassNotFoundException thrown : " + ex.getMessage());
+            
+            success = false;
+            
+            return success;
+        }
+
+        Connection dbConn = null;
+        try {
+            String url = Constants.DB_URL.concat(dbConf.getDBName());
+            dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
+        } catch (SQLException sqlex) {
+            LOG.trace("SQLException thrown");
+            LOG.debug("SQLException thrown : " + sqlex.getMessage());
+            LOG.debug("SQLException thrown : " + sqlex.getSQLState());
+
+            success = false;
+
+            return success;
+        } finally {
             try {
-                String url = Constants.DB_URL.concat(dbConf.getDBName());
-                dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
-                //dbConn.setAutoCommit(false);
-            } catch(SQLException sqlex) {
-                System.out.println(sqlex.getMessage());      
-                //out.println("Connection to postgis failed");
-                //out.close();
-            
-                return "";
+                if (dbConn != null) {
+                    dbConn.close();
+                }
+            } catch (SQLException sqlex) {
+                LOG.trace("SQLException thrown when closeing connection");
+                LOG.debug("SQLException thrown when closeing connection : " + sqlex.getMessage());
+                LOG.debug("SQLException thrown when closeing connection : " + sqlex.getSQLState());
             }
-            
-            String selectLinkedGeoms = "SELECT ST_asText(a_g) as ga, ST_asText(b_g) as gb\n" +
-                                        "FROM links \n" +
-                                        "INNER JOIN (SELECT dataset_a_geometries.subject AS a_s,\n" +
-                                        "		   dataset_b_geometries.subject AS b_s,\n" +
-                                        "		   dataset_a_geometries.geom AS a_g,\n" +
-                                        "		   dataset_b_geometries.geom AS b_g\n" +
-                                        "		FROM dataset_a_geometries, dataset_b_geometries) AS geoms \n" +
-                                        "		ON(links.nodea = geoms.a_s AND links.nodeb = geoms.b_s) WHERE links.nodea = '"+reg+"'";
-            
-            System.out.println(selectLinkedGeoms);
-            PreparedStatement stmt = null;
-            stmt = dbConn.prepareStatement(selectLinkedGeoms);
-            ResultSet rs = stmt.executeQuery();
-            StringBuilder sb = new StringBuilder();
-            sb.append(" ],\"Geoms\":[{");
+        }
+
+        // Get geometry of bot entities from PostGIS
+        String selectLinkedGeoms = "SELECT ST_asText(a_g) as ga, ST_asText(b_g) as gb\n"
+                + "FROM links \n"
+                + "INNER JOIN (SELECT dataset_a_geometries.subject AS a_s,\n"
+                + "		   dataset_b_geometries.subject AS b_s,\n"
+                + "		   dataset_a_geometries.geom AS a_g,\n"
+                + "		   dataset_b_geometries.geom AS b_g\n"
+                + "		FROM dataset_a_geometries, dataset_b_geometries) AS geoms \n"
+                + "		ON(links.nodea = geoms.a_s AND links.nodeb = geoms.b_s) WHERE links.nodea = '" + reg + "'";
+
+        System.out.println(selectLinkedGeoms);
+       
+        try (PreparedStatement stmt = dbConn.prepareStatement(selectLinkedGeoms);
+                ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                int parA = rs.getString(1).indexOf("(");
-                int parB = rs.getString(2).indexOf("(");
-                ret.geomsA.add(rs.getString(1));
-                ret.geomsB.add(rs.getString(2));
-                sb.append("\""+"left"+"\":"+"\""+rs.getString(1).substring(0, parA)+"\",");
-                sb.append("\""+"right"+"\":"+"\""+rs.getString(2).substring(0, parB)+"\"");
+                ret.getGeomsA().add(rs.getString("ga"));
+                ret.getGeomsB().add(rs.getString("gb"));
             }
-            sb.append("}]}");
-            
-            rs.close();
-            stmt.close();
-            
-            return sb.toString();
+        } catch (SQLException sqlex) {
+            LOG.trace("SQLException thrown");
+            LOG.debug("SQLException thrown : " + sqlex.getMessage());
+            LOG.debug("SQLException thrown : " + sqlex.getSQLState());
+
+            success = false;
+
+            return success;
+        } finally {
+            try {
+                if (dbConn != null) {
+                    dbConn.close();
+                }
+            } catch (SQLException sqlex) {
+                LOG.trace("SQLException thrown when closeing connection");
+                LOG.debug("SQLException thrown when closeing connection : " + sqlex.getMessage());
+                LOG.debug("SQLException thrown when closeing connection : " + sqlex.getSQLState());
+            }
+        }
+        
+        try {
+            if ( dbConn != null )
+                dbConn.close();
+        } catch (SQLException sqlex) {
+            LOG.trace("SQLException thrown when closeing connection");
+            LOG.debug("SQLException thrown when closeing connection : " + sqlex.getMessage());
+            LOG.debug("SQLException thrown when closeing connection : " + sqlex.getSQLState());
+        }
+        
+        return success;
     }
     
     /**
@@ -323,52 +329,56 @@ public class FusionServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException {
+            throws ServletException {
         response.setContentType("text/html;charset=UTF-8");
         
         //  Per session state
-        PrintWriter             out = response.getWriter();
+        PrintWriter             out = null;
         Connection              conn;
-        String                  reg;
+        String                  subject;
         String                  tgraph;
         List<FusionState>       ft = null;
-        PreparedStatement       stmt = null;
+        VirtGraph               vSet = null;
         Connection              dbConn = null;
-        ResultSet               rs = null;
         DBConfig                dbConf = null;
         HttpSession             sess;
         JSONFusion              ret;      
-    
+        JSONRequestResult       res;      
+        ObjectMapper            mapper = new ObjectMapper();
+        boolean                 success = true;
+        
         try {
-            out = response.getWriter();
-
-            sess = request.getSession(false);
             
-            //res = new JSONRequestResult();
-            //ret.setResult(res);
+            try {
+                out = response.getWriter();
+            } catch (IOException ex) {
+                LOG.trace("IOException thrown in servlet Writer");
+                LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage() );
+                
+                return;
+            }
+            
+            ret = new JSONFusion();
+            res = new JSONRequestResult();
+            ret.setResult(res);
             
             sess = request.getSession(false);
 
             if (sess == null) {
-                out.print("{}");
+                LOG.trace("Not a valid session");
+                LOG.debug("Not a valid session" );
+                
+                ret.getResult().setMessage("Failed to create session!");
+                ret.getResult().setStatusCode(-1);
+                
+                out.println(mapper.writeValueAsString(ret));
+
+                out.close();
 
                 return;
 
             }
 
-            ret = new JSONFusion();
-            ObjectMapper mapper = new ObjectMapper();
-            //System.out.println(request.getParameterMap());
-            //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            //System.out.println(request.getParameterMap());
-            //mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-            //SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
-            //mapper.setDateFormat(outputFormat);
-            //System.out.println(request.getParameterMap());
-
-            //System.out.println(request.getParameterMap());
-            //mapper.setSerializationInclusion(Include.NON_EMPTY);
-            //System.out.println(request.getParameterMap());
             ft = new ArrayList<>();
             String[] selectedPreds = request.getParameterValues("props[]");
 
@@ -376,104 +386,151 @@ public class FusionServlet extends HttpServlet {
             dbConf = (DBConfig) sess.getAttribute("db_conf");
             HashMap<String, String> hashLinks = (HashMap<String, String>) sess.getAttribute("links");
 
-            VirtGraph vSet = null;
             try {
                 vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
                         dbConf.getUsername(),
                         dbConf.getPassword());
             } catch (JenaException connEx) {
-                System.out.println(connEx.getMessage());
-                out.println("Connection to virtuoso failed");
+                LOG.trace("Failed to create Jena VirtGraph");
+                LOG.trace("Failed to create Jena VirtGraph : " + connEx.getMessage());
+
+                ret.getResult().setMessage("Failed to perform property matching!");
+                ret.getResult().setStatusCode(-1);
+
+                out.println(mapper.writeValueAsString(ret));
+
                 out.close();
 
                 return;
             }
 
             conn = vSet.getConnection();
-            //System.out.println("Selected Preds : ");
+            System.out.println("Selected Preds : ");
             for (String s : selectedPreds) {
                 System.out.println(s);
             }
-            reg = selectedPreds[0];
+            
+            // The first element in the incoming array is
+            // always the subject of the entity
+            subject = selectedPreds[0];
 
-            String geom_json = getGeom(reg, dbConf, ret);
-            System.out.println("Geom JSON " + mapper.writeValueAsString(ret));
+            // Get the geometry of the entity
+            success = getGeom(subject, dbConf, ret);
+            
+            // Where to look for the name of the other entity
             String getLink = "";
             if (grConf.isDominantA()) {
-                getLink = "sparql select ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> {<" + reg + "> ?p ?o} }";
+                getLink = "SPARQL SELECT ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> {<" + subject + "> ?p ?o} }";
             } else {
-                getLink = "sparql select ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> {?o ?p <" + reg + ">} }";
+                getLink = "SPARQL SELECT ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> {?o ?p <" + subject + ">} }";
             }
-
-            stmt = null;
-            stmt = conn.prepareStatement(getLink);
-            rs = stmt.executeQuery();
-
+            
             String linked = "";
-            while (rs.next()) {
-                linked = rs.getString(1);
+            try (PreparedStatement stmt = conn.prepareStatement(getLink);
+                    ResultSet rs = stmt.executeQuery()) {
+                
+                while (rs.next()) {
+                    linked = rs.getString(1);
+                }
+                
+            } catch (SQLException ex) {
+                LOG.trace("Failed to get other Link");
+                LOG.trace("Failed to get other Link : " + ex.getMessage());
+                LOG.trace("Failed to get other Link : " + ex.getSQLState());
+
+                ret.getResult().setMessage("Failed to perform property matching!");
+                ret.getResult().setStatusCode(-1);
+
+                out.println(mapper.writeValueAsString(ret));
+
+                out.close();
+
+                return;
             }
-            sess.setAttribute("nodeA", reg);
+            
+            sess.setAttribute("nodeA", subject);
             sess.setAttribute("nodeB", linked);
-
-            rs.close();
-            stmt.close();
-
+               
             String getClassA = "sparql SELECT ?owlClass"
                     + "  WHERE {GRAPH <" + grConf.getAllLinksGraph() + ">"
-                    + " { <" + reg + "> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n"
-                    + " GRAPH <" + grConf.getMetadataGraphA() + "> {<" + reg + "> <" + Constants.OWL_CLASS_PROPERTY + "> ?owlClass } }";
+                    + " { <" + subject + "> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n"
+                    + " GRAPH <" + grConf.getMetadataGraphA() + "> {<" + subject + "> <" + Constants.OWL_CLASS_PROPERTY + "> ?owlClass } }";
 
             String getClassB = "sparql SELECT ?owlClass"
                     + "  WHERE {GRAPH <" + grConf.getAllLinksGraph() + ">"
-                    + " { <" + reg + "> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n"
-                    + " GRAPH <" + grConf.getMetadataGraphB() + "> {<" + reg + "> <" + Constants.OWL_CLASS_PROPERTY + "> ?owlClass } }";
+                    + " { <" + subject + "> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n"
+                    + " GRAPH <" + grConf.getMetadataGraphB() + "> {<" + subject + "> <" + Constants.OWL_CLASS_PROPERTY + "> ?owlClass } }";
 
-            stmt = null;
-            stmt = conn.prepareStatement(getClassA);
-            rs = stmt.executeQuery();
+           
+            try (PreparedStatement stmt = conn.prepareStatement(getClassA);
+                    ResultSet rs = stmt.executeQuery()) {
+                
+                while (rs.next()) {
+                    ret.getClassesA().add(rs.getString(1));
+                }
+                
+            } catch (SQLException ex) {
+                LOG.trace("Failed to get other Link");
+                LOG.trace("Failed to get other Link : " + ex.getMessage());
+                LOG.trace("Failed to get other Link : " + ex.getSQLState());
 
-            System.out.println("Class from A " + getClassA);
-            System.out.println("Class from B " + getClassB);
-            while (rs.next()) {
-                ret.classesA.add(rs.getString(1));
+                ret.getResult().setMessage("Failed to perform property matching!");
+                ret.getResult().setStatusCode(-1);
+
+                out.println(mapper.writeValueAsString(ret));
+
+                out.close();
+
+                return;
             }
+            
+            try (PreparedStatement stmt = conn.prepareStatement(getClassB);
+                    ResultSet rs = stmt.executeQuery()) {
+                
+                while (rs.next()) {
+                    ret.getClassesB().add(rs.getString(1));
+                }
+                
+            } catch (SQLException ex) {
+                LOG.trace("Failed to get other Link");
+                LOG.trace("Failed to get other Link : " + ex.getMessage());
+                LOG.trace("Failed to get other Link : " + ex.getSQLState());
 
-            stmt.close();
-            rs.close();
+                ret.getResult().setMessage("Failed to perform property matching!");
+                ret.getResult().setStatusCode(-1);
 
-            stmt = null;
-            stmt = conn.prepareStatement(getClassB);
-            rs = stmt.executeQuery();
+                out.println(mapper.writeValueAsString(ret));
 
-            while (rs.next()) {
-                ret.classesB.add(rs.getString(1));
+                out.close();
+
+                return;
             }
-            rs.close();
-            stmt.close();
-
-            sess.setAttribute("nodeA", reg);
-            sess.setAttribute("nodeB", linked);
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("{\"fusions\":[");
 
             SchemaMatchState sms = (SchemaMatchState) sess.getAttribute("predicates_matches");
-            //System.out.println(sms.foundA);
-            //System.out.println(sms.foundB);
+            
+            // Add a dummy property for convenience 
             if (selectedPreds.length == 1) {
                 JSONPropertyMatch pm = new JSONPropertyMatch();
                 pm.setProperty("dummy");
-                ret.properties.add(pm);
+                ret.getProperties().add(pm);
             }
+            
+            // Iterate over all selected properties
+            // Skip fiest element
+            // Step = 2 as
+            // Index j contains the new property name
+            // Index j + 1 contains the old property
             for (int j = 1; j < selectedPreds.length; j += 2) {
+                // Special treatment for WKT
                 if (selectedPreds[j + 1].equals("http://www.opengis.net/ont/geosparql#asWKT")) {
                     continue;
                 }
+                
                 String newPropertyName = selectedPreds[j];
                 String prevPropertyName = selectedPreds[j + 1];
-                System.out.println("Breaking on " + prevPropertyName);
-                String[] queryStrings = prevPropertyName.split("=>");
+                //System.out.println("Breaking on " + prevPropertyName);
+                // 
+                String[] queryStrings = prevPropertyName.split(Constants.PROPERTY_SEPARATOR);
                 String queryA = queryStrings[0];
                 String queryB = queryStrings[1];
 
@@ -481,30 +538,42 @@ public class FusionServlet extends HttpServlet {
                 List<String> presB = new ArrayList<String>();
                 ft.add(new FusionState());
                 analyzeChain(presA, presB, queryA, queryB, sms);
-                String json_obj = queryChains(sess, ret, ft, presA, presB, newPropertyName, prevPropertyName, reg, conn, dbConf, grConf);
+                String json_obj = queryChains(sess, ret, ft, presA, presB, newPropertyName, prevPropertyName, subject, conn, dbConf, grConf);
             }
             System.out.println("Geom JSON " + mapper.writeValueAsString(ret));
 
             for (Map.Entry<String, AbstractFusionTransformation> entry : FuserPanel.transformations.entrySet()) {
                 //System.out.println("Transformation "+entry.getKey());
-                ret.geomTransforms.add(entry.getKey());
+                ret.getGeomTransforms().add(entry.getKey());
             }
 
             for (Map.Entry<String, String> entry : FuserPanel.meta_transformations.entrySet()) {
                 //System.out.println("Transformation "+entry.getKey());
-                ret.metaTransforms.add(entry.getKey());
+                ret.getMetaTransforms().add(entry.getKey());
             }
 
+            // Set the fusion state so that 
+            // If fusion takes place later,
+            // the state will be in the session
             sess.setAttribute("fstate", ft);
 
-            int newLen = sb.length() - 1;
-            sb.setLength(newLen);
-            sb.append(geom_json);
-
-            System.out.println(mapper.writeValueAsString(ret));
+            //System.out.println(mapper.writeValueAsString(ret));
             out.println(mapper.writeValueAsString(ret));
+        } catch (JsonProcessingException ex) {
+            LOG.trace("JsonProcessingException thrown");
+            LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
+            
+        } catch ( java.lang.OutOfMemoryError oome) {
+            LOG.trace("OutOfMemoryError thrown");
+            LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
+            
         } finally {
-            out.close();
+            if ( vSet != null ) {
+                vSet.close();
+            }
+            if (out != null) {
+                out.close();
+            }
         }
     }
 
@@ -519,36 +588,8 @@ public class FusionServlet extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(FusionServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            /*
-            (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (dbConn != null) {
-                try {
-                    dbConn.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            */
-        }
+            throws ServletException {
+        processRequest(request, response);
     }
 
     /**
@@ -561,36 +602,8 @@ public class FusionServlet extends HttpServlet {
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(FusionServlet.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            /*
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if (dbConn != null) {
-                try {
-                    dbConn.close();
-                } catch (SQLException ex) {
-                    Logger.getLogger(PreviewServlet.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            */
-        }
+            throws ServletException {
+        processRequest(request, response);
     }
 
     /**

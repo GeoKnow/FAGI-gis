@@ -76,7 +76,8 @@
             
             str = request.getParameter("postgis-username");
             if ( str == null ) 
-                request.setAttribute("postgis-username", "postgres");
+                request.setAttribute("postgis-username", "nickvitsas");
+                //request.setAttribute("postgis-username", "postgres");
                 //request.setAttribute("postgis-username", "fagi");
             else
                 request.setAttribute("postgis-username", request.getParameter("postgis-username"));
@@ -648,10 +649,9 @@
         <script type="text/javascript" src="js/codemirror/lib/codemirror.js"></script>
         <script type="text/javascript" src="js/codemirror/mode/sparql/sparql.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" src="js/codemirror/addon/edit/matchbrackets.js"></script>
-        <script type="text/javascript" src="js/mappreview2.js"></script>
+        <script type="text/javascript" src="js/map.js"></script>
         <script src="http://maps.google.com/maps/api/js?v=3&amp;sensor=false"></script>
-        <script type="text/javascript" src="js/fusion2.js"></script>
-        <script type="text/javascript" src="js/autocomplete.js"></script>
+        <script type="text/javascript" src="js/fusion.js"></script>
 
         <script type="text/javascript">
                     $(document).ready(function () {

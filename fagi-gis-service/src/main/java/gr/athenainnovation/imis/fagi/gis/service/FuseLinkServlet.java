@@ -891,7 +891,7 @@ public class FuseLinkServlet extends HttpServlet {
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
-        String[] newPredTokes = name.split("=>");
+        String[] newPredTokes = name.split("Constants.PROPERTY_SEPARATOR");
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
             newPred = newPredTokes[1];
@@ -900,7 +900,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
         newPred = newPred.replaceAll(",","_");
         System.out.println("Long name : "+longName);
-        String[] predicates = longName.split("=>");
+        String[] predicates = longName.split("Constants.PROPERTY_SEPARATOR");
         String leftPre = predicates[0];
         String rightPre = predicates[1];
         leftPre = StringUtils.removeEnd(leftPre, "|");
@@ -1173,7 +1173,7 @@ public class FuseLinkServlet extends HttpServlet {
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
-        String[] newPredTokes = name.split("=>");
+        String[] newPredTokes = name.split("Constants.PROPERTY_SEPARATOR");
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
             newPred = newPredTokes[1];
@@ -1182,7 +1182,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
         newPred = newPred.replaceAll(",","_");
         System.out.println("Long name : "+longName);
-        String[] predicates = longName.split("=>");
+        String[] predicates = longName.split("Constants.PROPERTY_SEPARATOR");
         String leftPre = predicates[0];
         String rightPre = predicates[1];
         leftPre = StringUtils.removeEnd(leftPre, "|");
@@ -1319,7 +1319,7 @@ public class FuseLinkServlet extends HttpServlet {
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
-        String[] newPredTokes = name.split("=>");
+        String[] newPredTokes = name.split("Constants.PROPERTY_SEPARATOR");
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
             newPred = newPredTokes[1];
@@ -1328,7 +1328,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
         newPred = newPred.replaceAll(",","_");
         System.out.println("Long name : "+longName);
-        String[] predicates = longName.split("=>");
+        String[] predicates = longName.split("Constants.PROPERTY_SEPARATOR");
         String leftPre = predicates[0];
         String rightPre = predicates[1];
         leftPre = StringUtils.removeEnd(leftPre, "|");
@@ -1466,7 +1466,7 @@ public class FuseLinkServlet extends HttpServlet {
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
-        String[] newPredTokes = name.split("=>");
+        String[] newPredTokes = name.split("Constants.PROPERTY_SEPARATOR");
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
             newPred = newPredTokes[1];
@@ -1475,7 +1475,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
         newPred = newPred.replaceAll(",","_");
         System.out.println("Long name : "+longName);
-        String[] predicates = longName.split("=>");
+        String[] predicates = longName.split("Constants.PROPERTY_SEPARATOR");
         String leftPre = predicates[0];
         String rightPre = predicates[1];
         leftPre = StringUtils.removeEnd(leftPre, "|");
@@ -1653,7 +1653,7 @@ public class FuseLinkServlet extends HttpServlet {
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
-        String[] newPredTokes = name.split("=>");
+        String[] newPredTokes = name.split("Constants.PROPERTY_SEPARATOR");
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
             newPred = newPredTokes[1];
@@ -1663,7 +1663,7 @@ public class FuseLinkServlet extends HttpServlet {
         newPred = newPred.replaceAll(",","_");
         System.out.println("Long name : "+longName);
         System.out.println("Short name : " + name + newPred );
-        String[] predicates = longName.split("=>");
+        String[] predicates = longName.split("Constants.PROPERTY_SEPARATOR");
         String leftPre = predicates[0];
         String rightPre = predicates[1];
         leftPre = StringUtils.removeEnd(leftPre, "|");
@@ -1831,7 +1831,7 @@ public class FuseLinkServlet extends HttpServlet {
         String longName = selectedFusions[idx].preL;
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
-        String[] newPredTokes = name.split("=>");
+        String[] newPredTokes = name.split("Constants.PROPERTY_SEPARATOR");
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
             newPred = newPredTokes[1];
@@ -1840,7 +1840,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
         newPred = newPred.replaceAll(",","_");
         System.out.println("Long name : "+longName);
-        String[] predicates = longName.split("=>");
+        String[] predicates = longName.split("Constants.PROPERTY_SEPARATOR");
         String leftPre = predicates[0];
         String rightPre = predicates[1];
         leftPre = StringUtils.removeEnd(leftPre, "|");
@@ -1927,7 +1927,7 @@ public class FuseLinkServlet extends HttpServlet {
         
         name = StringUtils.replace(name, "&gt;", ">");
         longName = StringUtils.replace(longName, "&gt;", ">");
-        String[] newPredTokes = name.split("=>");
+        String[] newPredTokes = name.split("Constants.PROPERTY_SEPARATOR");
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
             newPred = newPredTokes[1];
@@ -1936,7 +1936,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
         newPred = newPred.replaceAll(",","_");
         System.out.println("Long name : "+longName);
-        String[] predicates = longName.split("=>");
+        String[] predicates = longName.split("Constants.PROPERTY_SEPARATOR");
         String leftPre = predicates[0];
         String rightPre = predicates[1];
         leftPre = StringUtils.removeEnd(leftPre, "|");

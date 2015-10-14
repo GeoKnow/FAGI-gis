@@ -4,7 +4,9 @@ package gr.athenainnovation.imis.fagi.gis.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.hp.hpl.jena.query.ARQ;
 import com.hp.hpl.jena.shared.JenaException;
+import com.hp.hpl.jena.sparql.mgt.Explain;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
@@ -72,6 +74,9 @@ public class ConnectionServlet extends HttpServlet {
             // The only time we need a session if one does not exist
             sess = request.getSession(true);
 
+            // Set logging state
+            // Currrently when set to Debug, Jena really litters the output
+            ARQ.setExecutionLogging(Explain.InfoLevel.ALL) ;
             Logger logger = Log.getFAGILogger();
             logger.setLevel(Level.DEBUG);
             

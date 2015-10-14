@@ -859,14 +859,14 @@ public final class VirtuosoImporter {
                     countA++;
                     countB = 0;
                     for (IndexWord iwB : scheB.indexes) {
-                        System.out.println("Scoring : " + iwA.getLemma() + " and " + iwB.getLemma());
+                        //System.out.println("Scoring : " + iwA.getLemma() + " and " + iwB.getLemma());
                         countB++;
                         float tmpScore = calculateAsymmetricRelationshipOperation(iwA, iwB, m);
                         score += tmpScore;
                         //System.out.println("Score : "+tmpScore);                       
                     }
                 }
-                System.out.println();
+                //System.out.println();
                 float jaro_dist = 0;
                 float jaro_dist_norm;
                 int jaroCount = 0;
@@ -1058,7 +1058,7 @@ public final class VirtuosoImporter {
             for (String a : arrl) {
                 m.addWord(a);
                 if (recoveredWords.contains(a.toLowerCase())) {
-                    System.out.println("Cancelling " + a);
+                    //System.out.println("Cancelling " + a);
                     continue;
                 }
 
@@ -1089,7 +1089,7 @@ public final class VirtuosoImporter {
                 IndexWord best = null;
                 int bestInt = 0;
                 for (IndexWord idx : indices) {
-                    System.out.println("POS label " + idx.getPOS().getLabel());
+                    //System.out.println("POS label " + idx.getPOS().getLabel());
                     if (idx.getPOS().getLabel().equals("noun")) {
                         best = idx;
                         bestInt = 3;
@@ -1255,8 +1255,8 @@ public final class VirtuosoImporter {
                 query.append("} }\n"
                         + "}");
 
-                System.out.println("DEPTH: " + i);
-                System.out.println("QUERY FOR PREDICATES : " + query.toString());
+                //System.out.println("DEPTH: " + i);
+                //System.out.println("QUERY FOR PREDICATES : " + query.toString());
                 
                 try (PreparedStatement fetchProperties = virt_conn.prepareStatement(query.toString());
                         ResultSet propertiesRS = fetchProperties.executeQuery()) {
@@ -2038,7 +2038,7 @@ public final class VirtuosoImporter {
         //BulkInsertLinksBatch(lst, nextIndex);
         success = SPARQLInsertLinksBatch(lst, nextIndex);
 
-        System.out.println("THE BOOL OUT IS " + success);
+        //System.out.println("THE BOOL OUT IS " + success);
 
         return success;
     }

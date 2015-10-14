@@ -88,7 +88,8 @@ public class SchemaMatchServlet extends HttpServlet {
         VirtGraph               vSet = null;
         HttpSession             sess;
         ObjectMapper            mapper = new ObjectMapper();
-
+        boolean                 success = true;
+        
         try {
             
             try {
@@ -157,12 +158,29 @@ public class SchemaMatchServlet extends HttpServlet {
             }
             
             virt_conn = vSet.getConnection();
-            SPARQLUtilities.createLinksGraph(lst, virt_conn, grConf, "");
+            success = SPARQLUtilities.createLinksGraph(lst, virt_conn, grConf, "");
+            
+            if ( !success ) {
+                LOG.trace("Failed to create Links Graph for matching");
+                LOG.trace("Failed to create Links Graph for matching");
+
+                matches.getResult().setMessage("Failed to perform property matching!");
+                matches.getResult().setStatusCode(-1);
+
+                out.println(mapper.writeValueAsString(matches));
+
+                out.close();
+
+                return;
+            }
             
             VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
             SchemaMatchState sms = virtImp.scanProperties(3, null);
             
             if ( sms == null ) {
+                LOG.trace("Failed to create SchemaMatchState");
+                LOG.trace("Failed to create SchemaMatchState");
+                
                 matches.getResult().setMessage("Failed to perform property matching!");
                 matches.getResult().setStatusCode(-1);
                 
@@ -192,6 +210,8 @@ public class SchemaMatchServlet extends HttpServlet {
         } catch (JsonProcessingException ex) {
             LOG.trace("JsonProcessingException thrown");
             LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
+            
+            throw new ServletException("JsonProcessingException thrown by Tomcat");
         } catch ( java.lang.OutOfMemoryError oome) {
             LOG.trace("OutOfMemoryError thrown");
             LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
@@ -207,98 +227,6 @@ public class SchemaMatchServlet extends HttpServlet {
         }
     }
 
-    /*
-    public void createLinksGraph(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) throws SQLException, IOException {
-        final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getLinksGraph()+  ">";
-        final String createGraph = "sparql CREATE GRAPH <"+ grConf.getLinksGraph()+ ">";
-        //final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
-
-        PreparedStatement dropStmt;
-        long starttime, endtime;
-        dropStmt = virt_conn.prepareStatement(dropGraph);
-        dropStmt.execute();
-
-        dropStmt.close();
-        
-        PreparedStatement createStmt;
-        createStmt = virt_conn.prepareStatement(createGraph);
-        createStmt.execute();
-        
-        createStmt.close();
-        
-        //bulkInsertLinks(lst, virt_conn, bulkInsertDir);
-        SPARQLInsertLink(lst, grConf);
-    }
-
-    private void SPARQLInsertLink(List<Link> l, GraphConfig grConf) {
-        boolean updating = true;
-        int addIdx = 0;
-        int cSize = 1;
-        int sizeUp = 1;
-        while (updating) {
-            try {
-                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
-                //queryStr.append("WITH <"+fusedGraph+"> ");
-                queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ");
-                int top = 0;
-                if (cSize >= l.size()) {
-                    top = l.size();
-                } else {
-                    top = cSize;
-                }
-                for (int i = addIdx; i < top; i++) {
-                    final String subject = l.get(i).getNodeA();
-                    final String subjectB = l.get(i).getNodeB();
-                    queryStr.appendIri(subject);
-                    queryStr.append(" ");
-                    queryStr.appendIri(Constants.SAME_AS);
-                    queryStr.append(" ");
-                    queryStr.appendIri(subjectB);
-                    queryStr.append(" ");
-                    queryStr.append(".");
-                    queryStr.append(" ");
-                }
-                queryStr.append("} }");
-                //System.out.println("Print "+queryStr.toString());
-
-                UpdateRequest q = queryStr.asUpdate();
-                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
-                insertRemoteB.execute();
-                //System.out.println("Add at "+addIdx+" Size "+cSize);
-                addIdx += (cSize - addIdx);
-                sizeUp *= 2;
-                cSize += sizeUp;
-                if (cSize >= l.size()) {
-                    cSize = l.size();
-                }
-                if (cSize == addIdx) {
-                    updating = false;
-                }
-            } catch (org.apache.jena.atlas.web.HttpException ex) {
-                System.out.println("Failed at " + addIdx + " Size " + cSize);
-                System.out.println("Crazy Stuff");
-                System.out.println(ex.getLocalizedMessage());
-                ex.printStackTrace();
-                ex.printStackTrace(System.out);
-                sizeUp = 1;
-                cSize = addIdx;
-                cSize += sizeUp;
-                if (cSize >= l.size()) {
-                    cSize = l.size();
-                }
-                //System.out.println("Going back at "+addIdx+" Size "+cSize);
-
-                break;
-                //System.out.println("Going back at "+addIdx+" Size "+cSize);
-            } catch (Exception ex) {
-                System.out.println(ex.getLocalizedMessage());
-                break;
-            }
-        }
-    }
-    */
     
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**

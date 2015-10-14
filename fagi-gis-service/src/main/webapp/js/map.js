@@ -11,7 +11,30 @@ var wkt;
 var box;
 var transform;
 
-//Utilities class
+//Utility classes
+FAGI.NavigationUI = {
+    
+};
+
+FAGI.MapUI = {
+    
+};
+
+FAGI.MapUI.Styles = {
+    
+};
+
+FAGI.MapUI.MapControls = {
+    
+};
+
+FAGI.Constants = {
+    
+    PROPERTY_SEPARATOR: '   Constants.PROPERTY_SEPARATOR',
+    
+    MAX_CLUSTERS:           10
+};
+
 FAGI.Utilities = {
     
      getPropertyName: function ( property ) {
@@ -35,6 +58,50 @@ FAGI.Utilities = {
         
         return trunc;
      }
+     
+};
+
+//Utility classes
+FAGI.MapUI.Callbacks = {
+    
+    onClusterSelectionChange: function() {
+        var selectedCluster = $(this).val();
+        if (selectedCluster < 0) {
+            $.each(vectorsLinks.features, function (index, element) {
+                //var assign = assigns.results[element.attributes.a];
+                //element.attributes.cluster = assign.cluster;
+                element.style = null;
+                element.attributes.la.style = null;
+                element.attributes.lb.style = null;
+            });
+        } else if ( selectedCluster == 9999 ) {
+            //alert("Custom Cluster");
+            $.each(vectorsLinks.features, function (index, element) {
+                element.style = {display: 'none'};
+                element.attributes.la.style = {display: 'none'};
+                element.attributes.lb.style = {display: 'none'};
+            });
+            $.each(activeFeatureClusterA, function (index, element) {
+                element.style = null;
+                element.attributes.la.style = null;
+                element.attributes.lb.style = null;
+            });
+        } else {
+            $.each(vectorsLinks.features, function (index, element) {
+                //var assign = assigns.results[element.attributes.a];
+                //element.attributes.cluster = assign.cluster;
+                if (element.attributes.cluster != selectedCluster) {
+                    element.style = {display: 'none'};
+                    element.attributes.la.style = {display: 'none'};
+                    element.attributes.lb.style = {display: 'none'};
+                }
+            });
+        }
+        
+        vectorsA.refresh();
+        vectorsB.refresh();
+        vectorsLinks.refresh();
+    }
      
 };
 
