@@ -4,7 +4,6 @@ var FAGI = new Object();
 
 
 //BBox
-var box;
 var transform;
 
 // Constants in FAGI
@@ -141,7 +140,6 @@ FAGI.MapUI = {
                                 }),
                                 
     resetAllPopus       :       function (e) {
-        FAGI.ActiveState.mselectActive = false;
         
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
@@ -156,6 +154,15 @@ FAGI.MapUI = {
         document.getElementById("popupFindLinkMenu").style.display = 'none';
         
        return true;
+    },
+    
+    resetMultipleSelect   :         function () {
+        FAGI.ActiveState.mselectActive = false;
+    },
+    
+    resetMapControl         :       function() {
+        FAGI.MapUI.resetAllPopus();
+        FAGI.MapUI.resetMultipleSelect();
     },
     
     periodicMapUpdate    :      function () {
@@ -186,8 +193,10 @@ FAGI.PanelsUI = {
         $("#linksPanel").currentlyOpened = false;
 
         $(activePanel).currentlyOpened = false;
-    }
+    },
     
+    lastClickedMenu       :       null
+
 };
 
 FAGI.PanelsUI.Editors = {
@@ -294,7 +303,7 @@ FAGI.MapUI.Styles = {
         fillColor: "${getColor}",
         fillOpacity: "${getOpacity}",
         title: "${getTitle}"
-    }, {context: FAGI.MapUI.Contexts.contextA}),
+    }, {context: FAGI.MapUI.Contexts.contextB}),
 
     styleLinks : new OpenLayers.Style({
         strokeColor: "${getColor}",
@@ -355,11 +364,12 @@ FAGI.MapUI.Controls = {
     dragControlA        :       null,
     dragControlB        :       null,
     selectControl       :       null,
-    multipleSelector      :       null,
-    transformControl      :       null,
-    drawControls          :       null
+    boxControl          :       null,
+    multipleSelector    :       null,
+    transformControl    :       null,
+    drawControls        :       null
 };
-    
+    FAGI.MapUI.Controls
 FAGI.Utilities = {
     
     enableSpinner           :       function () {
@@ -898,7 +908,7 @@ $(document).ready(function () {
 
     inside_panel.addControls([zoom_max_inside]);
    
-    box = new OpenLayers.Control.DrawFeature(FAGI.MapUI.Layers.bboxLayer, OpenLayers.Handler.RegularPolygon, {
+    FAGI.MapUI.Controls.boxControl = new OpenLayers.Control.DrawFeature(FAGI.MapUI.Layers.bboxLayer, OpenLayers.Handler.RegularPolygon, {
         handlerOptions: {
             sides: 4,
             snapAngle: 90,
@@ -907,9 +917,9 @@ $(document).ready(function () {
         }
     });
     
-    box.handler.callbacks.done = endDragBox;
-    FAGI.MapUI.map.addControl(box);
-    //box.activate();
+    FAGI.MapUI.Controls.boxControl.handler.callbacks.done = endDragBox;
+    FAGI.MapUI.map.addControl(FAGI.MapUI.Controls.boxControl);
+    //FAGI.MapUI.Controls.boxControl.activate();
     FAGI.MapUI.map.addLayer(FAGI.MapUI.Layers.bboxLayer);
 
     transformControl = new OpenLayers.Control.TransformFeature(FAGI.MapUI.Layers.vectorsB, {
@@ -1175,7 +1185,7 @@ $(document).ready(function () {
     FAGI.MapUI.map.render('map');
     
     // On map click, close any open popup
-    FAGI.MapUI.map.events.register("click",FAGI.MapUI.map, FAGI.MapUI.resetAllPopus);
+    FAGI.MapUI.map.events.register("click",FAGI.MapUI.map, FAGI.MapUI.resetMapControl);
 });
 
 function newPolygonAdded(a, b) {
@@ -1306,7 +1316,7 @@ function endDragBox(bbox) {
     activeBBox = bounds;
     //setBounds(bounds);
     drawBox(bounds);
-    box.deactivate();
+    FAGI.MapUI.Controls.boxControl.deactivate();
 }
 
 function boxResize(event) {
@@ -1576,18 +1586,18 @@ function linksSPARQLFilter() {
 }
 
 function activateFecthUnlinked() {
-    box.activate();
+    FAGI.MapUI.Controls.boxControl.activate();
 }
 
 function activateMultipleSelect() {
     //FAGI.MapUI.Controls.multipleSelector.activate();
     //setMultipleMapControls();
-    box.activate();
+    FAGI.MapUI.Controls.boxControl.activate();
     //transform.activate();
 }
 
 function animatePanel(strech, opened) {
-    var int = self.setInterval(periodicUpdate, 1);
+    var int = self.setInterval(FAGI.MapUI.periodicMapUpdate, 1);
     //alert(strech);
     if (!opened) {
         $("#map").animate({
@@ -1602,7 +1612,7 @@ function animatePanel(strech, opened) {
         }, {duration: FAGI.Constants.DURATION, queue: false, complete: function () {
                 $("#fg-links-sparql-editor-a").html("");
                 $("#fg-links-sparql-editor-b").html("");
-                if ($(lastClickedMenu).is($("#linksPanel"))) {
+                if ($(FAGI.PanelsUI.lastClickedMenu).is($("#linksPanel"))) {
                     FAGI.PanelsUI.Editors.sparqlEditorA = CodeMirror($("#fg-links-sparql-editor-a").get(0), {
                         value: FAGI.ActiveState.activeQueryA,
                         styleActiveLine: true,
@@ -1621,7 +1631,7 @@ function animatePanel(strech, opened) {
                     });
                     $(".CodeMirror-vscrollbar").css("overflow-y","hidden");
                 }
-                if ($(lastClickedMenu).is($("#fg-fetch-sparql-panel"))) {
+                if ($(FAGI.PanelsUI.lastClickedMenu).is($("#fg-fetch-sparql-panel"))) {
                     var feature = new OpenLayers.Feature.Vector(activeBBox.toGeometry());
                     feature.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
                     var wktRep = FAGI.MapUI.wkt.write(feature);
@@ -1666,17 +1676,15 @@ function animatePanel(strech, opened) {
     }
 }
 
-var dialogOpened = false;
-var lastClickedMenu = null;
 function expandConnectionPanel() {
     FAGI.PanelsUI.hideAllPanels();
-    //alert(lastClickedMenu);
-    //alert($(lastClickedMenu).is($("#connectionPanel")));
-    if ((lastClickedMenu != null) && (!$(lastClickedMenu).is($("#connectionPanel")))) {
-        //alert($(lastClickedMenu));
-        $(lastClickedMenu).data("opened", false);
+    //alert(FAGI.PanelsUI.lastClickedMenu);
+    //alert($(FAGI.PanelsUI.lastClickedMenu).is($("#connectionPanel")));
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#connectionPanel")))) {
+        //alert($(FAGI.PanelsUI.lastClickedMenu));
+        $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
     }
-    lastClickedMenu = $("#connectionPanel");
+    FAGI.PanelsUI.lastClickedMenu = $("#connectionPanel");
 
     $('#dialog').dialog('option', 'title', 'Connection');
     $("#connectionPanel").show();
@@ -1692,11 +1700,11 @@ function expandConnectionPanel() {
 
 function expandMatchingPanel() {
     FAGI.PanelsUI.hideAllPanels();
-    if ((lastClickedMenu != null) && (!$(lastClickedMenu).is($("#matchingPanel")))) {
-        //alert($(lastClickedMenu));
-        $(lastClickedMenu).data("opened", false);
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#matchingPanel")))) {
+        //alert($(FAGI.PanelsUI.lastClickedMenu));
+        $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
     }
-    lastClickedMenu = $("#matchingPanel");
+    FAGI.PanelsUI.lastClickedMenu = $("#matchingPanel");
     $('#dialog').dialog('option', 'title', 'Property Matching');
     $("#matchingPanel").show();
     if ($("#matchingPanel").data("opened")) {
@@ -1710,11 +1718,11 @@ function expandMatchingPanel() {
 
 function expandPreviewPanel() {
     FAGI.PanelsUI.hideAllPanels();
-    if ((lastClickedMenu != null) && (!$(lastClickedMenu).is($("#previewPanel")))) {
-        //alert($(lastClickedMenu));
-        $(lastClickedMenu).data("opened", false);
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#previewPanel")))) {
+        //alert($(FAGI.PanelsUI.lastClickedMenu));
+        $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
     }
-    lastClickedMenu = $("#previewPanel");
+    FAGI.PanelsUI.lastClickedMenu = $("#previewPanel");
     //alert('here');
     $('#dialog').dialog('option', 'title', 'Preview');
     $("#previewPanel").show();
@@ -1734,11 +1742,11 @@ function expandSPARQLFetchPanel() {
     document.getElementById("popupBBoxMenu").style.opacity = 0.0;
     document.getElementById("popupBBoxMenu").style.display = 'none'; 
 
-    if ((lastClickedMenu != null) && (!$(lastClickedMenu).is($("#fg-fetch-sparql-panel")))) {
-        //alert($(lastClickedMenu));
-        $(lastClickedMenu).data("opened", false);
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fg-fetch-sparql-panel")))) {
+        //alert($(FAGI.PanelsUI.lastClickedMenu));
+        $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
     }
-    lastClickedMenu = $("#fg-fetch-sparql-panel");
+    FAGI.PanelsUI.lastClickedMenu = $("#fg-fetch-sparql-panel");
     //alert('here');
     $('#dialog').dialog('option', 'title', 'SPARQL Fetch');
     $("#fg-fetch-sparql-panel").show();
@@ -1754,11 +1762,11 @@ function expandSPARQLFetchPanel() {
 
 function expandClusteringPanel() {
     FAGI.PanelsUI.hideAllPanels();
-    if ((lastClickedMenu != null) && (!$(lastClickedMenu).is($("#clusteringPanel")))) {
-        //alert($(lastClickedMenu));
-        $(lastClickedMenu).data("opened", false);
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#clusteringPanel")))) {
+        //alert($(FAGI.PanelsUI.lastClickedMenu));
+        $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
     }
-    lastClickedMenu = $("#clusteringPanel");
+    FAGI.PanelsUI.lastClickedMenu = $("#clusteringPanel");
     //alert('here');
     $('#dialog').dialog('option', 'title', 'Clustering');
     $("#clusteringPanel").show();
@@ -1774,11 +1782,11 @@ function expandClusteringPanel() {
 
 function expandDatasetPanel() {
     FAGI.PanelsUI.hideAllPanels();
-    if ((lastClickedMenu != null) && (!$(lastClickedMenu).is($("#datasetPanel")))) {
-        //alert($(lastClickedMenu));
-        $(lastClickedMenu).data("opened", false);
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#datasetPanel")))) {
+        //alert($(FAGI.PanelsUI.lastClickedMenu));
+        $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
     }
-    lastClickedMenu = $("#datasetPanel");
+    FAGI.PanelsUI.lastClickedMenu = $("#datasetPanel");
     $('#dialog').dialog('option', 'title', 'Dataset');
     $("#datasetPanel").show();
     //alert($("#datasetPanel").data("opened"));
@@ -1793,11 +1801,11 @@ function expandDatasetPanel() {
 
 function expandLinksPanel() {
     FAGI.PanelsUI.hideAllPanels();
-    if ((lastClickedMenu != null) && (!$(lastClickedMenu).is($("#linksPanel")))) {
-        //alert($(lastClickedMenu));
-        $(lastClickedMenu).data("opened", false);
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#linksPanel")))) {
+        //alert($(FAGI.PanelsUI.lastClickedMenu));
+        $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
     }
-    lastClickedMenu = $("#linksPanel");
+    FAGI.PanelsUI.lastClickedMenu = $("#linksPanel");
     $('#dialog').dialog('option', 'title', 'Linking');
     $("#linksPanel").show();
     //alert($("#connectionPanel").data("opened"));
@@ -1813,7 +1821,7 @@ function expandLinksPanel() {
 
 function beforeClosePanel() {
     animatePanel(0, true);
-    lastClickedMenu.data("opened", false);
+    FAGI.PanelsUI.lastClickedMenu.data("opened", false);
     
     return false;
 }
