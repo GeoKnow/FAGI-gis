@@ -1007,7 +1007,7 @@ public class FuseLinkServlet extends HttpServlet {
         for (String rightProp : rightPres) {
             String[] mainPattern = rightProp.split(",");
             
-            List<String> patterns = findChains(rightProp, lstB);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lstB);
             
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -1062,7 +1062,7 @@ public class FuseLinkServlet extends HttpServlet {
         for (String leftProp : leftPres) {
             String[] mainPattern = leftProp.split(",");
             
-            List<String> patterns = findChains(leftProp, lstA);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lstA);
             
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -1244,7 +1244,7 @@ public class FuseLinkServlet extends HttpServlet {
             //String[] leftPreTokens = rightProp.split(",");
             String[] mainPattern = leftProp.split(",");
 
-            List<String> patterns = findChains(leftProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lst);
 
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -1390,7 +1390,7 @@ public class FuseLinkServlet extends HttpServlet {
             String[] leftPreTokens = rightProp.split(",");
             String[] mainPattern = rightProp.split(",");
 
-            List<String> patterns = findChains(rightProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lst);
 
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -1539,7 +1539,7 @@ public class FuseLinkServlet extends HttpServlet {
             //String[] rightPreTokens = rightPre.split(",");
             String[] mainPattern = leftProp.split(",");
             
-            List<String> patterns = findChains(leftProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lst);
             
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -1727,7 +1727,7 @@ public class FuseLinkServlet extends HttpServlet {
             //String[] rightPreTokens = rightPre.split(",");
             String[] mainPattern = rightProp.split(",");
             
-            List<String> patterns = findChains(rightProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lst);
             
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -1860,7 +1860,7 @@ public class FuseLinkServlet extends HttpServlet {
         for (String leftProp : leftPres) {
             String[] mainPattern = leftProp.split(",");
                 
-            List<String> patterns = findChains(leftProp, lst);  
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lst);  
             
             for (String pattern : patterns) {
                 String[] leftPreTokens = pattern.split(",");
@@ -1955,7 +1955,7 @@ public class FuseLinkServlet extends HttpServlet {
         for (String rightProp : rightPres) {
             String[] mainPattern = rightProp.split(",");
                 
-            List<String> patterns = findChains(rightProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lst);
             // Loop over every property chain that contains
             // a prefix of the selected properties
             for (String pattern : patterns) {
@@ -2016,18 +2016,6 @@ public class FuseLinkServlet extends HttpServlet {
         
         dbConn.commit();
         
-    }
-    
-    private List<String> findChains(String p, List<String> lst) {
-        List<String> ret = new ArrayList<>();
-        
-        for ( String s : lst) {
-            //if ( ( s.compareTo(p) != 0 ) && s.startsWith(p) ) 
-            if ( s.startsWith(p) ) 
-                ret.add(s);
-        }
-        
-        return ret;
     }
     
     private String formInsertQuery(String tGraph, String subject, String fusedGeometry) { 

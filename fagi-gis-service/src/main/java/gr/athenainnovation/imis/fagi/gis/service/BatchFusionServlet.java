@@ -982,7 +982,7 @@ public class BatchFusionServlet extends HttpServlet {
             //String[] leftPreTokens = rightProp.split(",");
             String[] mainPattern = leftProp.split(",");
 
-            List<String> patterns = findChains(leftProp, lstA);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lstA);
 
             System.out.println("Patterns " + patterns);
 
@@ -1089,7 +1089,7 @@ public class BatchFusionServlet extends HttpServlet {
             //String[] leftPreTokens = rightProp.split(",");
             String[] mainPattern = rightProp.split(",");
 
-            List<String> patterns = findChains(rightProp, lstB);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lstB);
 
             System.out.println("Patterns " + patterns);
 
@@ -1439,7 +1439,7 @@ public class BatchFusionServlet extends HttpServlet {
             //String[] leftPreTokens = rightProp.split(",");
             String[] mainPattern = leftProp.split(",");
 
-            List<String> patterns = findChains(leftProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lst);
 
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -1596,7 +1596,7 @@ public class BatchFusionServlet extends HttpServlet {
             String[] leftPreTokens = rightProp.split(",");
             String[] mainPattern = rightProp.split(",");
 
-            List<String> patterns = findChains(rightProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lst);
 
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -1803,7 +1803,7 @@ public class BatchFusionServlet extends HttpServlet {
             //String[] rightPreTokens = rightPre.split(",");
             String[] mainPattern = rightProp.split(",");
             
-            List<String> patterns = findChains(rightProp, lstB);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lstB);
             
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -1873,7 +1873,7 @@ public class BatchFusionServlet extends HttpServlet {
             //String[] rightPreTokens = rightPre.split(",");
             String[] mainPattern = leftProp.split(",");
             
-            List<String> patterns = findChains(leftProp, lstA);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lstA);
             
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -2058,7 +2058,7 @@ public class BatchFusionServlet extends HttpServlet {
             //String[] rightPreTokens = rightPre.split(",");
             String[] mainPattern = rightProp.split(",");
             
-            List<String> patterns = findChains(rightProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lst);
             
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -2235,7 +2235,7 @@ public class BatchFusionServlet extends HttpServlet {
             //String[] rightPreTokens = rightPre.split(",");
             String[] mainPattern = leftProp.split(",");
             
-            List<String> patterns = findChains(leftProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lst);
             
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -2372,7 +2372,7 @@ public class BatchFusionServlet extends HttpServlet {
         for (String leftProp : leftPres) {
             String[] mainPattern = leftProp.split(",");
                 
-            List<String> patterns = findChains(leftProp, lst);  
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lst);  
             
             for (String pattern : patterns) {
                 String[] leftPreTokens = pattern.split(",");
@@ -2461,7 +2461,7 @@ public class BatchFusionServlet extends HttpServlet {
         for (String rightProp : rightPres) {
             String[] mainPattern = rightProp.split(",");
                 
-            List<String> patterns = findChains(rightProp, lst);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lst);
             
             for (String pattern : patterns) {
                 String[] rightPreTokens = pattern.split(",");
@@ -2511,18 +2511,6 @@ public class BatchFusionServlet extends HttpServlet {
                 vur.exec();
             }
         }
-    }
-    
-    private List<String> findChains(String p, List<String> lst) {
-        List<String> ret = new ArrayList<>();
-        
-        for ( String s : lst) {
-            //if ( ( s.compareTo(p) != 0 ) && s.startsWith(p) ) 
-            if ( s.startsWith(p) ) 
-                ret.add(s);
-        }
-        
-        return ret;
     }
     
     private void offsetGeometriesA(String table, String linkTable, Float offx, Float offy, Connection dbConn) throws SQLException {

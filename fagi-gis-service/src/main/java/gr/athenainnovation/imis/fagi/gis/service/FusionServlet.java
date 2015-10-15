@@ -58,6 +58,8 @@ public class FusionServlet extends HttpServlet {
     private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(FusionServlet.class);
     
     private void analyzeChain(List<String> a, List<String> b, String qa, String qb, SchemaMatchState sms) {
+        
+        // Look for property entries with the same prefix
         for (Map.Entry pairs : sms.foundA.entrySet()) {
             String key = (String)pairs.getKey();
             int firstApp = key.indexOf(qa);
@@ -65,6 +67,7 @@ public class FusionServlet extends HttpServlet {
                 a.add(key);
             }
         }
+        
         for (Map.Entry pairs : sms.foundB.entrySet()) {
             String key = (String)pairs.getKey();
             int firstApp = key.indexOf(qb);
@@ -430,7 +433,7 @@ public class FusionServlet extends HttpServlet {
                     ResultSet rs = stmt.executeQuery()) {
                 
                 while (rs.next()) {
-                    linked = rs.getString(1);
+                    linked = rs.getString("?o");
                 }
                 
             } catch (SQLException ex) {
@@ -451,7 +454,7 @@ public class FusionServlet extends HttpServlet {
             sess.setAttribute("nodeA", subject);
             sess.setAttribute("nodeB", linked);
                
-            String getClassA = "sparql SELECT ?owlClass"
+            String getClassA = "SPARQL SELECT ?owlClass"
                     + "  WHERE {GRAPH <" + grConf.getAllLinksGraph() + ">"
                     + " { <" + subject + "> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n"
                     + " GRAPH <" + grConf.getMetadataGraphA() + "> {<" + subject + "> <" + Constants.OWL_CLASS_PROPERTY + "> ?owlClass } }";
@@ -466,7 +469,7 @@ public class FusionServlet extends HttpServlet {
                     ResultSet rs = stmt.executeQuery()) {
                 
                 while (rs.next()) {
-                    ret.getClassesA().add(rs.getString(1));
+                    ret.getClassesA().add(rs.getString("?owlClass"));
                 }
                 
             } catch (SQLException ex) {
@@ -488,7 +491,7 @@ public class FusionServlet extends HttpServlet {
                     ResultSet rs = stmt.executeQuery()) {
                 
                 while (rs.next()) {
-                    ret.getClassesB().add(rs.getString(1));
+                    ret.getClassesB().add(rs.getString("?owlClass"));
                 }
                 
             } catch (SQLException ex) {

@@ -20,6 +20,36 @@ function init() {
     $('#popupFindLinkMenu').hide();
     $('#fg-info-popup').hide();
     
+    $('input').addClass("ui-widget ui-widget-content ui-corner-all");
+    
+    $( "input[type=submit], button" )
+      .button()
+      .click(function( event ) {
+        event.preventDefault();
+      });
+    // Allow authentication for Remote Endpoints
+    $('#fg-auth-dropdown-a').accordion({
+      collapsible: true,
+      heightStyle: "content",
+      active: false
+      
+    });
+    $('#fg-auth-dropdown-b').accordion({
+      collapsible: true,
+      heightStyle: "content",
+      active: false
+    });
+    $('#fg-auth-dropdown-l').accordion({
+      collapsible: true,
+      heightStyle: "content",
+      active: false
+    });
+    $('#fg-auth-dropdown-t').accordion({
+      collapsible: true,
+      heightStyle: "content",
+      active: false
+    });
+    
     $(".buttonset").buttonset();
     
     $('#connButton').click(setConnection);
@@ -52,6 +82,9 @@ function init() {
     $('#fg-links-queries-submit').click(linksSPARQLFilter);
     $('#fg-fetch-queries-submit').click(fetchSPARQLContained);
     
+    // Reload all links
+    $('#fg-links-unfilter-button').click(FAGI.PanelsUI.Callbacks.onUnfilterButtonPressed);
+    
     // Clustering
     $('#clusterButton').click(performClustering);
     $("#clusterSelector").change(FAGI.MapUI.Callbacks.onClusterSelectionChange); 
@@ -62,20 +95,20 @@ function init() {
     $('#fetchBBoxFindButton').click(fetchContainedAndLink);
     
     $('#moveButton').click(function () {FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
-        dragControlA.activate();
-        dragControlB.activate();
+        FAGI.MapUI.Controls.dragControlA.activate();
+        FAGI.MapUI.Controls.dragControlB.activate();
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
     });
     $('#scaleButton').click(function () {FAGI.ActiveState.transType = FAGI.Constants.SCALE_TRANS;
-        dragControlA.activate();
-        dragControlB.activate();
+        FAGI.MapUI.Controls.dragControlA.activate();
+        FAGI.MapUI.Controls.dragControlB.activate();
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
     });
     $('#rotateButton').click(function () {FAGI.ActiveState.transType = FAGI.Constants.ROTATE_TRANS;
-        dragControlA.activate();
-        dragControlB.activate();
+        FAGI.MapUI.Controls.dragControlA.activate();
+        FAGI.MapUI.Controls.dragControlB.activate();
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
     });
@@ -138,8 +171,6 @@ function init() {
     
     $('#valButton').click( function () {
         var feat = $(this).prop("link");
-        //console.log(feat.attributes.la.attributes.a);
-        //console.log(feat.attributes.lb.attributes.a);
         document.getElementById("popupValidateMenu").style.opacity = 0;
         document.getElementById("popupValidateMenu").style.display = 'none';
         FAGI.Utilities.enableSpinner();
@@ -190,134 +221,10 @@ function init() {
         });
     });
     
-    $('#createLinkButton').click(function () {
-        
-        if ( $('#createLinkButton').html() === "Cancel Link" ) {
-            FAGI.MapUI.Layers.vectorsLinksTemp.destroyFeatures();
-            FAGI.ActiveState.lastPo = null;
-            FAGI.ActiveState.nowPo = null;
-            
-            document.getElementById("popupTransformMenu").style.opacity = 0;
-            document.getElementById("popupTransformMenu").style.display = 'none';
-            
-            prevActiveFeature = null;
-            activeFeature = null;
-                    
-            return;
-        }
-        
-        if ( FAGI.ActiveState.lastPo == null ) {
-            document.getElementById("popupTransformMenu").style.opacity = 0;
-            document.getElementById("popupTransformMenu").style.display = 'none';
-            FAGI.ActiveState.lastPo = activeFeature.geometry.getCentroid(true);
-            FAGI.ActiveState.lastPo.node = activeFeature;
-        } else {
-            FAGI.ActiveState.nowPo = activeFeature.geometry.getCentroid(true);
-            FAGI.ActiveState.nowPo.node = activeFeature;
-            createNewLink(FAGI.ActiveState.nowPo.node, FAGI.ActiveState.lastPo.node);
-        }
-    });
-    
-    $("#popupFindLinkButton").click(function () {
-        //alert($("#radiusSpinner").spinner("value"));
-        for ( var i = 0; i < activeFeature.attributes.links.length; i++ ) 
-            if ( !activeFeature.attributes.links[i].validated )
-                return;
-        
-        activeFeature.geometry.transform(FAGI.MapUI.map.getProjectionObject(), WGS84);
-        var requestEntity = new Object();
-        requestEntity.sub = activeFeature.attributes.a;
-        requestEntity.ds = 'A';
-        if ( activeFeature.layer == FAGI.MapUI.Layers.vectorsB )
-            requestEntity.ds = 'B';
-        
-        document.getElementById("popupFindLinkMenu").style.opacity = 0;
-        document.getElementById("popupFindLinkMenu").style.display = 'none';
-        
-        requestEntity.geom = FAGI.MapUI.FAGI.MapUI.wkt.extractGeometry ( activeFeature.geometry.getCentroid(true) );
-        //alert(JSON.stringify(requestEntity));
-        activeFeature.geometry.transform(WGS84, FAGI.MapUI.map.getProjectionObject());
-        FAGI.Utilities.enableSpinner();
-        $.ajax({
-            // request type
-            type: "POST",
-            // the URL for the request
-            url: "FindLinkServlet",
-            // the data to send (will be converted to a query string)
-            data: {entity: JSON.stringify(requestEntity), radius: $("#radiusSpinner").spinner("value")},
-            // the type of data we expect back
-            dataType: "json",
-            // code to run if the request succeeds;
-            // the response is passed to the function
-            success: function (responseJson) {
-                //alert(JSON.stringify(responseJson));
-                createSingleUnvalidatedLinks(activeFeature, responseJson);
-                FAGI.Utilities.disableSpinner();            },
-            // code to run if the request fails; the raw request and
-            // status codes are passed to the function
-            error: function (xhr, status, errorThrown) {
-                FAGI.Utilities.disableSpinner();
-                alert("Sorry, there was a problem!");
-                console.log("Error: " + errorThrown);
-                console.log("Status: " + status);
-                console.dir(xhr);
-            },
-            // code to run regardless of success or failure
-            complete: function (xhr, status) {
-                //$('#connLabel').text("connected");
-            }
-        });
-    });
-    
-    $('#findLinkButton').click(function () {        
-        document.getElementById("popupTransformMenu").style.opacity = 0;
-        document.getElementById("popupTransformMenu").style.display = 'none';
-
-        document.getElementById("popupFindLinkMenu").style.opacity = 0.7;
-        document.getElementById("popupFindLinkMenu").style.display = 'inline';
-        document.getElementById("popupFindLinkMenu").style.top = mouse.y;
-        document.getElementById("popupFindLinkMenu").style.left = mouse.x; 
-    
-        /*
-        activeFeature.geometry.transform(FAGI.MapUI.map.getProjectionObject(), WGS84);
-        var requestEntity = new Object();
-        requestEntity.sub = activeFeature.attributes.a;
-        requestEntity.ds = 'A';
-        if ( activeFeature.layer == FAGI.MapUI.Layers.vectorsB )
-            requestEntity.ds = 'B';
-        
-        requestEntity.geom = FAGI.MapUI.wkt.extractGeometry ( activeFeature.geometry.getCentroid(true) );
-        //alert(JSON.stringify(requestEntity));
-        activeFeature.geometry.transform(WGS84, FAGI.MapUI.map.getProjectionObject());
-        $.ajax({
-            // request type
-            type: "POST",
-            // the URL for the request
-            url: "FindLinkServlet",
-            // the data to send (will be converted to a query string)
-            data: {entity: JSON.stringify(requestEntity)},
-            // the type of data we expect back
-            dataType: "json",
-            // code to run if the request succeeds;
-            // the response is passed to the function
-            success: function (responseJson) {
-                alert(responseJson);
-            },
-            // code to run if the request fails; the raw request and
-            // status codes are passed to the function
-            error: function (xhr, status, errorThrown) {
-                alert("Sorry, there was a problem!");
-                console.log("Error: " + errorThrown);
-                console.log("Status: " + status);
-                console.dir(xhr);
-            },
-            // code to run regardless of success or failure
-            complete: function (xhr, status) {
-                //$('#connLabel').text("connected");
-            }
-        });
-         */
-    });
+    // Set Callbacks for Link Creation
+    $('#createLinkButton').click(FAGI.MapUI.Callbacks.Linking.onCreateLinkButtonPressed);
+    $("#popupFindLinkButton").click(FAGI.MapUI.Callbacks.Linking.onFindLinkPopupButtonPressed);
+    $('#findLinkButton').click(FAGI.MapUI.Callbacks.Linking.onFindLinkButtonPressed);
     
     $('.dropdown').css("z-index", "700000");
 
@@ -1002,7 +909,7 @@ function submitLinks(batchFusion) {
 
     FAGI.Utilities.enableSpinner();
     $("#matchingMenu").trigger('click');
-    if (!linksPreviewed) {
+    if (!FAGI.ActiveState.linksPreviewed) {
         $.ajax({
             // request type
             type: "POST",
@@ -1016,11 +923,11 @@ function submitLinks(batchFusion) {
             // the response is passed to the function
             success: function (responseText) {
                 //$('#connLabel').text(responseText);
-                linksPreviewed = true;
+                FAGI.ActiveState.linksPreviewed = true;
                 if (responseText === "Connection parameters not set") {
                     $('#dataLabel').text(responseText);
                 } else {
-                    //alert('add');
+                    alert(responseText);
                     //addMapData(responseText);
                     if (batchFusion === true) {
                         addMapData(responseText);
@@ -1224,7 +1131,7 @@ function submitLinks(batchFusion) {
 function createLinkCluster(cluster) {
     var ret = new Array();
     if (cluster == 9999) {
-        $.each(activeFeatureClusterA, function (index, element) {
+        $.each(FAGI.ActiveState.activeFeatureClusterA, function (index, element) {
             var clusterLink = new Object();
             clusterLink.nodeA = element.attributes.la.attributes.a;
             clusterLink.nodeB = element.attributes.lb.attributes.a;
@@ -1255,7 +1162,7 @@ function batchFusionPreview(geomsJSON) {
             //console.log("Got " + geom.nb + " with geom " + geom.geom);
         });
     } else if ( cluster == 9999 ) {
-        $.each(activeFeatureClusterA, function (index, element) {
+        $.each(FAGI.ActiveState.activeFeatureClusterA, function (index, element) {
             toDelFeatures[toDelFeatures.length] = element;
             var geom = geomsJSON.fusedGeoms[element.attributes.a];
             addGeom(element, geom.geom);
@@ -2331,22 +2238,6 @@ function filterLinksA( )
         success: function (responseText) {
             var list = document.getElementById("linksList");
             list.innerHTML = responseText;
-            /*//$('#connLabel').text(responseText);
-             var prev = 0;
-             document.getElementById("linksList").innerHTML = "<li></li>";
-             for ( var i = 0; i < responseText.length; i++ )
-             {
-             if(responseText.charAt(i) == ',') {
-             var link = responseText.substring(prev, i);
-             var node=document.createElement("li");
-             var text = '<div class=\"checkboxes\"><label><input type="checkbox">'+link+'<label>';
-             //alert(text);
-             node.innerHTML = text;
-             document.getElementById("linksList").appendChild(node);
-             
-             prev = i + 1;
-             }
-             }*/
         },
         // code to run if the request fails; the raw request and
         // status codes are passed to the function

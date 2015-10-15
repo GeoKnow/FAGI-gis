@@ -18,6 +18,11 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONBArea;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.json.JSONUnlinkedEntities;
+import gr.athenainnovation.imis.fusion.gis.json.JSONUnlinkedEntity;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -33,6 +38,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import org.apache.log4j.Logger;
 
 /**
  *
@@ -40,117 +46,16 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
  */
 @WebServlet(name = "FetchUnlinkedServlet", urlPatterns = {"/FetchUnlinkedServlet"})
 public class FetchUnlinkedServlet extends HttpServlet {
-    //Text
+
+    private static final Logger LOG = Log.getClassFAGILogger(FetchUnlinkedServlet.class);    
+    
     private static final String strPolygonPattern = "POLYGON\\(\\((.*?)\\)\\)";
     private static final String strTriplePattern = "\\{([^F]*)";
+    
     private static final Pattern patternPolygon = Pattern.compile( strPolygonPattern );
     private static final Pattern patternTriples = Pattern.compile( strTriplePattern );
     private static final Pattern patternInt = Pattern.compile( "^(\\d+)$" );
-    
-    private class JSONUnlinkedEntity {
-        String geom;
-        String sub;
-
-        public JSONUnlinkedEntity(String geom, String subs) {
-            this.geom = geom;
-            this.sub = subs;
-        }
-
-        public String getGeom() {
-            return geom;
-        }
-
-        public void setGeom(String geom) {
-            this.geom = geom;
-        }
-
-        public String getSub() {
-            return sub;
-        }
-
-        public void setSub(String sub) {
-            this.sub = sub;
-        }
         
-    }
-    
-    private class JSONUnlinkedEntities {
-        List<JSONUnlinkedEntity> entitiesA;
-        List<JSONUnlinkedEntity> entitiesB;
-
-        public JSONUnlinkedEntities() {
-            this.entitiesA = new ArrayList<>();
-            this.entitiesB = new ArrayList<>();
-        }
-
-        public JSONUnlinkedEntities(List<JSONUnlinkedEntity> entitiesA, List<JSONUnlinkedEntity> entitiesB) {
-            this.entitiesA = entitiesA;
-            this.entitiesB = entitiesB;
-        }
-
-        public List<JSONUnlinkedEntity> getEntitiesA() {
-            return entitiesA;
-        }
-
-        public void setEntitiesA(List<JSONUnlinkedEntity> entitiesA) {
-            this.entitiesA = entitiesA;
-        }
-
-        public List<JSONUnlinkedEntity> getEntitiesB() {
-            return entitiesB;
-        }
-
-        public void setEntitiesB(List<JSONUnlinkedEntity> entitiesB) {
-            this.entitiesB = entitiesB;
-        }
-        
-    }
-    
-    private static class JSONBArea {
-        String barea;
-        double left, right, bottom, top;
-        
-        public String getBarea() {
-            return barea;
-        }
-
-        public void setBarea(String barea) {
-            this.barea = barea;
-        }
-
-        public double getLeft() {
-            return left;
-        }
-
-        public void setLeft(double left) {
-            this.left = left;
-        }
-
-        public double getRight() {
-            return right;
-        }
-
-        public void setRight(double right) {
-            this.right = right;
-        }
-
-        public double getBottom() {
-            return bottom;
-        }
-
-        public void setBottom(double bottom) {
-            this.bottom = bottom;
-        }
-
-        public double getTop() {
-            return top;
-        }
-
-        public void setTop(double top) {
-            this.top = top;
-        }
-        
-    }
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -161,50 +66,66 @@ public class FetchUnlinkedServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        long startTime, endtime;
-        HttpSession sess;
-        GraphConfig grConf;
-        DBConfig dbConf;
-        JSONUnlinkedEntities ret;    
+            throws ServletException {
         
+        // [er sesssion state
+        HttpSession                 sess;
+        GraphConfig                 grConf;
+        DBConfig                    dbConf;
+        JSONRequestResult           res;
+        JSONUnlinkedEntities        ret;    
+        JSONBArea                   BBox;
+        ObjectMapper                mapper = new ObjectMapper();
+        PrintWriter                 out = null;
+                
         response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
+        
+        try {
+            out = response.getWriter();
             
-            // Per request state
+            ret = new JSONUnlinkedEntities();
+            res = new JSONRequestResult();
+            ret.setResult(res);
+            
             sess = request.getSession(false);
             
             if (sess == null ) {
-                out.print("{}");
+                LOG.trace("No active session found");
+                LOG.debug("No active session found");
+                res.setStatusCode(-1);
+                res.setMessage("Invalid session");
+
+                out.print(mapper.writeValueAsString(ret));
                 
                 return;
             }
             
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
-            ret = new JSONUnlinkedEntities();
-            JSONBArea BBox;
             
             /* TODO output your page here. You may use following sample code. */
-            ObjectMapper mapper = new ObjectMapper();
             String bboxJSON = request.getParameter("bboxJSON");
             String queryA = request.getParameter("queryA");
             String queryB = request.getParameter("queryB");
             
-            
             if ( bboxJSON == null || queryA == null || queryB == null ) {
-                out.println("{\"error\":\"Invalid parameters for BBox Fetch\"}");
+                LOG.trace("Invalid Session parameters");
+                LOG.debug("Invalid Session parameters");
+                res.setStatusCode(-1);
+                res.setMessage("Invalid session");
+
+                out.print(mapper.writeValueAsString(ret));
                 
                 return;
             }
             
             if ( !queryA.isEmpty() ) {
                 queryA = normalizeQuery(queryA);
-                customFetchGeoms(queryA, ret.entitiesA, grConf.getGraphA(), grConf.getEndpointA(), sess );
+                customFetchGeoms(queryA, ret.getEntitiesA(), grConf.getGraphA(), grConf.getEndpointA(), sess );
             }
             if ( !queryB.isEmpty() ) {
                 queryB = normalizeQuery(queryB);
-                customFetchGeoms(queryB, ret.entitiesB, grConf.getGraphB(), grConf.getEndpointB(), sess );
+                customFetchGeoms(queryB, ret.getEntitiesB(), grConf.getGraphB(), grConf.getEndpointB(), sess );
                 
                 out.print(mapper.writeValueAsString(ret));
                 
@@ -240,6 +161,8 @@ public class FetchUnlinkedServlet extends HttpServlet {
             
             //System.out.println("Ret JSON "+mapper.writeValueAsString(ret));
             out.print(mapper.writeValueAsString(ret));
+        } catch ( IOException ex) {
+            
         }
     }
 
@@ -419,7 +342,7 @@ public class FetchUnlinkedServlet extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException {
         processRequest(request, response);
     }
 
@@ -433,7 +356,7 @@ public class FetchUnlinkedServlet extends HttpServlet {
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException {
         processRequest(request, response);
     }
 

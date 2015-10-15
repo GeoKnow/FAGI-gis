@@ -27,6 +27,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import org.apache.jena.atlas.web.auth.HttpAuthenticator;
+import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.log4j.Appender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -103,9 +105,7 @@ public class ConnectionServlet extends HttpServlet {
             LOG.info("First Try");
             LOG.trace("First Try");
             response.setContentType("text/html;charset=UTF-8");
-        //System.out.println(Paths.get("").toAbsolutePath().toString());
-
-            //System.out.println(System.getProperty("user.dir"));   
+            
             st.setDbConf(dbConf);
             String relativeWebPath = "/FAGI-gis-WebInterface/lib/stopWords.ser";
             String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
@@ -118,6 +118,8 @@ public class ConnectionServlet extends HttpServlet {
             dbConf.setPassword(request.getParameter("v_pass"));
             dbConf.setDbURL(request.getParameter("v_url"));
 
+            HttpAuthenticator authenticator = new SimpleAuthenticator(dbConf.getUsername(), dbConf.getPassword().toCharArray());
+            sess.setAttribute("fg-sparql-auth", authenticator);
             dbConf.setDbName(request.getParameter("p_data"));
             dbConf.setDbUsername(request.getParameter("p_name"));
             dbConf.setDbPassword(request.getParameter("p_pass"));

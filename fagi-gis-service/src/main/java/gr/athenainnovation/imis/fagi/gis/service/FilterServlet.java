@@ -64,14 +64,32 @@ public class FilterServlet extends HttpServlet {
                 return;
             }
             
+            String set = request.getParameter("dataset");
+            String[] filters = request.getParameterValues("filter[]");
+            
+            // Unfilter button was pressed
+            if (set.isEmpty()) {
+                HashMap<String, String> linksHashed = (HashMap<String, String>) sess.getAttribute("links");
+                int i = 0;
+                for (Map.Entry<String, String> entry : linksHashed.entrySet()) {
+                    String key = entry.getKey();
+                    String val = entry.getValue();
+                    String check = "chk" + i;
+                    out.println("<li><div class=\"checkboxes\">");
+                    out.println("<label for=\"" + check + "\"><input type=\"checkbox\" value=\"\"name=\"" + check + "\" id=\"" + check + "\" />" + key + "<-->" + val + "</label>");
+                    out.println("</div>\n</li>");
+                    i++;
+                }
+                
+                return;
+            }
+            
             filteredLinks = new HashMap<>();
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
             dbConf = (DBConfig)sess.getAttribute("db_conf");
         
             /* TODO output your page here. You may use following sample code. */
             System.out.println(request.getParameterMap());
-            String set = request.getParameter("dataset");
-            String[] filters = request.getParameterValues("filter[]");
             StringBuilder bu = new StringBuilder();
                 
             VirtGraph vSet = null;
@@ -89,48 +107,50 @@ public class FilterServlet extends HttpServlet {
             Connection virt_conn = vSet.getConnection();
             PreparedStatement filtersStmt;
             if (set.equals("A")) {
-            for (String filter : filters ) {  
-                String filterSelectA = "";
-                if (grConf.isDominantA()) {
-                    filterSelectA = "sparql select distinct(?s) ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
-                } else {
-                    filterSelectA = "sparql select distinct(?s) ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
-                }
-                System.out.println(filterSelectA);
-                filtersStmt = virt_conn.prepareStatement(filterSelectA);
-                ResultSet rs = filtersStmt.executeQuery();
-               
-                while (rs.next()) {
-                    String prop = rs.getString(1);
-                    String prop2 = rs.getString(2);
+                for (String filter : filters) {
+                    String filterSelectA = "";
+                    if (grConf.isDominantA()) {
+                        filterSelectA = "sparql select distinct(?s) ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                    } else {
+                        filterSelectA = "sparql select distinct(?s) ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                    }
+                    System.out.println(filterSelectA);
+                    filtersStmt = virt_conn.prepareStatement(filterSelectA);
+                    ResultSet rs = filtersStmt.executeQuery();
+
+                    while (rs.next()) {
+                        String prop = rs.getString(1);
+                        String prop2 = rs.getString(2);
                     //out.println(prop+",");
-                    //bu.append(prop+"<-->"+prop2+",");
-                    if ( !filteredLinks.containsKey(prop) )
-                        filteredLinks.put(prop, prop2);
-                    //System.out.println(prop);
+                        //bu.append(prop+"<-->"+prop2+",");
+                        if (!filteredLinks.containsKey(prop)) {
+                            filteredLinks.put(prop, prop2);
+                        }
+                        //System.out.println(prop);
+                    }
                 }
-            }
             } else {
-            for (String filter : filters ) {           
-                String filterSelectB = "";
-                if (grConf.isDominantA()) {
-                    filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
-                } else {
-                    filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+filter+"> } }";
-                }
-                filtersStmt = virt_conn.prepareStatement(filterSelectB);
-                ResultSet rs = filtersStmt.executeQuery();
-                System.out.println(filterSelectB);
-                while (rs.next()) {
-                    String prop = rs.getString(1);
-                    String prop2 = rs.getString(2);
+                for (String filter : filters) {
+                    String filterSelectB = "";
+                    if (grConf.isDominantA()) {
+                        filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                    } else {
+                        filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                    }
+                    filtersStmt = virt_conn.prepareStatement(filterSelectB);
+                    ResultSet rs = filtersStmt.executeQuery();
+                    System.out.println(filterSelectB);
+                    while (rs.next()) {
+                        String prop = rs.getString(1);
+                        String prop2 = rs.getString(2);
                     //out.println(prop+",");
-                    //bu.append(prop+"<-->"+prop2+",");
-                    if ( !filteredLinks.containsKey(prop) )
-                        filteredLinks.put(prop, prop2);
-                    //System.out.println(prop);
-                } 
-            }
+                        //bu.append(prop+"<-->"+prop2+",");
+                        if (!filteredLinks.containsKey(prop)) {
+                            filteredLinks.put(prop, prop2);
+                        }
+                        //System.out.println(prop);
+                    }
+                }
             }
             
             System.out.println(filteredLinks);

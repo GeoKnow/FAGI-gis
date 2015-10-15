@@ -71,7 +71,7 @@ FAGI.Constants = {
                                         '   FILTER ( <fagi-gis:contained_in> ( ',
     BBOX_QUERY_END_B        :        '))\n}',
 
-    TYPE_QUERY_START_A      :       'SELECT ?subjectA ?subjectB WHERE {\n'+
+    DEFAULT_TYPE_QUERY_A      :       'SELECT ?subjectA ?subjectB WHERE {\n'+
                                         '   GRAPH <fagi-gis:links> {\n'+
                                             '       ?subjectA \n'+
                                             '       '+FAGI.PropertyConstants.SAME_AS_PROPERTY+'\n'+
@@ -84,7 +84,7 @@ FAGI.Constants = {
                                         '   }\n'+
                                     '}',
 
-    TYPE_QUERY_START_B      :       'SELECT ?subjectA ?subjectB WHERE {\n'+
+    DEFAULT_TYPE_QUERY_B      :       'SELECT ?subjectA ?subjectB WHERE {\n'+
                                         '   GRAPH <fagi-gis:links> {\n'+
                                             '       ?subjectA \n'+
                                             '       '+FAGI.PropertyConstants.SAME_AS_PROPERTY+'\n'+
@@ -138,8 +138,30 @@ FAGI.MapUI = {
                                         console.console.log("Map says: " + e.feature.id + " clicked on " + e.feature.layer.name);
                                     }
                                 }*/
-                                })
+                                }),
+                                
+    resetAllPopus       :       function (e) {
+        FAGI.ActiveState.mselectActive = false;
+        
+        document.getElementById("popupTransformMenu").style.opacity = 0;
+        document.getElementById("popupTransformMenu").style.display = 'none';
+
+        document.getElementById("popupFindLinkMenu").style.opacity = 0;
+        document.getElementById("popupFindLinkMenu").style.display = 'none';
+        
+        document.getElementById("popupValidateMenu").style.opacity = 0;
+        document.getElementById("popupValidateMenu").style.display = 'none';
+        
+        document.getElementById("popupFindLinkMenu").style.opacity = 0;
+        document.getElementById("popupFindLinkMenu").style.display = 'none';
+        
+       return true;
+    },
     
+    periodicMapUpdate    :      function () {
+        FAGI.MapUI.map.updateSize();
+    }
+
 };
 
 FAGI.PanelsUI = {
@@ -169,6 +191,12 @@ FAGI.PanelsUI = {
 };
 
 FAGI.PanelsUI.Editors = {
+    
+    // SPARQL Editors
+    sparqlEditorA           :        null,
+    sparqlEditorB           :        null,
+    sparqlFetchEditorA      :        null,
+    sparqlFetchEditorB      :        null
     
 };
 
@@ -306,7 +334,7 @@ FAGI.MapUI.Styles = {
 
 FAGI.MapUI.Layers = {
     
-    // MAp Layers
+    // MAp Dynamic Layers
     vectorsA            :       new OpenLayers.Layer.Vector('Dataset A Layer',{isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleA)}),
     vectorsB            :       new OpenLayers.Layer.Vector('Dataset B Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleB)}),
     vectorsFused        :       new OpenLayers.Layer.Vector('Fused Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleFused)}),
@@ -314,15 +342,22 @@ FAGI.MapUI.Layers = {
     vectorsLinksTemp    :       new OpenLayers.Layer.Vector('Links Layer Temp', {isBaseLayer: false, style: FAGI.MapUI.Styles.styleLinks}),
     bboxLayer           :       new OpenLayers.Layer.Vector('BBox Layer', {isBaseLayer: false, style: FAGI.MapUI.Styles.styleBBox}),
 
+    // Map Base Layers
+    streetLayer         :       null,
+            
+    satlliteLayer       :       null,
+              
+    OSMLayer            :       null
+    
 };
 
-FAGI.MapUI.MapControls = {
+FAGI.MapUI.Controls = {
     dragControlA        :       null,
     dragControlB        :       null,
     selectControl       :       null,
-    multipleSelector    :       null,
-    transformControl    :       null,
-    drawControls        :       null
+    multipleSelector      :       null,
+    transformControl      :       null,
+    drawControls          :       null
 };
     
 FAGI.Utilities = {
@@ -376,9 +411,47 @@ FAGI.NavigationUI.Callbacks = {
     
 };
 
+FAGI.PanelsUI.Callbacks = {
+    
+    onUnfilterButtonPressed: function () {
+        //alert($('#typeListA').val());
+        //alert($('#typeListA').text());
+        //alert(send);
+        $.ajax({
+            // request type
+            type: "POST",
+            // the URL for the request
+            url: "FilterServlet",
+            // the data to send (will be converted to a query string)
+            data: {"filter": null, "dataset": ""},
+            // the type of data we expect back
+            dataType: "text",
+            // code to run if the request succeeds;
+            // the response is passed to the function
+            success: function (responseText) {
+                var list = document.getElementById("linksList");
+                list.innerHTML = responseText;
+            },
+            // code to run if the request fails; the raw request and
+            // status codes are passed to the function
+            error: function (xhr, status, errorThrown) {
+                alert("Sorry, there was a problem!");
+                console.log("Error: " + errorThrown);
+                console.log("Status: " + status);
+                console.dir(xhr);
+            },
+            // code to run regardless of success or failure
+            complete: function (xhr, status) {
+                //$('#connLabel').text("connected");
+            }
+        });
+    }
+    
+};
+
 FAGI.MapUI.Callbacks = {
     
-    onClusterSelectionChange: function() {
+    onClusterSelectionChange        :       function() {
         var selectedCluster = $(this).val();
         if (selectedCluster < 0) {
             $.each(FAGI.MapUI.Layers.FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
@@ -395,7 +468,7 @@ FAGI.MapUI.Callbacks = {
                 element.attributes.la.style = {display: 'none'};
                 element.attributes.lb.style = {display: 'none'};
             });
-            $.each(activeFeatureClusterA, function (index, element) {
+            $.each(FAGI.ActiveState.activeFeatureClusterA, function (index, element) {
                 element.style = null;
                 element.attributes.la.style = null;
                 element.attributes.lb.style = null;
@@ -416,7 +489,99 @@ FAGI.MapUI.Callbacks = {
         FAGI.MapUI.Layers.vectorsB.refresh();
         FAGI.MapUI.Layers.FAGI.MapUI.Layers.vectorsLinks.refresh();
     }
-     
+        
+};
+
+FAGI.MapUI.Callbacks.Linking = {
+    
+    onCreateLinkButtonPressed        :      function () {
+        
+        if ( $('#createLinkButton').html() === "Cancel Link" ) {
+            FAGI.MapUI.Layers.vectorsLinksTemp.destroyFeatures();
+            FAGI.ActiveState.lastPo = null;
+            FAGI.ActiveState.nowPo = null;
+            
+            document.getElementById("popupTransformMenu").style.opacity = 0;
+            document.getElementById("popupTransformMenu").style.display = 'none';
+            
+            FAGI.ActiveState.prevActiveFeature = null;
+            FAGI.ActiveState.activeFeature = null;
+                    
+            return;
+        }
+        
+        if ( FAGI.ActiveState.lastPo == null ) {
+            document.getElementById("popupTransformMenu").style.opacity = 0;
+            document.getElementById("popupTransformMenu").style.display = 'none';
+            FAGI.ActiveState.lastPo = FAGI.ActiveState.activeFeature.geometry.getCentroid(true);
+            FAGI.ActiveState.lastPo.node = FAGI.ActiveState.activeFeature;
+        } else {
+            FAGI.ActiveState.nowPo = FAGI.ActiveState.activeFeature.geometry.getCentroid(true);
+            FAGI.ActiveState.nowPo.node = FAGI.ActiveState.activeFeature;
+            createNewLink(FAGI.ActiveState.nowPo.node, FAGI.ActiveState.lastPo.node);
+        }
+    },
+    
+    onFindLinkButtonPressed           :       function () {        
+        document.getElementById("popupTransformMenu").style.opacity = 0;
+        document.getElementById("popupTransformMenu").style.display = 'none';
+
+        document.getElementById("popupFindLinkMenu").style.opacity = 0.7;
+        document.getElementById("popupFindLinkMenu").style.display = 'inline';
+        document.getElementById("popupFindLinkMenu").style.top = FAGI.ActiveState.mouse.y;
+        document.getElementById("popupFindLinkMenu").style.left = FAGI.ActiveState.mouse.x; 
+    },
+    
+    onFindLinkPopupButtonPressed      :       function () {
+        for ( var i = 0; i < FAGI.ActiveState.activeFeature.attributes.links.length; i++ ) 
+            if ( !FAGI.ActiveState.activeFeature.attributes.links[i].validated )
+                return;
+        
+        FAGI.ActiveState.activeFeature.geometry.transform(FAGI.MapUI.map.getProjectionObject(), WGS84);
+        var requestEntity = new Object();
+        requestEntity.sub = FAGI.ActiveState.activeFeature.attributes.a;
+        requestEntity.ds = 'A';
+        if ( FAGI.ActiveState.activeFeature.layer == FAGI.MapUI.Layers.vectorsB )
+            requestEntity.ds = 'B';
+        
+        document.getElementById("popupFindLinkMenu").style.opacity = 0;
+        document.getElementById("popupFindLinkMenu").style.display = 'none';
+        
+        requestEntity.geom = FAGI.MapUI.FAGI.MapUI.wkt.extractGeometry ( FAGI.ActiveState.activeFeature.geometry.getCentroid(true) );
+        //alert(JSON.stringify(requestEntity));
+        FAGI.ActiveState.activeFeature.geometry.transform(WGS84, FAGI.MapUI.map.getProjectionObject());
+        FAGI.Utilities.enableSpinner();
+        $.ajax({
+            // request type
+            type: "POST",
+            // the URL for the request
+            url: "FindLinkServlet",
+            // the data to send (will be converted to a query string)
+            data: {entity: JSON.stringify(requestEntity), radius: $("#radiusSpinner").spinner("value")},
+            // the type of data we expect back
+            dataType: "json",
+            // code to run if the request succeeds;
+            // the response is passed to the function
+            success: function (responseJson) {
+                //alert(JSON.stringify(responseJson));
+                createSingleUnvalidatedLinks(FAGI.ActiveState.activeFeature, responseJson);
+                FAGI.Utilities.disableSpinner();            },
+            // code to run if the request fails; the raw request and
+            // status codes are passed to the function
+            error: function (xhr, status, errorThrown) {
+                FAGI.Utilities.disableSpinner();
+                alert("Sorry, there was a problem!");
+                console.log("Error: " + errorThrown);
+                console.log("Status: " + status);
+                console.dir(xhr);
+            },
+            // code to run regardless of success or failure
+            complete: function (xhr, status) {
+                //$('#connLabel').text("connected");
+            }
+        });
+    }
+    
 };
 
 FAGI.ActiveState = {
@@ -460,6 +625,10 @@ FAGI.ActiveState = {
     polygonFeature              :       null,
     polygonFeatureW             :       null,
     
+    // Monitors active selection of geometries
+    activeFeature               :       null,
+    prevActiveFeature           :       null,
+
     // Updated during dragging for the corresponding dataset
     // Only used during batch fusion actions
     globalOffsetAX              :       0.0,
@@ -471,7 +640,11 @@ FAGI.ActiveState = {
     globalOffsetVecBX           :       0.0,
     globalOffsetVecBY           :       0.0,
      
-    
+    // Used durng dragging to monitor actively
+    // dragged geimetry
+    selectedGeomA               :       null,
+    selectedGeomB               :       null,
+
     // Score Threshold
     scoreThreshold              :       0.3,
     
@@ -486,15 +659,10 @@ FAGI.ActiveState = {
     
 };
 
-
-
-// SPARQL Editors
-var sparqlEditorA = null;
-var sparqlEditorB = null;
-var sparqlFetchEditorA = null;
-var sparqlFetchEditorB = null;
-
 //$.ajaxSetup({cache: false});
+
+$(window).load( function() {
+});
 
 // On page load
 $(document).ready(function () {
@@ -550,14 +718,14 @@ $(document).ready(function () {
     // On type select, change the query editor value
     $('#typeListA').change(function () {
         var selection = $(this).find("option:selected").text();
-        var query = defaultTypeQueryA.replace('?type', '<'+selection+'>');
-        sparqlEditorA.setValue(query);
+        var query = FAGI.Constants.DEFAULT_TYPE_QUERY_A.replace('?type', '<'+selection+'>');
+        FAGI.PanelsUI.Editors.sparqlEditorA.setValue(query);
     });
     
     $('#typeListB').change(function () {
         var selection = $(this).find("option:selected").text();
-        var query = defaultTypeQueryB.replace('?type', '<'+selection+'>');
-        sparqlEditorB.setValue(query);
+        var query = FAGI.Constants.DEFAULT_TYPE_QUERY_B.replace('?type', '<'+selection+'>');
+        FAGI.PanelsUI.Editors.sparqlEditorB.setValue(query);
     });
     
     $("#bboxMenu").menu();
@@ -576,6 +744,9 @@ $(document).ready(function () {
     $(".ui-dialog").css("float", "left");
     $(".ui-dialog").css("width", "0%");
     $(".ui-dialog").css("height", "95%");
+    
+    // Dropdown menu for the Tools tab
+    // Setting classes
     $(".dropdown-menu").css("background", "black");
     $(".dropdown-menu").mouseleave(function () {
         $(".dropdown").removeClass("open");
@@ -590,6 +761,7 @@ $(document).ready(function () {
         $(".dropdown").addClass("open");
     });
     
+    // Set up close buttons for each of the popups
     $("#close-findlink-menu-btn").click(function () {
         FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
     
@@ -623,25 +795,44 @@ $(document).ready(function () {
         maxExtent: new OpenLayers.Bounds(-200000, -200000, 200000, 200000),
         center: new OpenLayers.LonLat(-12356463.476333, 5621521.4854095)
     };
-    //map = new OpenLayers.Map("map", options);
-    var map_controls = [new OpenLayers.Control.OverviewMap(), new OpenLayers.Control.LayerSwitcher()];
-
-    var streetLayer = new OpenLayers.Layer.Google(
+    
+    var vaseLayerStreets = new OpenLayers.Layer.Google(
             "Google Streets", // the default
             {'sphericalMercator': true,
                 'numZoomLevels': 32,
                 'maxExtent': new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34)
             });
-    var myBaseLayer = new OpenLayers.Layer.Google("Google Satellite",
+            
+    // Set up FAGI base map layers
+    FAGI.MapUI.Layers.streetLayer = new OpenLayers.Layer.Google("Google Streets",
+            {'sphericalMercator': true,
+                'units': 'km',
+                'numZoomLevels': 32,
+                'maxExtent': new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34)
+            });        
+    FAGI.MapUI.Layers.satlliteLayer = new OpenLayers.Layer.Google("Google Satellite",
             {'sphericalMercator': true,
                 'numZoomLevels': 32,
                 'type': google.maps.MapTypeId.SATELLITE,
                 'maxExtent': new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34)
             });
-    /*FAGI.MapUI.map.addLayer(myBaseLayer);*/
-//alert("tried layer");
-
+    
+    FAGI.MapUI.Layers.OSMLayer = new OpenLayers.Layer.OSM("OSM","",{isBaseLayer:true, zoomOffset:0, 'numZoomLevels': 40}); 
+    
+    // Add to map
+    FAGI.MapUI.map.addLayer(FAGI.MapUI.Layers.OSMLayer);
+    FAGI.MapUI.map.addLayer(FAGI.MapUI.Layers.satlliteLayer);
+    FAGI.MapUI.map.addLayer(FAGI.MapUI.Layers.streetLayer);
+    
+    //FAGI.MapUI.map.setBaseLayer(FAGI.MapUI.Layers.satlliteLayer);
+    
+    /*
+    FAGI.MapUI.Layers.satlliteLayer.redraw();
+    FAGI.MapUI.Layers.satlliteLayer.setVisibility(true);
+    FAGI.MapUI.map.zoomTo(6);
     FAGI.MapUI.map.addControl(new OpenLayers.Control.LayerSwitcher());
+    */
+   
     var inside_panel = new OpenLayers.Control.Panel({
         displayClass: 'insidePanel'
     });
@@ -649,8 +840,8 @@ $(document).ready(function () {
     var zoom_max_inside = new OpenLayers.Control.ZoomToMaxExtent({
         displayClass: 'myZoomToMaxInside'
     });
-
-// Get control of the right-click event:
+    
+    // Get control of the right-click event:
     document.getElementById('map').oncontextmenu = function (e) {
         e = e ? e : window.event;
         if (e.preventDefault)
@@ -695,8 +886,8 @@ $(document).ready(function () {
                     document.getElementById("popupTransformMenu").style.opacity = 0;
                     document.getElementById("popupTransformMenu").style.display = 'none';
 
-                    prevActiveFeature = null;
-                    activeFeature = null;
+                    FAGI.ActiveState.prevActiveFeature = null;
+                    FAGI.ActiveState.activeFeature = null;
 
                     //return;
                 }
@@ -706,19 +897,7 @@ $(document).ready(function () {
     oClick.activate();
 
     inside_panel.addControls([zoom_max_inside]);
-    var myBaseLayer2 = new OpenLayers.Layer.Google("Google Streets",
-            {'sphericalMercator': true,
-                'units': 'km',
-                'numZoomLevels': 32,
-                'maxExtent': new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34)
-            });
-    var OSMLayer = new OpenLayers.Layer.OSM("OSM","",{isBaseLayer:true, zoomOffset:0, 'numZoomLevels': 40}); 
-    //var OSMLayer = new OpenLayers.Layer.OSM("OSM", { 'numZoomLevel': 32 });
-    FAGI.MapUI.map.addLayer(OSMLayer);
-    FAGI.MapUI.map.addLayer(myBaseLayer2);
-    FAGI.MapUI.map.addLayer(myBaseLayer);
-
-
+   
     box = new OpenLayers.Control.DrawFeature(FAGI.MapUI.Layers.bboxLayer, OpenLayers.Handler.RegularPolygon, {
         handlerOptions: {
             sides: 4,
@@ -727,6 +906,7 @@ $(document).ready(function () {
             persist: true
         }
     });
+    
     box.handler.callbacks.done = endDragBox;
     FAGI.MapUI.map.addControl(box);
     //box.activate();
@@ -856,30 +1036,30 @@ $(document).ready(function () {
     FAGI.MapUI.map.addControl(new OpenLayers.Control.LayerSwitcher());
     FAGI.MapUI.map.addControl(new OpenLayers.Control.MousePosition());
 
-    dragControlA = new OpenLayers.Control.DragFeature(FAGI.MapUI.Layers.vectorsA, {
+    FAGI.MapUI.Controls.dragControlA = new OpenLayers.Control.DragFeature(FAGI.MapUI.Layers.vectorsA, {
         onEnter: onFeatureOver,
         onStart: startDragA,
         onDrag: doDragA,
         onComplete: endDragA
     });
-    dragControlB = new OpenLayers.Control.DragFeature(FAGI.MapUI.Layers.vectorsB, {
+    FAGI.MapUI.Controls.dragControlB = new OpenLayers.Control.DragFeature(FAGI.MapUI.Layers.vectorsB, {
         onEnter: onFeatureOver,
         onStart: startDragB,
         onDrag: doDragB,
         onComplete: endDragB
     });
-    //dragControlA.moveFeature = onFeatureOver2;
-    FAGI.MapUI.map.addControls([dragControlA, dragControlB]);
+    //FAGI.MapUI.Controls.dragControlA.moveFeature = onFeatureOver2;
+    FAGI.MapUI.map.addControls([FAGI.MapUI.Controls.dragControlA, FAGI.MapUI.Controls.dragControlB]);
 
-    dragControlA.activate();
-    dragControlB.activate();
+    FAGI.MapUI.Controls.dragControlA.activate();
+    FAGI.MapUI.Controls.dragControlB.activate();
     FAGI.MapUI.map.setCenter(new OpenLayers.LonLat(0, 0), 3);
     var select = new OpenLayers.Control.SelectFeature(vectors, {
         onSelect: addSelected,
         onUnselect: clearSelected
     });
-    //FAGI.MapUI.map.addControl(select);
-    //select.activate();
+    
+    // aDD lAYERS TO mAP
     FAGI.MapUI.map.addLayer(FAGI.MapUI.Layers.vectorsA);
     FAGI.MapUI.map.addLayer(FAGI.MapUI.Layers.vectorsB);
     FAGI.MapUI.map.addLayer(FAGI.MapUI.Layers.vectorsLinks);
@@ -887,14 +1067,14 @@ $(document).ready(function () {
     FAGI.MapUI.map.addLayer(FAGI.MapUI.Layers.bboxLayer);
     FAGI.MapUI.map.addLayer(FAGI.MapUI.Layers.vectorsFused);
 
+    // Create a mutliple select layer and associate it
+    // with the links layer
     var lays = [FAGI.MapUI.Layers.vectorsLinks];
-    multipleSelector = new OpenLayers.Control.SelectFeature(lays, {
+    FAGI.MapUI.Controls.multipleSelector = new OpenLayers.Control.SelectFeature(lays, {
         box: true,
-        multiple: true,
-        //onSelect : function() { alert("select mul"); },
-        //onUnselect : function() { alert("unselect mul"); }
+        multiple: true
     });
-    FAGI.MapUI.map.addControl(multipleSelector);
+    FAGI.MapUI.map.addControl(FAGI.MapUI.Controls.multipleSelector);
 
     drawControls = {
         line: new OpenLayers.Control.DrawFeature(FAGI.MapUI.Layers.vectorsLinks,
@@ -905,9 +1085,7 @@ $(document).ready(function () {
         FAGI.MapUI.map.addControl(drawControls[key]);
     }
         
-    //multipleSelector.activate();
-    //FAGI.MapUI.map.addLayer(vectors);
-    //FAGI.MapUI.map.setLayerIndex(vectors,1);
+    // Add laeyrs with appropriate depth indexes
     FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsA, 2);
     FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsB, 3);
     FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsLinks, 4);
@@ -915,15 +1093,19 @@ $(document).ready(function () {
     FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsFused, 6);
     FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.bboxLayer, 7);
 
+    // Create a select control for all Layers and
+    // add it to the map
     var laysAll = [FAGI.MapUI.Layers.vectorsA, FAGI.MapUI.Layers.vectorsB, FAGI.MapUI.Layers.vectorsFused, FAGI.MapUI.Layers.vectorsLinks, FAGI.MapUI.Layers.bboxLayer];
-    selectControl = new OpenLayers.Control.SelectFeature(laysAll, {
+    FAGI.MapUI.Controls.selectControl = new OpenLayers.Control.SelectFeature(laysAll, {
         highlightOnly: true,
         toggle: true,
         hover: false});
-    FAGI.MapUI.map.addControl(selectControl);
-
-    selectControl.activate();
-    //alert(FAGI.MapUI.map.events.BROWSER_EVENTS);
+    FAGI.MapUI.map.addControl(FAGI.MapUI.Controls.selectControl);
+    FAGI.MapUI.Controls.selectControl.activate();
+    
+    
+    
+    // Set layer specific on select callbacks
     FAGI.MapUI.Layers.vectorsA.events.on({
         'featureselected': onFeatureSelect,
         'featureunselected': onFeatureUnselect,
@@ -951,6 +1133,9 @@ $(document).ready(function () {
         'featureunselected': onBBoxUnselect,
         scope: FAGI.MapUI.Layers.bboxLayer
     });
+    
+    // Debug code for testing rendering on mao
+    /*
     //var polygonFeature = FAGI.MapUI.wkt.read("POLYGON(15.37412 51.32847,15.374159 51.328592,15.374441 51.328552,15.374586 51.328532,15.374659 51.328521,15.37462 51.328399,15.37412 51.32847)");
     polygonFeature = FAGI.MapUI.wkt.read("POLYGON((20 37, 20 39, 22 39, 22 37, 20 37))");
     //polygonFeatureT1 = FAGI.MapUI.wkt.read("POLYGON((-74.0085826803402 40.7421376304449,-74.0084536803402 40.7420846304449,-74.0086146803402 40.7418666304449,-74.0086036803402 40.7418596304449,-74.0086136803402 40.7418486304449,-74.0086386803402 40.7418596304449,-74.0085826803402 40.7421376304449))");
@@ -983,34 +1168,14 @@ $(document).ready(function () {
     //window.setInterval(function() {rotateFeature(polygonFeature, 360 / 20, polygonFeature.geometry.getCentroid(true));}, 100);
     //FAGI.MapUI.Layers.vectorsB.addFeatures([polygonFeatureW]);
     //FAGI.MapUI.Layers.vectorsA.addFeatures([polygonFeature, polygonFeatureT, polygonFeatureT1]);
+    */
+   
     FAGI.MapUI.map.zoomToMaxExtent();
-    //FAGI.MapUI.map.zoomToExtent(FAGI.MapUI.Layers.vectorsA.getDataExtent())
     FAGI.MapUI.map.updateSize();
     FAGI.MapUI.map.render('map');
     
-    FAGI.MapUI.map.events.register("click",FAGI.MapUI.map, function (e) {
-        mselectActive = false;
-        
-        //document.getElementById("fg-debug-popup").style.opacity = 0.8;
-            //document.getElementById("fg-debug-popup").style.display = 'inline';
-            //document.getElementById("fg-debug-popup").style.top = FAGI.ActiveState.mouse.y;
-        //document.getElementById("fg-debug-popup").style.left = FAGI.ActiveState.mouse.x; 
-        
-        document.getElementById("popupTransformMenu").style.opacity = 0;
-        document.getElementById("popupTransformMenu").style.display = 'none';
-
-        document.getElementById("popupFindLinkMenu").style.opacity = 0;
-        document.getElementById("popupFindLinkMenu").style.display = 'none';
-        
-        document.getElementById("popupValidateMenu").style.opacity = 0;
-        document.getElementById("popupValidateMenu").style.display = 'none';
-        
-        document.getElementById("popupFindLinkMenu").style.opacity = 0;
-        document.getElementById("popupFindLinkMenu").style.display = 'none';
-        
-        //activeFeatureCluster = new Array();
-       return true;
-    });
+    // On map click, close any open popup
+    FAGI.MapUI.map.events.register("click",FAGI.MapUI.map, FAGI.MapUI.resetAllPopus);
 });
 
 function newPolygonAdded(a, b) {
@@ -1092,9 +1257,9 @@ function fetchContained() {
     feature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
 
     var qASend = "";
-    if ( sparqlFetchEditorA != null ) qASend = sparqlFetchEditorA.getValue();
+    if ( FAGI.PanelsUI.Editors.sparqlFetchEditorA != null ) qASend = FAGI.PanelsUI.Editors.sparqlFetchEditorA.getValue();
     var qBSend = "";
-    if ( sparqlFetchEditorB != null ) qBSend = sparqlFetchEditorB.getValue();
+    if ( FAGI.PanelsUI.Editors.sparqlFetchEditorB != null ) qBSend = FAGI.PanelsUI.Editors.sparqlFetchEditorB.getValue();
     
     FAGI.Utilities.enableSpinner();
     $.ajax({
@@ -1177,14 +1342,14 @@ function drawBox(bounds) {
 }
 
 function clearSelected(event) {
-    if (multipleEnabled) {
+    if (FAGI.ActiveState.multipleEnabled) {
         //alert('multiple end');
         //setSingleMapControls();
-        multipleEnabled = false;
-        multipleSelector.unselectAll();
+        FAGI.ActiveState.multipleEnabled = false;
+        FAGI.MapUI.Controls.multipleSelector.unselectAll();
         
-        multipleSelector.deactivate();
-        selectControl.activate();
+        FAGI.MapUI.Controls.multipleSelector.deactivate();
+        FAGI.MapUI.Controls.selectControl.activate();
         
         // register multiple feature callbacks
         FAGI.MapUI.Layers.vectorsLinks.events.un({
@@ -1199,7 +1364,7 @@ function clearSelected(event) {
             scope: FAGI.MapUI.Layers.vectorsLinks
         });
     
-        //alert(JSON.stringify(activeFeatureClusterA));
+        //alert(JSON.stringify(FAGI.ActiveState.activeFeatureClusterA));
         //if ( activeFeatureCluster.length === 0 ) {
             
         //}
@@ -1209,10 +1374,10 @@ function clearSelected(event) {
 }
 
 function addSelected(event) {
-    if ( typeof activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined" )
+    if ( typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined" )
         return;
     
-    if ( typeof activeFeatureClusterB[event.feature.attributes.lb.attributes.a] != "undefined" )
+    if ( typeof FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] != "undefined" )
         return;
       
     console.log($('#fg-info-popup').width());
@@ -1226,8 +1391,8 @@ function addSelected(event) {
     console.log($('#fg-info-popup').width());
     console.log($('#map').width());
     console.log(event.feature.attributes.la.attributes.a);
-    activeFeatureClusterA[event.feature.attributes.la.attributes.a] = event.feature;
-    activeFeatureClusterB[event.feature.attributes.lb.attributes.a] = event.feature;
+    FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] = event.feature;
+    FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] = event.feature;
 }
 
 function setMultipleMapControls() {
@@ -1290,9 +1455,9 @@ function activateMultipleTool() {
     if ( !$('#clusterSelector option[value="9999"]').length )
         $("#clusterSelector").append("<option value=\""+9999+"\" >Custom Cluster </option>");
     
-    multipleEnabled = true;
-    multipleSelector.activate();
-    selectControl.deactivate();
+    FAGI.ActiveState.multipleEnabled = true;
+    FAGI.MapUI.Controls.multipleSelector.activate();
+    FAGI.MapUI.Controls.selectControl.deactivate();
     
     FAGI.MapUI.Layers.vectorsLinks.events.un({
         'featureselected': onLinkFeatureSelect,
@@ -1316,9 +1481,9 @@ function activateBBoxTool() {
     if ( !$('#clusterSelector option[value="9999"]').length )
         $("#clusterSelector").append("<option value=\""+9999+"\" >Custom Cluster </option>");
     
-    multipleEnabled = true;
-    multipleSelector.activate();
-    selectControl.deactivate();
+    FAGI.ActiveState.multipleEnabled = true;
+    FAGI.MapUI.Controls.multipleSelector.activate();
+    FAGI.MapUI.Controls.selectControl.deactivate();
     
     FAGI.MapUI.Layers.vectorsLinks.events.un({
         'featureselected': onLinkFeatureSelect,
@@ -1378,15 +1543,15 @@ function fetchSPARQLContained() {
             alert("All bad " + responseText);
             alert("Error");
         },
-        data: {'queryA': sparqlEditorA.getValue(), 'queryB': sparqlEditorB.getValue()}
+        data: {'queryA': FAGI.PanelsUI.Editors.sparqlEditorA.getValue(), 'queryB': FAGI.PanelsUI.Editors.sparqlEditorB.getValue()}
         //Options to tell jQuery not to process data or worry about content-type.
     });
     */
 }
 
 function linksSPARQLFilter() {
-    //console.log(sparqlEditorA.getValue());
-    //console.log(sparqlEditorB.getValue());
+    //console.log(FAGI.PanelsUI.Editors.sparqlEditorA.getValue());
+    //console.log(FAGI.PanelsUI.Editors.sparqlEditorB.getValue());
     FAGI.Utilities.enableSpinner();
     $.ajax({
         url: 'SPARQLFilterServlet', //Server script to process data
@@ -1404,7 +1569,7 @@ function linksSPARQLFilter() {
             alert("All bad " + responseText);
             alert("Error");
         },
-        data: {'queryA': sparqlEditorA.getValue(), 'queryB': sparqlEditorB.getValue()}
+        data: {'queryA': FAGI.PanelsUI.Editors.sparqlEditorA.getValue(), 'queryB': FAGI.PanelsUI.Editors.sparqlEditorB.getValue()}
         //Options to tell jQuery not to process data or worry about content-type.
     });
         
@@ -1415,7 +1580,7 @@ function activateFecthUnlinked() {
 }
 
 function activateMultipleSelect() {
-    //multipleSelector.activate();
+    //FAGI.MapUI.Controls.multipleSelector.activate();
     //setMultipleMapControls();
     box.activate();
     //transform.activate();
@@ -1438,7 +1603,7 @@ function animatePanel(strech, opened) {
                 $("#fg-links-sparql-editor-a").html("");
                 $("#fg-links-sparql-editor-b").html("");
                 if ($(lastClickedMenu).is($("#linksPanel"))) {
-                    sparqlEditorA = CodeMirror($("#fg-links-sparql-editor-a").get(0), {
+                    FAGI.PanelsUI.Editors.sparqlEditorA = CodeMirror($("#fg-links-sparql-editor-a").get(0), {
                         value: FAGI.ActiveState.activeQueryA,
                         styleActiveLine: true,
                         lineNumbers: true,
@@ -1446,7 +1611,7 @@ function animatePanel(strech, opened) {
                         mode: "sparql",
                         matchBrackets: true
                     });
-                    sparqlEditorB = CodeMirror($("#fg-links-sparql-editor-b").get(0), {
+                    FAGI.PanelsUI.Editors.sparqlEditorB = CodeMirror($("#fg-links-sparql-editor-b").get(0), {
                         value: FAGI.ActiveState.activeQueryB,
                         styleActiveLine: true,
                         lineNumbers: true,
@@ -1461,16 +1626,16 @@ function animatePanel(strech, opened) {
                     feature.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
                     var wktRep = FAGI.MapUI.wkt.write(feature);
                     $("#fg-fetch-queries-submit").prop("bbox", wktRep);
-                    sparqlFetchEditorA = CodeMirror($("#fg-fetch-sparql-editor-a").get(0), {
-                        value: defaultBBoxQueryStartA + wktRep + defaultBBoxQueryEndA,
+                    FAGI.PanelsUI.Editors.sparqlFetchEditorA = CodeMirror($("#fg-fetch-sparql-editor-a").get(0), {
+                        value: FAGI.Constants.BBOX_QUERY_START_A + wktRep + FAGI.Constants.BBOX_QUERY_END_A,
                         styleActiveLine: true,
                         lineNumbers: true,
                         lineWrapping: true,
                         mode: "sparql",
                         matchBrackets: true
                     });
-                    sparqlFetchEditorB = CodeMirror($("#fg-fetch-sparql-editor-b").get(0), {
-                        value: defaultBBoxQueryStartB + wktRep + defaultBBoxQueryEndB,
+                    FAGI.PanelsUI.Editors.sparqlFetchEditorB = CodeMirror($("#fg-fetch-sparql-editor-b").get(0), {
+                        value: FAGI.Constants.BBOX_QUERY_START_B + wktRep + FAGI.Constants.BBOX_QUERY_END_B,
                         styleActiveLine: true,
                         lineNumbers: true,
                         lineWrapping: true,
@@ -1493,8 +1658,8 @@ function animatePanel(strech, opened) {
         $(".ui-dialog").animate({
             width: '0%'
         }, {duration: FAGI.Constants.DURATION, queue: false, complete: function () {
-                sparqlFetchEditorA = null;
-                sparqlFetchEditorB = null;
+                FAGI.PanelsUI.Editors.sparqlFetchEditorA = null;
+                FAGI.PanelsUI.Editors.sparqlFetchEditorB = null;
                 
                 return false;
             }});
@@ -1653,38 +1818,6 @@ function beforeClosePanel() {
     return false;
 }
 
-function periodicUpdate() {
-    FAGI.MapUI.map.updateSize();
-}
-//function(){
-//alert('tom');
-//FAGI.MapUI.map.updateSize();
-
-var selectedGeom = null;
-var selectedGeomA = null;
-var selectedGeomB = null;
-var lastPiuxel;
-
-function luda(event, deltaZ) {
-    if (FAGI.ActiveState.transType == FAGI.Constants.ROTATE_TRANS) {
-
-    } else if (FAGI.ActiveState.transType == FAGI.Constants.SCALE_TRANS) {
-
-    }
-}
-
-var selectedGeom = null;
-var selectedGeomA = null;
-var selectedGeomB = null;
-var lastPiuxel;
-
-function luda2(e) {
-    // alert('a');
-}
-
-var activeFeature = null;
-var prevActiveFeature = null;
-
 function luda(event, deltaZ) {
     var angle = 5.0;
     var scale = 2.0;
@@ -1693,16 +1826,16 @@ function luda(event, deltaZ) {
     if (FAGI.ActiveState.transType == FAGI.Constants.ROTATE_TRANS) {
         if (deltaZ < 0)
             angle = -angle;
-        activeFeature.geometry.rotate(angle, activeFeature.geometry.getCentroid(true));
-        activeFeature.layer.drawFeature(activeFeature);
+        FAGI.ActiveState.activeFeature.geometry.rotate(angle, FAGI.ActiveState.activeFeature.geometry.getCentroid(true));
+        FAGI.ActiveState.activeFeature.layer.drawFeature(activeFeature);
         //alert(angle);
     } else if (FAGI.ActiveState.transType == FAGI.Constants.SCALE_TRANS) {
         if (deltaZ < 0)
             scale = 0.9;
         else
             scale = 1.1;
-        activeFeature.geometry.resize(scale, activeFeature.geometry.getCentroid(true));
-        activeFeature.layer.drawFeature(activeFeature);
+        FAGI.ActiveState.activeFeature.geometry.resize(scale, FAGI.ActiveState.activeFeature.geometry.getCentroid(true));
+        FAGI.ActiveState.activeFeature.layer.drawFeature(activeFeature);
     }
 }
 
@@ -1715,25 +1848,25 @@ function rotateFeature(feature, angle, origin) {
 function startDragA(feature, pixel) {
     //console.log( "drag A" );
 
-    selectedGeomA = feature;
+    FAGI.ActiveState.selectedGeomA = feature;
     
     // When both a select and a drag control are active,
     // Openlayers can misjudge a click for a drag and bice versa
     // This is an attempt to counter this
-    if ( mselectActive ) {
+    if ( FAGI.ActiveState.mselectActive ) {
         //var clusterLink = new Object();
         //clusterLink.nodeA = event.feature.attributes.links[0].attributes.la.attributes.a;
         //clusterLink.nodeB = event.feature.attributes.links[0].attributes.lb.attributes.a;
         //activeFeatureCluster[activeFeatureCluster.length] = clusterLink;
-        activeFeatureClusterA[feature.attributes.links[0].attributes.la.attributes.a] = feature.attributes.links[0];
-        activeFeatureClusterB[feature.attributes.links[0].attributes.lb.attributes.a] = feature.attributes.links[0];
+        FAGI.ActiveState.FAGI.ActiveState.activeFeatureClusterA[feature.attributes.links[0].attributes.la.attributes.a] = feature.attributes.links[0];
+        FAGI.ActiveState.activeFeatureClusterB[feature.attributes.links[0].attributes.lb.attributes.a] = feature.attributes.links[0];
         
         return;
     }
     
     if (FAGI.ActiveState.lastPo != null) {
-        if (prevActiveFeature != null) {
-            if (prevActiveFeature == feature) {
+        if (FAGI.ActiveState.prevActiveFeature != null) {
+            if (FAGI.ActiveState.prevActiveFeature == feature) {
                 $('#createLinkButton').html("Cancel Link");
             }
         }
@@ -1755,8 +1888,8 @@ function startDragA(feature, pixel) {
     document.getElementById("popupTransformMenu").style.top = FAGI.ActiveState.mouse.y;
     document.getElementById("popupTransformMenu").style.left = FAGI.ActiveState.mouse.x;           
    
-    prevActiveFeature = activeFeature;
-    activeFeature = feature;
+    FAGI.ActiveState.prevActiveFeature = FAGI.ActiveState.activeFeature;
+    FAGI.ActiveState.activeFeature = feature;
     
     lastPixel = pixel;
 }
@@ -1769,42 +1902,42 @@ function doDragA(feature, pixel) {
     document.getElementById("popupTransformMenu").style.opacity = 0.0;
     document.getElementById("popupTransformMenu").style.display = 'none'; 
     
-    if (selectedGeomA != null) {
+    if (FAGI.ActiveState.selectedGeomA != null) {
         //alert('nick');
-        //if (feature != selectedGeomA ) {
+        //if (feature != FAGI.ActiveState.selectedGeomA ) {
         //alert('nick');
-        if (selectedGeomA.attributes.links.length > 0) {
+        if (FAGI.ActiveState.selectedGeomA.attributes.links.length > 0) {
             // Redraw all links
             var i;
-            for (i = 0; i < selectedGeomA.attributes.links.length; i++) {
-                var validated = selectedGeomA.attributes.links[i].validated;
-                var otherEnd = selectedGeomA.attributes.links[i].attributes.lb;
+            for (i = 0; i < FAGI.ActiveState.selectedGeomA.attributes.links.length; i++) {
+                var validated = FAGI.ActiveState.selectedGeomA.attributes.links[i].validated;
+                var otherEnd = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb;
                 var otherEndLinkIdx;
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
-                    if ( otherEnd.attributes.links[j] == selectedGeomA.attributes.links[i] ) {
-                        console.log('other end link' + otherEndLinkIdx);
-                        console.log('other end link' + (otherEnd.attributes.links[j] == selectedGeomA.attributes.links[i]));
-                        console.log('other end link' + (otherEnd.attributes.links[j].attributes.a == selectedGeomA.attributes.links[i].attributes.a));
+                    if ( otherEnd.attributes.links[j] == FAGI.ActiveState.selectedGeomA.attributes.links[i] ) {
+                        //console.log('other end link' + otherEndLinkIdx);
+                        //console.log('other end link' + (otherEnd.attributes.links[j] == FAGI.ActiveState.selectedGeomA.attributes.links[i]));
+                        //console.log('other end link' + (otherEnd.attributes.links[j].attributes.a == FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.a));
                         otherEndLinkIdx = j;
                         
                         break;
                     } 
                 }
-                FAGI.MapUI.Layers.vectorsLinks.destroyFeatures([selectedGeomA.attributes.links[i]]);
-                var start_point = selectedGeomA.geometry.getCentroid(true);
-                var end_point = selectedGeomA.attributes.links[i].attributes.lb.geometry.getCentroid(true);
+                FAGI.MapUI.Layers.vectorsLinks.destroyFeatures([FAGI.ActiveState.selectedGeomA.attributes.links[i]]);
+                var start_point = FAGI.ActiveState.selectedGeomA.geometry.getCentroid(true);
+                var end_point = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb.geometry.getCentroid(true);
 
-                selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
-                selectedGeomA.attributes.links[i].attributes.lb.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+                FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+                FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
 
-                var start_point_wgs = selectedGeomA.geometry.getCentroid(true);
-                var end_point_wgs = selectedGeomA.attributes.links[i].attributes.lb.geometry.getCentroid(true);
+                var start_point_wgs = FAGI.ActiveState.selectedGeomA.geometry.getCentroid(true);
+                var end_point_wgs = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb.geometry.getCentroid(true);
 
                 globalOffsetAX = end_point_wgs.x - start_point_wgs.x;
                 globalOffsetAY = end_point_wgs.y - start_point_wgs.y;
 
-                selectedGeomA.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
-                selectedGeomA.attributes.links[i].attributes.lb.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+                FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+                FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
 
                 $('#offset-x-a').val(globalOffsetAX);
                 $('#offset-y-a').val(globalOffsetAY);
@@ -1812,28 +1945,28 @@ function doDragA(feature, pixel) {
                 globalOffsetVecBX = globalOffsetAX / vecLen;
                 globalOffsetVecBY = globalOffsetAY / vecLen;
                 var linkFeature = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString([start_point, end_point]));
-                linkFeature.attributes = {'la': selectedGeomA.attributes.links[0].attributes.la,
-                    'a': selectedGeomA.attributes.links[i].attributes.a,
-                    'lb': selectedGeomA.attributes.links[i].attributes.lb,
-                    'cluster': selectedGeomA.attributes.links[i].attributes.cluster,
-                    'opacity': selectedGeomA.attributes.links[i].attributes.opacity};
+                linkFeature.attributes = {'la': FAGI.ActiveState.selectedGeomA.attributes.links[0].attributes.la,
+                    'a': FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.a,
+                    'lb': FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb,
+                    'cluster': FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.cluster,
+                    'opacity': FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.opacity};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
                 if ( !validated ) {
-                    linkFeature.jIndex = selectedGeomA.attributes.links[i].jIndex;
-                    linkFeature.dist = selectedGeomA.attributes.links[i].dist;
+                    linkFeature.jIndex = FAGI.ActiveState.selectedGeomA.attributes.links[i].jIndex;
+                    linkFeature.dist = FAGI.ActiveState.selectedGeomA.attributes.links[i].dist;
                 }
-                selectedGeomA.attributes.links[i] = linkFeature;
+                FAGI.ActiveState.selectedGeomA.attributes.links[i] = linkFeature;
                 otherEnd.attributes.links[otherEndLinkIdx] = linkFeature;
                 FAGI.MapUI.Layers.vectorsLinks.addFeatures([linkFeature]);
                 //alert('nick');
                 var res = FAGI.MapUI.map.getResolution();
-                //selectedGeomA.geometry.move(pixel.x, pixel.y);
+                //FAGI.ActiveState.selectedGeomA.geometry.move(pixel.x, pixel.y);
                 FAGI.MapUI.Layers.vectorsLinks.drawFeature(linkFeature);
                 //alert('nick');
                 //}
             }
-            FAGI.MapUI.Layers.vectorsA.drawFeature(selectedGeomA);
+            FAGI.MapUI.Layers.vectorsA.drawFeature(FAGI.ActiveState.selectedGeomA);
         }
     }
     lastPixel = pixel;
@@ -1841,43 +1974,43 @@ function doDragA(feature, pixel) {
 
 // Featrue stopped moving 
 function endDragA(feature, pixel) {
-    if (selectedGeomA != null) {
-        //alert('End drag '+selectedGeomA);
-        //alert('End drag '+FAGI.MapUI.wkt.write(selectedGeomA));
-        //alert('End drag '+FAGI.MapUI.wkt.write(selectedGeomA.linls[0]));
-        selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
-        selectedGeomA.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
-        //selectedGeomA.state = OpenLayers.State.UPDATE;
-        selectedGeomA = null;
-        //alert('End drag '+selectedGeomA);
-        //alert('End drag '+FAGI.MapUI.wkt.write(selectedGeomA.linls[0]));
+    if (FAGI.ActiveState.selectedGeomA != null) {
+        //alert('End drag '+FAGI.ActiveState.selectedGeomA);
+        //alert('End drag '+FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
+        //alert('End drag '+FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA.linls[0]));
+        FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+        //FAGI.ActiveState.selectedGeomA.state = OpenLayers.State.UPDATE;
+        FAGI.ActiveState.selectedGeomA = null;
+        //alert('End drag '+FAGI.ActiveState.selectedGeomA);
+        //alert('End drag '+FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA.linls[0]));
     }
 }
 
 function startDragB(feature, pixel) {
-    //if (selectedGeomB == null) {
-        selectedGeomB = feature;
+    //if (FAGI.ActiveState.selectedGeomB == null) {
+        FAGI.ActiveState.selectedGeomB = feature;
     //}
     FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
     
-    if ( mselectActive ) {
+    if ( FAGI.ActiveState.mselectActive ) {
         //var clusterLink = new Object();
         //clusterLink.nodeA = event.feature.attributes.links[0].attributes.la.attributes.a;
         //clusterLink.nodeB = event.feature.attributes.links[0].attributes.lb.attributes.a;
         //activeFeatureCluster[activeFeatureCluster.length] = clusterLink;
-        activeFeatureClusterA[feature.attributes.links[0].attributes.la.attributes.a] = feature.attributes.links[0];
-        activeFeatureClusterB[feature.attributes.links[0].attributes.lb.attributes.a] = feature.attributes.links[0];
+        FAGI.ActiveState.FAGI.ActiveState.activeFeatureClusterA[feature.attributes.links[0].attributes.la.attributes.a] = feature.attributes.links[0];
+        FAGI.ActiveState.activeFeatureClusterB[feature.attributes.links[0].attributes.lb.attributes.a] = feature.attributes.links[0];
         
         return;
     }
     
     if (FAGI.ActiveState.lastPo != null) {
-        if (prevActiveFeature != null) {
-            if (prevActiveFeature == feature) {
+        if (FAGI.ActiveState.prevActiveFeature != null) {
+            if (FAGI.ActiveState.prevActiveFeature == feature) {
                 $('#createLinkButton').html("Cancel Link");
 
-                //console.log("Prev with current " + prevActiveFeature == feature);
-                //console.log("Active with current " + activeFeature.fid === feature.fid);
+                //console.log("Prev with current " + FAGI.ActiveState.prevActiveFeature == feature);
+                //console.log("Active with current " + FAGI.ActiveState.activeFeature.fid === feature.fid);
             }
         }
     }
@@ -1896,8 +2029,8 @@ function startDragB(feature, pixel) {
     document.getElementById("popupTransformMenu").style.top = FAGI.ActiveState.mouse.y;
     document.getElementById("popupTransformMenu").style.left = FAGI.ActiveState.mouse.x;           
    
-    prevActiveFeature = activeFeature;
-    activeFeature = feature;
+    FAGI.ActiveState.prevActiveFeature = FAGI.ActiveState.activeFeature;
+    FAGI.ActiveState.activeFeature = feature;
     
     lastPixel = pixel;
 }
@@ -1908,34 +2041,34 @@ function doDragB(feature, pixel) {
     
     document.getElementById("popupTransformMenu").style.opacity = 0.0;
     document.getElementById("popupTransformMenu").style.display = 'none'; 
-    if (selectedGeomB != null) {
-        //if (feature != selectedGeomB ) {
-        if (selectedGeomB.attributes.links.length > 0) {
+    if (FAGI.ActiveState.selectedGeomB != null) {
+        //if (feature != FAGI.ActiveState.selectedGeomB ) {
+        if (FAGI.ActiveState.selectedGeomB.attributes.links.length > 0) {
             // Redraw all links
-            //console.log(selectedGeomB.attributes.links.length);
+            //console.log(FAGI.ActiveState.selectedGeomB.attributes.links.length);
             var i;
-            for (i = 0; i < selectedGeomB.attributes.links.length; i++) {
-                var validated = selectedGeomB.attributes.links[i].validated;
-                var otherEnd = selectedGeomB.attributes.links[i].attributes.la;
+            for (i = 0; i < FAGI.ActiveState.selectedGeomB.attributes.links.length; i++) {
+                var validated = FAGI.ActiveState.selectedGeomB.attributes.links[i].validated;
+                var otherEnd = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la;
                 var otherEndLinkIdx = 0;
                 
                 
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
-                    if ( otherEnd.attributes.links[j] == selectedGeomB.attributes.links[i] ) {
+                    if ( otherEnd.attributes.links[j] == FAGI.ActiveState.selectedGeomB.attributes.links[i] ) {
                         otherEndLinkIdx = j;
                         
                         break;
                     } 
                 }
-                FAGI.MapUI.Layers.vectorsLinks.destroyFeatures([selectedGeomB.attributes.links[i]]);
-                var start_point = selectedGeomB.geometry.getCentroid(true);
-                var end_point = selectedGeomB.attributes.links[i].attributes.la.geometry.getCentroid(true);
+                FAGI.MapUI.Layers.vectorsLinks.destroyFeatures([FAGI.ActiveState.selectedGeomB.attributes.links[i]]);
+                var start_point = FAGI.ActiveState.selectedGeomB.geometry.getCentroid(true);
+                var end_point = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la.geometry.getCentroid(true);
 
-                selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
-                selectedGeomB.attributes.links[i].attributes.la.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+                FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+                FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
 
-                var start_point_wgs = selectedGeomB.geometry.getCentroid(true);
-                var end_point_wgs = selectedGeomB.attributes.links[i].attributes.la.geometry.getCentroid(true);
+                var start_point_wgs = FAGI.ActiveState.selectedGeomB.geometry.getCentroid(true);
+                var end_point_wgs = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la.geometry.getCentroid(true);
 
                 //console.log(globalOffsetBX);
                 //console.log(end_point_wgs.x + " " + end_point_wgs.x);
@@ -1946,8 +2079,8 @@ function doDragB(feature, pixel) {
                 //console.log(globalOffsetBX);
                 //console.log(globalOffsetBY);
 
-                selectedGeomB.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
-                selectedGeomB.attributes.links[i].attributes.la.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+                FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+                FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
 
                 $('#offset-x-b').val(globalOffsetBX);
                 $('#offset-y-b').val(globalOffsetBY);
@@ -1956,26 +2089,26 @@ function doDragB(feature, pixel) {
                 globalOffsetVecBX = globalOffsetBX / vecLen;
                 globalOffsetVecBY = globalOffsetBY / vecLen;
                 var linkFeature = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString([start_point, end_point]));
-                linkFeature.attributes = {'la': selectedGeomB.attributes.links[i].attributes.la,
-                    'a': selectedGeomB.attributes.links[i].attributes.a,
-                    'lb': selectedGeomB.attributes.links[i].attributes.lb,
-                    'cluster': selectedGeomB.attributes.links[i].attributes.cluster};
+                linkFeature.attributes = {'la': FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la,
+                    'a': FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.a,
+                    'lb': FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.lb,
+                    'cluster': FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.cluster};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
                 if ( !validated ) {
-                    linkFeature.jIndex = selectedGeomB.attributes.links[i].jIndex;
-                    linkFeature.dist = selectedGeomB.attributes.links[i].dist;
+                    linkFeature.jIndex = FAGI.ActiveState.selectedGeomB.attributes.links[i].jIndex;
+                    linkFeature.dist = FAGI.ActiveState.selectedGeomB.attributes.links[i].dist;
                 }
-                selectedGeomB.attributes.links[i] = linkFeature;
+                FAGI.ActiveState.selectedGeomB.attributes.links[i] = linkFeature;
                 otherEnd.attributes.links[otherEndLinkIdx] = linkFeature;
                 FAGI.MapUI.Layers.vectorsLinks.addFeatures([linkFeature]);
                 var res = FAGI.MapUI.map.getResolution();
-                //selectedGeomB.geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+                //FAGI.ActiveState.selectedGeomB.geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
                 FAGI.MapUI.Layers.vectorsLinks.drawFeature(linkFeature);
                 //alert('sth fishy');
                 //}
             }
-            FAGI.MapUI.Layers.vectorsB.drawFeature(selectedGeomB);
+            FAGI.MapUI.Layers.vectorsB.drawFeature(FAGI.ActiveState.selectedGeomB);
         }
     }
     lastPixel = pixel;
@@ -1983,8 +2116,8 @@ function doDragB(feature, pixel) {
 
 // Featrue stopped moving 
 function endDragB(feature, pixel) {
-     if (selectedGeomB != null) {
-        selectedGeomB = null;
+     if (FAGI.ActiveState.selectedGeomB != null) {
+        FAGI.ActiveState.selectedGeomB = null;
     }
 }
 
@@ -2053,11 +2186,11 @@ function onFeatureUnselect(event) {
     document.getElementById("popupTransformMenu").style.opacity = 0.0;
     document.getElementById("popupTransformMenu").style.display = 'none'; 
     
-    //prevActiveFeature = event.feature;
-    //activeFeature = null;
+    //FAGI.ActiveState.prevActiveFeature = event.feature;
+    //FAGI.ActiveState.activeFeature = null;
     
     //document.getElementById("transformSelect").style.display = 'none';
-    //activeFeature = null;
+    //FAGI.ActiveState.activeFeature = null;
 }
 
 function setTransformation() {
@@ -2066,29 +2199,29 @@ function setTransformation() {
     //alert($('input[name=t]:checked', '#transForm').val());
     if ($('input[name=t]:checked', '#transForm').val() == 'tra') {
         FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
-        dragControlA.activate();
-        dragControlB.activate();
+        FAGI.MapUI.Controls.dragControlA.activate();
+        FAGI.MapUI.Controls.dragControlB.activate();
     } else if ($('input[name=t]:checked', '#transForm').val() == 'rot') {
         FAGI.ActiveState.transType = FAGI.Constants.ROTATE_TRANS;
-        dragControlA.deactivate();
-        dragControlB.deactivate();
+        FAGI.MapUI.Controls.dragControlA.deactivate();
+        FAGI.MapUI.Controls.dragControlB.deactivate();
         //alert('tom');
     } else {
         FAGI.ActiveState.transType = FAGI.Constants.SCALE_TRANS;
-        dragControlA.deactivate();
-        dragControlB.deactivate();
+        FAGI.MapUI.Controls.dragControlA.deactivate();
+        FAGI.MapUI.Controls.dragControlB.deactivate();
     }
 }
 
 function onFeatureSelect(event) {
-    //alert(mselectActive);
-    if ( mselectActive ) {
+    //alert(FAGI.ActiveState.mselectActive);
+    if ( FAGI.ActiveState.mselectActive ) {
         //var clusterLink = new Object();
         //clusterLink.nodeA = event.feature.attributes.links[0].attributes.la.attributes.a;
         //clusterLink.nodeB = event.feature.attributes.links[0].attributes.lb.attributes.a;
         //activeFeatureCluster[activeFeatureCluster.length] = clusterLink;
-        activeFeatureClusterA[event.feature.attributes.links[0].attributes.la.attributes.a] = event.feature.attributes.links[0];
-        activeFeatureClusterB[event.feature.attributes.links[0].attributes.lb.attributes.a] = event.feature.attributes.links[0];
+        FAGI.ActiveState.FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.links[0].attributes.la.attributes.a] = event.feature.attributes.links[0];
+        FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.links[0].attributes.lb.attributes.a] = event.feature.attributes.links[0];
         
         return;
     }
@@ -2105,12 +2238,12 @@ function onFeatureSelect(event) {
     //console.log("Select");
     
     if (FAGI.ActiveState.lastPo != null) {
-        if (prevActiveFeature != null) {
-            if (prevActiveFeature == event.feature) {
+        if (FAGI.ActiveState.prevActiveFeature != null) {
+            if (FAGI.ActiveState.prevActiveFeature == event.feature) {
                 $('#createLinkButton').html("Cancel Link");
 
-                console.log("Prev with current " + prevActiveFeature == event.feature);
-                //console.log("Active with current " + activeFeature.fid === event.feature.fid);
+                console.log("Prev with current " + FAGI.ActiveState.prevActiveFeature == event.feature);
+                //console.log("Active with current " + FAGI.ActiveState.FAGI.ActiveState.activeFeature.fid === event.feature.fid);
             }
         }
     }
@@ -2119,8 +2252,8 @@ function onFeatureSelect(event) {
     document.getElementById("popupTransformMenu").style.top = FAGI.ActiveState.mouse.y;
     document.getElementById("popupTransformMenu").style.left = FAGI.ActiveState.mouse.x;           
    
-    prevActiveFeature = activeFeature;
-    activeFeature = event.feature;
+    FAGI.ActiveState.prevActiveFeature = FAGI.ActiveState.activeFeature;
+    FAGI.ActiveState.activeFeature = event.feature;
 }
 
 function onFeatureUnselectB(event) { 
@@ -2216,9 +2349,9 @@ function onFusedSelect(event) {
         event.feature.attributes.lb.style = null;
     }
 
-    //selectControl.deactivate();
-    dragControlA.deactivate();
-    dragControlB.deactivate();
+    //FAGI.MapUI.Controls.selectControl.deactivate();
+    FAGI.MapUI.Controls.dragControlA.deactivate();
+    FAGI.MapUI.Controls.dragControlB.deactivate();
 
     FAGI.MapUI.Layers.vectorsA.redraw();
     FAGI.MapUI.Layers.vectorsB.redraw();
@@ -2229,10 +2362,10 @@ function onFusedSelect(event) {
 function onFusedUnselect(event) {
     expandPreviewPanel();
     
-    selectControl.deactivate();
-    dragControlB.activate();
-    dragControlA.activate();
-    selectControl.activate();
+    FAGI.MapUI.Controls.selectControl.deactivate();
+    FAGI.MapUI.Controls.dragControlB.activate();
+    FAGI.MapUI.Controls.dragControlA.activate();
+    FAGI.MapUI.Controls.selectControl.activate();
     
     event.feature.attributes.la.style = {display: 'none'};
     event.feature.attributes.lb.style = {display: 'none'};
@@ -2243,7 +2376,7 @@ function onFusedUnselect(event) {
 
 function onLinkFeatureSelect(event) {
     //alert(event.feature.prev_fused);
-    if ( multipleEnabled === true )
+    if ( FAGI.ActiveState.multipleEnabled === true )
         return;
     
     if ( !event.feature.validated ) {
@@ -2296,9 +2429,9 @@ function onLinkFeatureSelect(event) {
         event.feature.attributes.la.style = null;
         event.feature.attributes.lb.style = null;
         
-        //selectControl.deactivate();
-        dragControlA.deactivate();
-        dragControlB.deactivate();
+        //FAGI.MapUI.Controls.selectControl.deactivate();
+        FAGI.MapUI.Controls.dragControlA.deactivate();
+        FAGI.MapUI.Controls.dragControlB.deactivate();
         
         FAGI.MapUI.Layers.vectorsA.redraw();
         FAGI.MapUI.Layers.vectorsB.redraw();
@@ -3021,7 +3154,7 @@ function previewLinkedGeom(resp) {
 }
 
 function onLinkFeatureUnselect(event) {
-    if ( multipleEnabled === true )
+    if ( FAGI.ActiveState.multipleEnabled === true )
         return;
     //document.getElementById("link_tooltip").style.opacity = 0;
     feature_is_selected = false;
@@ -3030,9 +3163,9 @@ function onLinkFeatureUnselect(event) {
         event.feature.attributes.la.style = {display: 'none'};
         event.feature.attributes.lb.style = {display: 'none'};
         
-        //selectControl.activate();
-        dragControlA.activate();
-        dragControlB.activate();
+        //FAGI.MapUI.Controls.selectControl.activate();
+        FAGI.MapUI.Controls.dragControlA.activate();
+        FAGI.MapUI.Controls.dragControlB.activate();
         
         FAGI.MapUI.Layers.vectorsA.redraw();
         FAGI.MapUI.Layers.vectorsB.redraw();

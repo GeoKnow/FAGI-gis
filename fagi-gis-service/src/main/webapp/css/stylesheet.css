@@ -11,6 +11,11 @@
     src: local("News Cycle"), url('fonts/NewsCycle-Regular.ttf'); 
 } 
 
+@font-face { 
+  font-family: News Cycle; 
+    src: local("Menlo"), url('fonts/Menlo-Regular.ttf'); 
+} 
+
 #close-transform-menu-btn,
 #close-bbox-menu-btn,
 #close-validate-menu-btn,
@@ -61,7 +66,7 @@ label input[type="checkbox"] {
 */
 html { 
   height: 100%;
-  font-family:'Yanone Kaffeesatz' !important;
+  font-family:'Menlo' !important;
 }
 
 * {

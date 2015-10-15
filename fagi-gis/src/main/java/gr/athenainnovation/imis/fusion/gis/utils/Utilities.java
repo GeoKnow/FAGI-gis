@@ -11,6 +11,8 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import org.apache.commons.lang3.StringUtils;
 
@@ -71,5 +73,16 @@ public class Utilities {
         }
         
         return isLocal;
+    }
+    
+    public static List<String> findCommonPrefixedPropertyChains(String pattern, List<String> patterns) {
+        List<String> ret = new ArrayList<>();
+        
+        for ( String s : patterns) {
+            if ( s.startsWith(pattern) ) 
+                ret.add(s);
+        }
+        
+        return ret;
     }
 }

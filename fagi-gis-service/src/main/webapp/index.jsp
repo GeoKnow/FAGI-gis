@@ -46,38 +46,38 @@
             
             str = request.getParameter("dataset-a");
             if ( str == null ) 
-                //request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
-                request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
+                request.setAttribute("dataset-a", "http://localhost:8890/DAV/wik_demo");
+                //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
             else
                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
             
             str = request.getParameter("dataset-b");
             if ( str == null ) 
-                //request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
-                request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
+                request.setAttribute("dataset-b", "http://localhost:8890/DAV/osm_demo");
+                //request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
             else
                 request.setAttribute("dataset-b", request.getParameter("dataset-b"));
             
             str = request.getParameter("endpoint-a");
             if ( str == null ) 
-                //request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
-                request.setAttribute("endpoint-a", "http://generator.geoknow.eu:8080/generator/rest/session/8d631684-e4cc-4bae-bea7-656c07f78663");
+                request.setAttribute("endpoint-a", "http://localhost:8890/sparql");
+                //request.setAttribute("endpoint-a", "http://generator.geoknow.eu:8080/generator/rest/session/8d631684-e4cc-4bae-bea7-656c07f78663");
                 //request.setAttribute("endpoint-a", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
                 request.setAttribute("endpoint-a", request.getParameter("endpoint-a"));
             
             str = request.getParameter("endpoint-b");
             if ( str == null ) 
-                //request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
-                request.setAttribute("endpoint-b", "http://generator.geoknow.eu:8080/generator/rest/session/8d631684-e4cc-4bae-bea7-656c07f78663");
+                request.setAttribute("endpoint-b", "http://localhost:8890/sparql");
+                //request.setAttribute("endpoint-b", "http://generator.geoknow.eu:8080/generator/rest/session/8d631684-e4cc-4bae-bea7-656c07f78663");
                 //request.setAttribute("endpoint-b", "http://fagi.guests.ipsyp.dom:8891/sparql");
             else
                 request.setAttribute("endpoint-b", request.getParameter("endpoint-b"));
             
             str = request.getParameter("postgis-username");
             if ( str == null ) 
-                request.setAttribute("postgis-username", "nickvitsas");
-                //request.setAttribute("postgis-username", "postgres");
+                //request.setAttribute("postgis-username", "nickvitsas");
+                request.setAttribute("postgis-username", "postgres");
                 //request.setAttribute("postgis-username", "fagi");
             else
                 request.setAttribute("postgis-username", request.getParameter("postgis-username"));
@@ -313,12 +313,38 @@
                         <datalist id="datalist1"></datalist>
                         SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="<% out.println(request.getAttribute("endpoint-a"));%>" title="SPARQL Endpoint for Dataset A."/> 
                         <!-- Linux IMIS -->
+                        <div id="fg-auth-dropdown-a">
+                            <h3>Authenticate</h3>
+                            <<div>
+                                <table style="table-layout: fixed; width: 100%;">
+                                    <tr>
+                                        <td >User</td>
+                                        <td><input id="fg-auth-user-a" type="text" value=""/></td>
+                                        <td >Pass</td>
+                                        <td><input id="fg-auth-pass-a" type="text" value=""/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="<% out.println(request.getAttribute("dataset-b"));%>" title="Named Graph for Dataset B"/>
                         <!-- Windows IMIS 
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost/DAV/wik"/ title="We ask for your age only for statistical purposes."> -->
                         <!-- Mac OS X 
                         Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik"/> -->
                         SPARQL Endpoint B: <input type="text" name="db_end" class="centered" value="<% out.println(request.getAttribute("endpoint-b"));%>" title="SPARQL Endpoint for Dataset A."/>
+                        <div id="fg-auth-dropdown-b">
+                            <h3>Authenticate</h3>
+                            <div>
+                                <table style="table-layout: fixed; width: 100%;">
+                                    <tr>
+                                        <td >User</td>
+                                        <td><input id="fg-auth-user-b" type="text" value=""/></td>
+                                        <td >Pass</td>
+                                        <td><input id="fg-auth-pass-b" type="text" value=""/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                         Target Graph: <input type="text" name="t_graph" class="centered" value="<% out.println(request.getAttribute("target-dataset"));%>" title="Name of the target Dataset"/>
                         <table>
                             <tbody>
@@ -329,8 +355,34 @@
                             </tbody>
                         </table>
                         SPARQL Endpoint Target: <input type="text" name="t_end" class="centered" value="<% out.println(request.getAttribute("target-endpoint"));%>" title="SPARQL Endpoint of the target dataset."/>
+                        <div id="fg-auth-dropdown-t">
+                            <h3>Authenticate</h3>
+                            <div>
+                                <table style="table-layout: fixed; width: 100%;">
+                                    <tr>
+                                        <td>User</td>
+                                        <td><input id="fg-auth-user-t" type="text" value=""/></td>
+                                        <td>Pass</td>
+                                        <td><input id="fg-auth-pass-t" type="text" value=""/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                         Links Graph: <input id="fg-links-graph" type="text" name="l_graph" class="centered" value="<% out.println(request.getAttribute("dataset-l"));%>" title="Name of the links Datase.t(Leave empty if provided through file)"/>
                         SPARQL Endpoint Links <input id="fg-links-endpoint" type="text" name="l_end" class="centered" value="<% out.println(request.getAttribute("endpoint-l"));%>" title="SPARQL Endpoint of the links dataset.(Leave empty if provided through file)"/>
+                        <div id="fg-auth-dropdown-l">
+                            <h3>Authenticate</h3>
+                            <div>
+                                <table style="table-layout: fixed; width: 100%;">
+                                    <tr>
+                                        <td>User</td>
+                                        <td><input id="fg-auth-user-l" type="text" value=""/></td>
+                                        <td>Pass</td>
+                                        <td><input id="fg-auth-pass-l" type="text" value=""/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                         <!--Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/fagi/Desktop/"/>-->
                         <!-- Linux IMIS 
                         Bulk Insert Dir: <input type="text" name="bulk" class="centered" value="/home/nick/Projects/FAGI-gis-master/"/> -->
@@ -420,6 +472,7 @@
                     </ul>
                     <input id="linksButton" type="submit" value="Submit" style="float:right" onclick="return true;"/>
                     <input id="allLinksButton" type="submit" value="Select All" style="float:right" onclick="return true;"/>
+                    <input id="fg-links-unfilter-button" type="submit" value="Unfilter" style="float:right" onclick="return true;"/>
                     <table style="width: 100%;">
                         <tr style="width: 100%;">
                             <td style="width:50%;">SPARQL Query for Dataset A</td>
@@ -650,7 +703,7 @@
         <script type="text/javascript" src="js/codemirror/mode/sparql/sparql.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" src="js/codemirror/addon/edit/matchbrackets.js"></script>
         <script type="text/javascript" src="js/map.js"></script>
-        <script src="http://maps.google.com/maps/api/js?v=3&amp;sensor=false"></script>
+        <script src="http://maps.google.com/maps/api/js?v=3.5&sensor=false"></script>
         <script type="text/javascript" src="js/fusion.js"></script>
 
         <script type="text/javascript">
