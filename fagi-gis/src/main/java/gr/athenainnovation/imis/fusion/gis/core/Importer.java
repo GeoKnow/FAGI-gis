@@ -437,7 +437,7 @@ public class Importer {
     private boolean checkForWGS(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
         boolean result = false;
     //ASK WHERE { ?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . ?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }
-        final String queryString = "ASK WHERE { ?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . ?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }";
+        /*final String queryString = "ASK WHERE { ?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . ?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }";
         QueryExecution queryExecution = null;
         try {
             final Query query = QueryFactory.create(queryString);
@@ -448,13 +448,41 @@ public class Importer {
             //QueryExecution queryExecution = qeh;
             qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
                 //final ResultSet resultSet = qeh.execSelect();
-//System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
+            System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
 
             result = qeh.execAsk();
         } catch (RuntimeException ex) {
             LOG.warn(ex.getMessage(), ex);
         } finally {
             if (queryExecution != null) {
+                queryExecution.close();
+            }
+        }
+        return result;
+        */
+        final String queryString = "SELECT ?s WHERE { ?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . ?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }";
+        QueryExecution queryExecution = null;
+        try {
+            final Query query = QueryFactory.create(queryString);
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
+            System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
+
+            QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
+        qeh.addDefaultGraph(sourceGraph);
+        //QueryExecution queryExecution = qeh;
+        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+        
+        if (qeh.execSelect().hasNext() )
+            return true;
+        
+            //result = qeh.execAsk();
+        }
+        catch (RuntimeException ex) {
+            LOG.warn(ex.getMessage(), ex);
+        }
+        finally {
+            if(queryExecution != null) {
                 queryExecution.close();
             }
         }
