@@ -81,27 +81,19 @@ public class ImporterWorker extends SwingWorker<Boolean, Void> {
         
         success = importer.isInitialized();
         
-        System.out.println("BOOL VLAUE " +  success);
-
         if ( !success )
             return success;
         
         success = importer.importGeometries(datasetIdent, sourceDataset);
-        
-        System.out.println("BOOL VLAUE " +  success);
 
         if ( !success )
             return success;
         
         success = importer.clean();
         
-        System.out.println("BOOL VLAUE " +  success);
-        
         if ( !success )
             return success;
-        
-        System.out.println("BOOL VLAUE " +  success);
-        
+                
         return success;
     }
     
