@@ -463,7 +463,7 @@ public class LinksServlet extends HttpServlet {
                 
                 return;
             }
-            //final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
+            
             Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
             final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, null);
             datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
@@ -486,11 +486,12 @@ public class LinksServlet extends HttpServlet {
                 }
             });
 
-            //startTime = System.nanoTime();
-            //System.out.println("Execute");
+            
+            // Fire threads for uploading
             datasetAImportWorker.execute();
             datasetBImportWorker.execute();
-            //System.out.println("Print");
+            
+            // Get thread run results
             Boolean retA, retB;
             try {
                 retB = datasetAImportWorker.get();
@@ -507,8 +508,8 @@ public class LinksServlet extends HttpServlet {
                 
                 return;
             }
-            System.out.println("The bool " + retA);
-            System.out.println(retB);
+            
+            
             if ( ( retA == false ) || ( retB == false ) ) {
                 LOG.trace("Thread execution failed");
                 LOG.debug("Thread execution failed");
@@ -525,7 +526,7 @@ public class LinksServlet extends HttpServlet {
             
             VirtuosoImporter virtImp = new VirtuosoImporter(dbConf, null, (String) sess.getAttribute("t_graph"), true, grConf);
             Connection virt_conn = vSet.getConnection();
-                LOG.trace("SQLException before");
+            LOG.trace("SQLException before");
             // Recreate target temp graph
             final String dropTempGraph = "SPARQL DROP SILENT GRAPH <"+ grConf.getTargetTempGraph()+  ">";
             final String createTempGraph = "SPARQL CREATE GRAPH <"+ grConf.getTargetTempGraph()+ ">";
@@ -568,19 +569,33 @@ public class LinksServlet extends HttpServlet {
 
             System.out.println(mapper.writeValueAsString(ret));
             //virtImp.importGeometriesToVirtuoso((String) sess.getAttribute("t_graph"));
-            virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true);
-            final String createGraph = "sparql CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
+            if ( Constants.LATE_FETCH ) {
+                
+            } else {
+                virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true);
+            }
+            final String createGraph = "SPARQL CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
 
             String fetchFiltersA;
             String fetchFiltersB;
-            if (grConf.isDominantA()) {
-                fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() +"> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+            if (Constants.LATE_FETCH) {
+                if (grConf.isDominantA()) {
+                    fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . SERVICE <"+grConf.getEndpointA()+"> { GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . SERVICE <"+grConf.getEndpointB()+"> { GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                } else {
+                    fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . SERVICE <"+grConf.getEndpointA()+"> { GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . SERVICE <"+grConf.getEndpointB()+"> { GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                }
             } else {
-                fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                if (grConf.isDominantA()) {
+                    fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                    fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                } else {
+                    fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                    fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                }
             }
-
+            
             System.out.println("Fetch from graph A : "+fetchFiltersA);
             System.out.println("Fetch from graph B : " + fetchFiltersB);
             System.out.println("Graph A : " + grConf.getGraphA());
