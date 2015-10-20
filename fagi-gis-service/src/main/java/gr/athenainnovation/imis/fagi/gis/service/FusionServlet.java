@@ -287,6 +287,8 @@ public class FusionServlet extends HttpServlet {
 
             success = false;
 
+                    System.out.println("SUCCESS : "+selectLinkedGeoms);
+
             return success;
         } finally {
             try {
@@ -299,7 +301,7 @@ public class FusionServlet extends HttpServlet {
                 LOG.debug("SQLException thrown when closeing connection : " + sqlex.getSQLState());
             }
         }
-        
+                    System.out.println("FAIL : "+selectLinkedGeoms);
         try {
             if ( dbConn != null )
                 dbConn.close();
@@ -340,6 +342,8 @@ public class FusionServlet extends HttpServlet {
         ObjectMapper            mapper = new ObjectMapper();
         boolean                 success = true;
         
+                    System.out.println("\n\n\n\n\n\nGot Here\n\n\n\n\n\n");
+
         try {
             
             out = response.getWriter();
@@ -403,6 +407,7 @@ public class FusionServlet extends HttpServlet {
             // Get the geometry of the entity
             success = getGeom(subject, dbConf, ret);
             
+            System.out.println("OUT SUCCESS : "+success);
             // Where to look for the name of the other entity
             String getLink = "";
             if (grConf.isDominantA()) {
@@ -410,15 +415,17 @@ public class FusionServlet extends HttpServlet {
             } else {
                 getLink = "SPARQL SELECT ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> {?o ?p <" + subject + ">} }";
             }
-            
+            System.out.println("OUT SUCCESS : "+getLink);
             String linked = "";
             try (PreparedStatement stmt = conn.prepareStatement(getLink);
                     ResultSet rs = stmt.executeQuery()) {
-                
+                System.out.println("OUT LINKED : "+"ludacris");
                 while (rs.next()) {
-                    linked = rs.getString("?o");
+                System.out.println("OUT LINKED : ");
+                    linked = rs.getString("o");
+                System.out.println("OUT LINKED : "+linked);
                 }
-                
+                System.out.println("OUT LINKED : "+linked);
             } catch (SQLException ex) {
                 LOG.trace("Failed to get other Link");
                 LOG.trace("Failed to get other Link : " + ex.getMessage());
@@ -433,7 +440,7 @@ public class FusionServlet extends HttpServlet {
 
                 return;
             }
-            
+            System.out.println("OUT SUCCESS 1 : "+success);
             sess.setAttribute("nodeA", subject);
             sess.setAttribute("nodeB", linked);
                
@@ -442,17 +449,17 @@ public class FusionServlet extends HttpServlet {
                     + " { <" + subject + "> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n"
                     + " GRAPH <" + grConf.getMetadataGraphA() + "> {<" + subject + "> <" + Constants.OWL_CLASS_PROPERTY + "> ?owlClass } }";
 
-            String getClassB = "sparql SELECT ?owlClass"
+            String getClassB = "SPARQL SELECT ?owlClass"
                     + "  WHERE {GRAPH <" + grConf.getAllLinksGraph() + ">"
                     + " { <" + subject + "> <http://www.w3.org/2002/07/owl#sameAs> ?o } . \n"
                     + " GRAPH <" + grConf.getMetadataGraphB() + "> {<" + subject + "> <" + Constants.OWL_CLASS_PROPERTY + "> ?owlClass } }";
 
-           
+            System.out.println("OUT SUCCESS : "+getClassB);
             try (PreparedStatement stmt = conn.prepareStatement(getClassA);
                     ResultSet rs = stmt.executeQuery()) {
                 
                 while (rs.next()) {
-                    ret.getClassesA().add(rs.getString("?owlClass"));
+                    ret.getClassesA().add(rs.getString("owlClass"));
                 }
                 
             } catch (SQLException ex) {
@@ -474,7 +481,7 @@ public class FusionServlet extends HttpServlet {
                     ResultSet rs = stmt.executeQuery()) {
                 
                 while (rs.next()) {
-                    ret.getClassesB().add(rs.getString("?owlClass"));
+                    ret.getClassesB().add(rs.getString("owlClass"));
                 }
                 
             } catch (SQLException ex) {
@@ -542,6 +549,7 @@ public class FusionServlet extends HttpServlet {
             // the state will be in the session
             sess.setAttribute("fstate", ft);
 
+            System.out.println("Got Here");
             System.out.println(mapper.writeValueAsString(ret));
             out.println(mapper.writeValueAsString(ret));
         } catch (JsonProcessingException ex) {

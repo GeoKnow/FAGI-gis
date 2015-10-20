@@ -99,6 +99,15 @@ body {
   margin: 0;
 }
 
+#fg-auth-dropdown-a .ui-icon { display: none; }
+#fg-auth-dropdown-a .ui-accordion-header a { padding-left: 0; }
+#fg-auth-dropdown-b .ui-icon { display: none; }
+#fg-auth-dropdown-b .ui-accordion-header a { padding-left: 0; }
+#fg-auth-dropdown-t .ui-icon { display: none; }
+#fg-auth-dropdown-t .ui-accordion-header a { padding-left: 0; }
+#fg-auth-dropdown-l .ui-icon { display: none; }
+#fg-auth-dropdown-l .ui-accordion-header a { padding-left: 0; }
+
 img { 
   border: 0;
 }

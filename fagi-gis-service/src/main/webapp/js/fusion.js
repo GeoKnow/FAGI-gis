@@ -27,29 +27,33 @@ function init() {
       .click(function( event ) {
         event.preventDefault();
       });
+      
+    
+     
     // Allow authentication for Remote Endpoints
     $('#fg-auth-dropdown-a').accordion({
-      collapsible: true,
+      collapsible: false,
       heightStyle: "content",
       active: false
       
     });
     $('#fg-auth-dropdown-b').accordion({
-      collapsible: true,
+      collapsible: false,
       heightStyle: "content",
       active: false
     });
     $('#fg-auth-dropdown-l').accordion({
-      collapsible: true,
+      collapsible: false,
       heightStyle: "content",
       active: false
     });
     $('#fg-auth-dropdown-t').accordion({
-      collapsible: true,
+      collapsible: false,
       heightStyle: "content",
       active: false
     });
     
+   
     $(".buttonset").buttonset();
     
     $('#connButton').click(setConnection);
@@ -927,7 +931,7 @@ function submitLinks(batchFusion) {
                 if (responseText === "Connection parameters not set") {
                     $('#fg-dataset-label').text(responseText);
                 } else {
-                    alert(responseText);
+                    //alert(responseText);
                     //addMapData(responseText);
                     if (batchFusion === true) {
                         addMapData(responseText);

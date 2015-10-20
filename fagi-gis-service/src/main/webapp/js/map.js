@@ -1835,7 +1835,7 @@ function luda(event, deltaZ) {
         if (deltaZ < 0)
             angle = -angle;
         FAGI.ActiveState.activeFeature.geometry.rotate(angle, FAGI.ActiveState.activeFeature.geometry.getCentroid(true));
-        FAGI.ActiveState.activeFeature.layer.drawFeature(activeFeature);
+        FAGI.ActiveState.activeFeature.layer.drawFeature(FAGI.ActiveState.activeFeature);
         //alert(angle);
     } else if (FAGI.ActiveState.transType == FAGI.Constants.SCALE_TRANS) {
         if (deltaZ < 0)
@@ -1843,7 +1843,7 @@ function luda(event, deltaZ) {
         else
             scale = 1.1;
         FAGI.ActiveState.activeFeature.geometry.resize(scale, FAGI.ActiveState.activeFeature.geometry.getCentroid(true));
-        FAGI.ActiveState.activeFeature.layer.drawFeature(activeFeature);
+        FAGI.ActiveState.activeFeature.layer.drawFeature(FAGI.ActiveState.activeFeature);
     }
 }
 
@@ -2609,7 +2609,6 @@ function onLinkFeatureSelect(event) {
         }
     });
 
-
     var list = document.getElementById("matchList");
     var listItem = list.getElementsByTagName("li");
     if (listItem.length == 1) {
@@ -2745,7 +2744,7 @@ function fusionPanel(event, val, node) {
         recommendation.owlClassB[recommendation.owlClassB.length] = element;
     });
     //alert(JSON.stringify(recommendation));
-    /*
+    
     $.ajax({
         // request type
         type: "POST",
@@ -2779,7 +2778,7 @@ function fusionPanel(event, val, node) {
         complete: function (xhr, status) {
             //$('#connLabel').text("connected");
         }
-    });*/
+    });
     
     var geom_typeA = val.geomsA[0].substring(0, val.geomsA[0].indexOf("("));
     var geom_typeB = val.geomsB[0].substring(0, val.geomsB[0].indexOf("("));

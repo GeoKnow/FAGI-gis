@@ -401,11 +401,11 @@
                             </tbody>
                         </table>
                         <div class="form-group">
-                            <label for="fg-dataset-input-l">Target Graph:</label>
+                            <label for="fg-dataset-input-l">Links Graph:</label>
                             <input id="fg-dataset-input-l" type="text" name="l_graph" value="<% out.println(request.getAttribute("dataset-l"));%>" title="Named Graph for the Target Dataset" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label for="fg-endpoint-input-l">SPARQL Endpoint Target:</label>
+                            <label for="fg-endpoint-input-l">SPARQL Endpoint Links:</label>
                             <input id="fg-endpoint-input-l" type="text" name="l_end" value="<% out.println(request.getAttribute("endpoint-l"));%>" title="Endpoint if the target dataset" class="form-control">
                         </div>
                         <div class="panel-group">
