@@ -12,7 +12,7 @@
 } 
 
 @font-face { 
-  font-family: News Cycle; 
+  font-family: Menlo; 
     src: local("Menlo"), url('fonts/Menlo-Regular.ttf'); 
 } 
 
@@ -71,7 +71,7 @@ html {
 
 * {
 //font-family: 'Indie Flower', cursive;
-font-family: 'Bree Serif', serif;
+font-family: 'Menlo', Menlo;
 }
     
 * { 

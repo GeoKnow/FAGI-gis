@@ -925,7 +925,7 @@ function submitLinks(batchFusion) {
                 //$('#connLabel').text(responseText);
                 FAGI.ActiveState.linksPreviewed = true;
                 if (responseText === "Connection parameters not set") {
-                    $('#dataLabel').text(responseText);
+                    $('#fg-dataset-label').text(responseText);
                 } else {
                     alert(responseText);
                     //addMapData(responseText);
@@ -1281,9 +1281,9 @@ function initBatchFusionTable (val) {
 //" Description: <textarea name=\"textarea\" style=\"width:99%;height:50px;\" class=\"centered\"></textarea>\n"+
             " <table class=\"rwd-table\" border=1 id=\"bFusionTable\">\n" +
             " <tr>\n" +
-            " <td>Value from " + $('#idDatasetA').val() + "</td>\n" +
+            " <td>Value from " + $('#fg-dataset-input-a').val() + "</td>\n" +
             " <td>Predicate</td>\n" +
-            " <td>Value from " + $('#idDatasetB').val() + "</td>\n" +
+            " <td>Value from " + $('#fg-dataset-input-b').val() + "</td>\n" +
             " <td>Action</td>\n" +
 //" <td style=\"width:20%; text-align: center;\" align=\"left\" valign=\"bottom\">Result</td>\n"+
             " </tr>\n" +
@@ -2353,15 +2353,15 @@ function setDatasets()
         success: function (responseJson) {
             
             FAGI.Utilities.disableSpinner();
-            $('#dataLabel').text("Datasets accepted");
-            $('#datasetNameA').html($('#idDatasetA').val());
-            $('#datasetNameB').html($('#idDatasetB').val());
-            $('#legendSetA').html($('#idDatasetA').val());
-            $('#legendSetB').html($('#idDatasetB').val());
-            $('#datasetNameA').html($('#idDatasetA').val());
-            $('#datasetNameB').html($('#idDatasetB').val());
-            $('#legendLinkSetA').html($('#idDatasetA').val());
-            $('#legendLinkSetB').html($('#idDatasetB').val());
+            $('#fg-dataset-label').text("Datasets accepted");
+            $('#datasetNameA').html($('#fg-dataset-input-a').val());
+            $('#datasetNameB').html($('#fg-dataset-input-b').val());
+            $('#legendSetA').html($('#fg-dataset-input-a').val());
+            $('#legendSetB').html($('#fg-dataset-input-b').val());
+            $('#datasetNameA').html($('#fg-dataset-input-a').val());
+            $('#datasetNameB').html($('#fg-dataset-input-b').val());
+            $('#legendLinkSetA').html($('#fg-dataset-input-a').val());
+            $('#legendLinkSetB').html($('#fg-dataset-input-b').val());
             
             //Loaqd links through endpoint
             if ( responseJson.remoteLinks )
@@ -2372,7 +2372,7 @@ function setDatasets()
                 scanGeometries();
             
             // Disable file uploading if a SPARQL endpoint for links is provided
-            if ( $('#fg-links-graph').val() && $('#fg-links-endpoint').val() ) 
+            if ( $('#fg-dataset-input-l').val() && $('#fg-endpoint-input-l').val() ) 
                 $("#buttonL").prop('disabled', true);
                 
             $("#linksMenu").trigger('click');
@@ -2407,7 +2407,7 @@ function scanGeometries() {
         // code to run if the request succeeds;
         // the response is passed to the function
         success: function (responseJSON) {
-            $('#dataLabel').text(responseJSON.result.message);
+            $('#fg-dataset-label').text(responseJSON.result.message);
             //alert('tom');
             FAGI.Utilities.disableSpinner();
             if (responseJSON.result.statusCode == 0)

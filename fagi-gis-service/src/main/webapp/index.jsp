@@ -46,14 +46,14 @@
             
             str = request.getParameter("dataset-a");
             if ( str == null ) 
-                request.setAttribute("dataset-a", "http://localhost:8890/DAV/wik_demo");
+                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm");
                 //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
             else
                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
             
             str = request.getParameter("dataset-b");
             if ( str == null ) 
-                request.setAttribute("dataset-b", "http://localhost:8890/DAV/osm_demo");
+                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik");
                 //request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
             else
                 request.setAttribute("dataset-b", request.getParameter("dataset-b"));
@@ -76,8 +76,8 @@
             
             str = request.getParameter("postgis-username");
             if ( str == null ) 
-                //request.setAttribute("postgis-username", "nickvitsas");
-                request.setAttribute("postgis-username", "postgres");
+                request.setAttribute("postgis-username", "nickvitsas");
+                //request.setAttribute("postgis-username", "postgres");
                 //request.setAttribute("postgis-username", "fagi");
             else
                 request.setAttribute("postgis-username", request.getParameter("postgis-username"));
@@ -303,49 +303,95 @@
         <div id="dialog" style="ui-dialog-titlebar" title="Connections">
             <div id="mainPanel">
                 <div id="datasetPanel">
+                    
                     <form id="dataDiv" name="data_input">
-                    <!-- Linux IMIS -->
-                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="<% out.println(request.getAttribute("dataset-a"));%>" title="Named Graph for Dataset A"/>
-                        <!-- Windows IMIS 
-                        Dataset A: <input type="text" name="da_name" id="idDatasetA" class="centered" value="http://localhost:8890/DAV/osm_berlin'"/> -->
-                        <!-- Mac OS X 
-                        Dataset A: <input list="datalist1" type="text" id="idDatasetA" name="da_name" class="centered" value="http://localhost:8890/DAV/osm" title="Named Graph for Dataset A"/> -->
-                        <datalist id="datalist1"></datalist>
-                        SPARQL Endpoint A: <input type="text" name="da_end" class="centered" value="<% out.println(request.getAttribute("endpoint-a"));%>" title="SPARQL Endpoint for Dataset A."/> 
-                        <!-- Linux IMIS -->
-                        <div id="fg-auth-dropdown-a">
-                            <h3>Authenticate</h3>
-                            <<div>
-                                <table style="table-layout: fixed; width: 100%;">
-                                    <tr>
-                                        <td >User</td>
-                                        <td><input id="fg-auth-user-a" type="text" value=""/></td>
-                                        <td >Pass</td>
-                                        <td><input id="fg-auth-pass-a" type="text" value=""/></td>
-                                    </tr>
-                                </table>
+                        <div class="form-group">
+                            <label for="fg-dataset-input-a">Dataset A:</label>
+                            <input id="fg-dataset-input-a" type="text" name="da_name" value="<% out.println(request.getAttribute("dataset-a"));%>" title="Named Graph for Dataset A" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-endpoint-input-a">SPARQL Endpoint A:</label>
+                            <input id="fg-endpoint-input-a" type="text" name="da_end" value="<% out.println(request.getAttribute("endpoint-a"));%>" title="Named Graph for Dataset A" class="form-control">
+                        </div>
+                        <div class="panel-group">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h1 class="panel-title">
+                                        <a data-toggle="collapse" href="#fg-auth-dropdown-a" style="color: black; font-size: 10;">Authenticate</a>
+                                    </h1>
+                                </div>
+                                <div id="fg-auth-dropdown-a" class="panel-collapse collapse">
+                                    <div class="panel-body">
+                                        <table style="table-layout: fixed; width: 100%;">
+                                            <tr>
+                                                <td >User</td>
+                                                <td><input id="fg-auth-user-a" type="text" value=""/></td>
+                                                <td >Pass</td>
+                                                <td><input id="fg-auth-pass-a" type="text" value=""/></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="<% out.println(request.getAttribute("dataset-b"));%>" title="Named Graph for Dataset B"/>
-                        <!-- Windows IMIS 
-                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost/DAV/wik"/ title="We ask for your age only for statistical purposes."> -->
-                        <!-- Mac OS X 
-                        Dataset B: <input type="text" name="db_name" id="idDatasetB" class="centered" value="http://localhost:8890/DAV/wik"/> -->
-                        SPARQL Endpoint B: <input type="text" name="db_end" class="centered" value="<% out.println(request.getAttribute("endpoint-b"));%>" title="SPARQL Endpoint for Dataset A."/>
-                        <div id="fg-auth-dropdown-b">
-                            <h3>Authenticate</h3>
-                            <div>
-                                <table style="table-layout: fixed; width: 100%;">
-                                    <tr>
-                                        <td >User</td>
-                                        <td><input id="fg-auth-user-b" type="text" value=""/></td>
-                                        <td >Pass</td>
-                                        <td><input id="fg-auth-pass-b" type="text" value=""/></td>
-                                    </tr>
-                                </table>
+                        <div class="form-group">
+                            <label for="fg-dataset-input-b">Dataset B:</label>
+                            <input id="fg-dataset-input-b" type="text" name="db_name" value="<% out.println(request.getAttribute("dataset-b"));%>" title="Named Graph for Dataset A" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-endpoint-input-b">SPARQL Endpoint A:</label>
+                            <input id="fg-endpoint-input-b" type="text" name="db_end" value="<% out.println(request.getAttribute("endpoint-b"));%>" title="Named Graph for Dataset A" class="form-control">
+                        </div>
+                        <div class="panel-group">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h1 class="panel-title">
+                                        <a data-toggle="collapse" href="#fg-auth-dropdown-b" style="color: black; font-size: 10;">Authenticate</a>
+                                    </h1>
+                                </div>
+                                <div id="fg-auth-dropdown-b" class="panel-collapse collapse">
+                                    <div class="panel-body">
+                                        <table style="table-layout: fixed; width: 100%;">
+                                            <tr>
+                                                <td >User</td>
+                                                <td><input id="fg-auth-user-b" type="text" value=""/></td>
+                                                <td >Pass</td>
+                                                <td><input id="fg-auth-pass-b" type="text" value=""/></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        Target Graph: <input type="text" name="t_graph" class="centered" value="<% out.println(request.getAttribute("target-dataset"));%>" title="Name of the target Dataset"/>
+                        <div class="form-group">
+                            <label for="fg-dataset-input-t">Target Graph:</label>
+                            <input id="fg-dataset-input-t" type="text" name="t_graph" value="<% out.println(request.getAttribute("target-dataset"));%>" title="Named Graph for the Target Dataset" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-endpoint-input-t">SPARQL Endpoint Target:</label>
+                            <input id="fg-endpoint-input-t" type="text" name="t_end" value="<% out.println(request.getAttribute("target-endpoint"));%>" title="Endpoint if the target dataset" class="form-control">
+                        </div>
+                        <div class="panel-group">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h1 class="panel-title">
+                                        <a data-toggle="collapse" href="#fg-auth-dropdown-t" style="color: black; font-size: 10;">Authenticate</a>
+                                    </h1>
+                                </div>
+                                <div id="fg-auth-dropdown-t" class="panel-collapse collapse">
+                                    <div class="panel-body">
+                                        <table style="table-layout: fixed; width: 100%;">
+                                            <tr>
+                                                <td >User</td>
+                                                <td><input id="fg-auth-user-t" type="text" value=""/></td>
+                                                <td >Pass</td>
+                                                <td><input id="fg-auth-pass-t" type="text" value=""/></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <table>
                             <tbody>
                                 <tr>
@@ -354,42 +400,35 @@
                                 </tr>
                             </tbody>
                         </table>
-                        SPARQL Endpoint Target: <input type="text" name="t_end" class="centered" value="<% out.println(request.getAttribute("target-endpoint"));%>" title="SPARQL Endpoint of the target dataset."/>
-                        <div id="fg-auth-dropdown-t">
-                            <h3>Authenticate</h3>
-                            <div>
-                                <table style="table-layout: fixed; width: 100%;">
-                                    <tr>
-                                        <td>User</td>
-                                        <td><input id="fg-auth-user-t" type="text" value=""/></td>
-                                        <td>Pass</td>
-                                        <td><input id="fg-auth-pass-t" type="text" value=""/></td>
-                                    </tr>
-                                </table>
+                        <div class="form-group">
+                            <label for="fg-dataset-input-l">Target Graph:</label>
+                            <input id="fg-dataset-input-l" type="text" name="l_graph" value="<% out.println(request.getAttribute("dataset-l"));%>" title="Named Graph for the Target Dataset" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-endpoint-input-l">SPARQL Endpoint Target:</label>
+                            <input id="fg-endpoint-input-l" type="text" name="l_end" value="<% out.println(request.getAttribute("endpoint-l"));%>" title="Endpoint if the target dataset" class="form-control">
+                        </div>
+                        <div class="panel-group">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h1 class="panel-title">
+                                        <a data-toggle="collapse" href="#fg-auth-dropdown-l" style="color: black; font-size: 10;">Authenticate</a>
+                                    </h1>
+                                </div>
+                                <div id="fg-auth-dropdown-l" class="panel-collapse collapse">
+                                    <div class="panel-body">
+                                        <table style="table-layout: fixed; width: 100%;">
+                                            <tr>
+                                                <td >User</td>
+                                                <td><input id="fg-auth-user-l" type="text" value=""/></td>
+                                                <td >Pass</td>
+                                                <td><input id="fg-auth-pass-l" type="text" value=""/></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        Links Graph: <input id="fg-links-graph" type="text" name="l_graph" class="centered" value="<% out.println(request.getAttribute("dataset-l"));%>" title="Name of the links Datase.t(Leave empty if provided through file)"/>
-                        SPARQL Endpoint Links <input id="fg-links-endpoint" type="text" name="l_end" class="centered" value="<% out.println(request.getAttribute("endpoint-l"));%>" title="SPARQL Endpoint of the links dataset.(Leave empty if provided through file)"/>
-                        <div id="fg-auth-dropdown-l">
-                            <h3>Authenticate</h3>
-                            <div>
-                                <table style="table-layout: fixed; width: 100%;">
-                                    <tr>
-                                        <td>User</td>
-                                        <td><input id="fg-auth-user-l" type="text" value=""/></td>
-                                        <td>Pass</td>
-                                        <td><input id="fg-auth-pass-l" type="text" value=""/></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                        <!--Bulk Insert Dir: <input type="text" id="ider" name="bulk" class="centered" value="/home/fagi/Desktop/"/>-->
-                        <!-- Linux IMIS 
-                        Bulk Insert Dir: <input type="text" name="bulk" class="centered" value="/home/nick/Projects/FAGI-gis-master/"/> -->
-                        <!-- Mac OS X 
-                        Bulk Insert Dir: <input type="text" name="bulk" class="centered" value="/Users/nickvitsas/Downloads"/> -->
-                        <!-- Windows IMIS 
-                        Bulk Insert Dir: <input type="text" name="bulk" class="centered" value="C:\Users\nick\Downloads\virtuoso-opensource\database"/> -->
                         <table>
                             <tbody>
                                 <tr>
@@ -400,7 +439,7 @@
                             </tbody>
                         </table>
 
-                        <label id="dataLabel" for="male">No dataset selected</label><input id="dataButton" type="submit" value="Submit" style="float:right" onclick="return false;"/>
+                        <label id="fg-dataset-label" for="male">No dataset selected</label><input id="dataButton" type="submit" value="Submit" style="float:right" onclick="return false;"/>
 
                     </form>
                 </div>
@@ -415,17 +454,30 @@
                 </div>
                 <div id="connectionPanel">
                     <form id="connDiv" name="conn_input"><p />
-                        Virtuoso URL: <input type="text" name="v_url" class="centered" value="<% out.println(request.getAttribute("postgis-host")+":"+request.getAttribute("postgis-port"));%>"/>
-                        Virtuoso Username: <input type="text" name="v_name" class="centered" value="dba"/>
-                        Virtuoso Password: <input type="password" name="v_pass" class="centered" value="dba"/>
-                        <!-- Linux IMIS 
-                        PostGIS Username: <input type="text" name="p_name" class="centered" value="postgres"/> -->
-                        <!-- Windows IMIS 
-                        PostGIS Username: <input type="text" name="p_name" class="centered" value="postgres"/> -->
-                        <!-- Mac OS X -->
-                        PostGIS Username: <input type="text" name="p_name" class="centered" value="<% out.println(request.getAttribute("postgis-username"));%>"/> 
-                        PostGIS Database <input type="text" name="p_data" class="centered" value="<% out.println(request.getAttribute("postgis-database"));%>"/>
-                        PostGIS Password: <input type="password" name="p_pass" class="centered" value="<% out.println(request.getAttribute("postgis-password"));%>" title="Password for PostGIS instance"/>
+                        <div class="form-group">
+                            <label for="fg-virt-url">Virtuoso URL:</label>
+                            <input tid="fg-virt-url" ype="text" name="v_url" value="<% out.println(request.getAttribute("postgis-host")+":"+request.getAttribute("postgis-port"));%>" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-virt-name">Virtuoso Username:</label>
+                            <input id="fg-virt-name" type="text" name="v_name" value="dba" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-virt-pass">Virtuoso Password:</label>
+                            <input id="fg-virt-pass" type="password" name="v_pass" value="dba" class="form-control">
+                        </div>
+                         <div class="form-group">
+                            <label for="fg-post-name">PostGIS Username:</label>
+                            <input id="fg-post-name" ype="text" name="p_name" value="<% out.println(request.getAttribute("postgis-username"));%>" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-post-db">PostGIS Database</label>
+                            <input id="fg-post-db" type="text" name="p_data" value="<% out.println(request.getAttribute("postgis-database"));%>" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-post-pass">PostGIS Password:</label>
+                            <input id="fg-post-pass" type="password" name="p_pass" value="dba" class="form-control" value="<% out.println(request.getAttribute("postgis-username"));%>">
+                        </div>
                         <label id="connLabel" for="male">Connection not established</label><input id="connButton" type="submit" value="Submit" style="float:right" onclick="return false;"/>
                     </form>
                 </div>

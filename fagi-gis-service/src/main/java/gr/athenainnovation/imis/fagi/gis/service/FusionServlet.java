@@ -260,18 +260,8 @@ public class FusionServlet extends HttpServlet {
             success = false;
 
             return success;
-        } finally {
-            try {
-                if (dbConn != null) {
-                    dbConn.close();
-                }
-            } catch (SQLException sqlex) {
-                LOG.trace("SQLException thrown when closeing connection");
-                LOG.debug("SQLException thrown when closeing connection : " + sqlex.getMessage());
-                LOG.debug("SQLException thrown when closeing connection : " + sqlex.getSQLState());
-            }
         }
-
+           
         // Get geometry of bot entities from PostGIS
         String selectLinkedGeoms = "SELECT ST_asText(a_g) as ga, ST_asText(b_g) as gb\n"
                 + "FROM links \n"
@@ -352,14 +342,7 @@ public class FusionServlet extends HttpServlet {
         
         try {
             
-            try {
-                out = response.getWriter();
-            } catch (IOException ex) {
-                LOG.trace("IOException thrown in servlet Writer");
-                LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage() );
-                
-                return;
-            }
+            out = response.getWriter();
             
             ret = new JSONFusion();
             res = new JSONRequestResult();
@@ -531,9 +514,10 @@ public class FusionServlet extends HttpServlet {
                 
                 String newPropertyName = selectedPreds[j];
                 String prevPropertyName = selectedPreds[j + 1];
-                //System.out.println("Breaking on " + prevPropertyName);
-                // 
                 String[] queryStrings = prevPropertyName.split(Constants.PROPERTY_SEPARATOR);
+                for ( String s : queryStrings ) {
+                    System.out.println("Ludacris : " + s);
+                }
                 String queryA = queryStrings[0];
                 String queryB = queryStrings[1];
 
@@ -546,12 +530,10 @@ public class FusionServlet extends HttpServlet {
             System.out.println("Geom JSON " + mapper.writeValueAsString(ret));
 
             for (Map.Entry<String, AbstractFusionTransformation> entry : FuserPanel.transformations.entrySet()) {
-                //System.out.println("Transformation "+entry.getKey());
                 ret.getGeomTransforms().add(entry.getKey());
             }
 
             for (Map.Entry<String, String> entry : FuserPanel.meta_transformations.entrySet()) {
-                //System.out.println("Transformation "+entry.getKey());
                 ret.getMetaTransforms().add(entry.getKey());
             }
 
@@ -560,19 +542,35 @@ public class FusionServlet extends HttpServlet {
             // the state will be in the session
             sess.setAttribute("fstate", ft);
 
-            //System.out.println(mapper.writeValueAsString(ret));
+            System.out.println(mapper.writeValueAsString(ret));
             out.println(mapper.writeValueAsString(ret));
         } catch (JsonProcessingException ex) {
             LOG.trace("JsonProcessingException thrown");
             LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
             
+            throw new ServletException("Error parsing JSON");
         } catch ( java.lang.OutOfMemoryError oome) {
             LOG.trace("OutOfMemoryError thrown");
             LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
             
+            throw new ServletException("Tomcat out of memory");
+        } catch (IOException ex) {
+            LOG.trace("IOException thrown in servlet Writer");
+            LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage());
+
+            throw new ServletException("Error opening servlet output");
         } finally {
             if ( vSet != null ) {
                 vSet.close();
+            }
+            if ( dbConn != null ) {
+                try {
+                    dbConn.close();
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown in connection close");
+                    LOG.debug("SQLException thrown in connection close : \n" + ex.getMessage());
+                    LOG.debug("SQLException thrown in connection close : \n" + ex.getSQLState());
+                }
             }
             if (out != null) {
                 out.close();

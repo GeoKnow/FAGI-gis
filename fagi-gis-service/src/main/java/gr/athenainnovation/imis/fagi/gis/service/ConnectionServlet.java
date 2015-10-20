@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.log4j.Appender;
@@ -81,6 +82,21 @@ public class ConnectionServlet extends HttpServlet {
             ARQ.setExecutionLogging(Explain.InfoLevel.ALL) ;
             Logger logger = Log.getFAGILogger();
             logger.setLevel(Level.DEBUG);
+            Enumeration e = logger.getAllAppenders();
+            System.out.println(e.toString());
+            while (e.hasMoreElements()) {
+                Appender app = (Appender) e.nextElement();
+                if ( app instanceof FileAppender) {
+                    FileAppender fapp = (FileAppender)app;
+                    if (SystemUtils.IS_OS_MAC_OSX) {
+                        fapp.setFile("/Users/nickvitsas/Desktop/log.txt");
+                    }
+                    else if (SystemUtils.IS_OS_WINDOWS)  {
+                        
+                    }
+                }
+                    
+            }
             
             /*
              Enumeration e = logger.getAllAppenders();

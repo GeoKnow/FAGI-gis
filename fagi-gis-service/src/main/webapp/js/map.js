@@ -2542,10 +2542,10 @@ function onLinkFeatureSelect(event) {
                     $(row).get(0).newPred = e.target.value;
                     $(row).find("td")[1].innerHTML = e.target.value;
                 });
-                console.log(node.innerHTML);
-                console.log(node.long_name);
-                console.log(node.newPred);
-                console.log(node.rowIndex);
+                //console.log(node.innerHTML);
+                //console.log(node.long_name);
+                //console.log(node.newPred);
+                //console.log(node.rowIndex);
                 document.getElementById("linkMatchList").appendChild(node);
                 updateFusionTable(node);
             }
@@ -2671,7 +2671,7 @@ function updateBFusionTable(node) {
 }
 
 function updateFusionTable(node) {
-    console.log(current_feature == null);
+    //console.log(current_feature == null);
     if (current_feature != null) {
         var sendData = new Array();
         sendData[sendData.length] = current_feature.attributes.a;
@@ -2745,7 +2745,7 @@ function fusionPanel(event, val, node) {
         recommendation.owlClassB[recommendation.owlClassB.length] = element;
     });
     //alert(JSON.stringify(recommendation));
-    
+    /*
     $.ajax({
         // request type
         type: "POST",
@@ -2760,23 +2760,12 @@ function fusionPanel(event, val, node) {
         success: function (responseJson) {
             //alert(JSON.stringify(responseJson));
             $('#classRecommendation').html("");
-            /*$('#classRecommendation').append($("<option></option>")
-                .attr("value",responseJson.tagA)
-                .text(responseJson.tagA)); 
-            $('#classRecommendation').append($("<option></option>")
-                .attr("value",responseJson.tagB)
-                .text(responseJson.tagB)); 
-            */
             $.each(responseJson.tagList, function (index, element) {
                 $('#classRecommendation').append($("<option></option>")
                 .attr("value",element)
                 .text(element)); 
             });
             $('#geoTrans option[value="'+responseJson.predictedFusionAction+'"]').attr('selected', 'selected');
-            /*avail_classes = "";
-            $.each(responseJson.tag, function (index, element) {
-                avail_trans += "<option value=\"" + element + "\">" + element + "</option>";
-            });*/
         },
         // code to run if the request fails; the raw request and
         // status codes are passed to the function
@@ -2790,7 +2779,7 @@ function fusionPanel(event, val, node) {
         complete: function (xhr, status) {
             //$('#connLabel').text("connected");
         }
-    });
+    });*/
     
     var geom_typeA = val.geomsA[0].substring(0, val.geomsA[0].indexOf("("));
     var geom_typeB = val.geomsB[0].substring(0, val.geomsB[0].indexOf("("));
@@ -2810,9 +2799,9 @@ function fusionPanel(event, val, node) {
 //" Description: <textarea name=\"textarea\" style=\"width:99%;height:50px;\" class=\"centered\"></textarea>\n"+
             " <table class=\"rwd-table\" border=1 id=\"fusionTable\">\n" +
             " <tr>\n" +
-            " <td>Value from " + $('#idDatasetA').val() + "</td>\n" +
+            " <td>Value from " + $('#fg-dataset-input-a').val() + "</td>\n" +
             " <td>Predicate</td>\n" +
-            " <td>Value from " + $('#idDatasetB').val() + "</td>\n" +
+            " <td>Value from " + $('#fg-dataset-input-b').val() + "</td>\n" +
             " <td>Action</td>\n" +
 //" <td style=\"width:20%; text-align: center;\" align=\"left\" valign=\"bottom\">Result</td>\n"+
             " </tr>\n" +

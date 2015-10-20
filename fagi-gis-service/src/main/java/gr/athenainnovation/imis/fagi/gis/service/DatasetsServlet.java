@@ -112,6 +112,11 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setGraphL(request.getParameter("l_graph"));
             graphConf.setEndpointL(request.getParameter("l_end"));
 
+            System.out.println(graphConf.getEndpointA());
+            System.out.println(graphConf.getEndpointB());
+            System.out.println(graphConf.getGraphA());
+            System.out.println(graphConf.getGraphB());
+            
             // [FAGI_TODOs] add checks 
             graphConf.setTargetGraph(targetGraph);
             graphConf.setTargetTempGraph(targetTempGraph);
