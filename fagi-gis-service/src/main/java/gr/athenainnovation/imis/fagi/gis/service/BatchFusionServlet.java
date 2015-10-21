@@ -37,6 +37,7 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
+import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import gr.athenainnovation.imis.fusion.gis.utils.Utilities;
 import static gr.athenainnovation.imis.fusion.gis.utils.Utilities.isURLToLocalInstance;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
@@ -562,17 +563,18 @@ public class BatchFusionServlet extends HttpServlet {
                     lastIndex = createClusterGraph(clusterLinks, lastIndex, grConf, vSet);
                 else 
                     lastIndex = createLinksGraphBatch(linkList, lastIndex, grConf, vSet);
-                
-                if ( Constants.LATE_FETCH ) {
-                    
-                }
-                
+                                
                 // Perform Metadata Fusion
                 for (int i = 1; i < selectedFusions.length; i++) {
+                    if (Constants.LATE_FETCH) {
+                        //lateFetchData(i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
+                    }
                     handleMetadataFusion(selectedFusions[i].action, i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
                 }
 
             } while ( lastIndex != 0);
+            
+            SPARQLUtilities.clearFusedLinks(grConf, activeCluster, vSet.getConnection());
             
             System.out.println(mapper.writeValueAsString(ret));
             
@@ -592,6 +594,7 @@ public class BatchFusionServlet extends HttpServlet {
     }
     
     private void lateFetchData(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
+            System.out.println("\n\n\n\n\nLATE FETCHING\n\n\n");
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lstA = (List<String>) sess.getAttribute("property_patternsA");
@@ -668,7 +671,7 @@ public class BatchFusionServlet extends HttpServlet {
             //String[] rightPreTokens = rightPre.split(",");
             String[] mainPattern = leftProp.split(",");
 
-            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lstB);
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(leftProp, lstA);
 
             StringBuilder q = new StringBuilder();
             String prev_s = "";
@@ -696,7 +699,7 @@ public class BatchFusionServlet extends HttpServlet {
                 }
                 getFromA.append("} }\nWHERE\n");
                 getFromA.append("{\n");
-                getFromA.append(" GRAPH <" + grConf.getSampleLinksGraph() + "> { ");
+                getFromA.append(" GRAPH <" + grConf.getLinksGraph()+ "> { ");
                 if (grConf.isDominantA()) {
                     getFromA.append(" ?s ?same ?o } .\n");
                 } else {
@@ -732,6 +735,8 @@ public class BatchFusionServlet extends HttpServlet {
                 getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
                 getFromA.append("}");
 
+                System.out.println("LATE FETCH " + getFromA.toString());
+                
                 getFromB.append("sparql INSERT\n");
                 getFromB.append("  { GRAPH <").append(grConf.getMetadataGraphB()).append("> {\n");
                 if (grConf.isDominantA()) {
@@ -2143,7 +2148,6 @@ public class BatchFusionServlet extends HttpServlet {
                 }
                 q.append("FILTER isLiteral("+prev_s+")} }");
                 
-                q.append("} }");
                 System.out.println(q.toString());
                 PreparedStatement stmt;
                 stmt = virt_conn.prepareStatement(q.toString());

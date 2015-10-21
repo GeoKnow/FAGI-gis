@@ -158,7 +158,7 @@ public class SchemaMatchServlet extends HttpServlet {
             }
             
             virt_conn = vSet.getConnection();
-            success = SPARQLUtilities.createLinksGraph(lst, virt_conn, grConf, "");
+            success = SPARQLUtilities.createLinksGraph(lst, grConf.getLinksGraph(), virt_conn, grConf, "");
             
             if ( !success ) {
                 LOG.trace("Failed to create Links Graph for matching");
@@ -175,7 +175,7 @@ public class SchemaMatchServlet extends HttpServlet {
             }
             
             VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
-            SchemaMatchState sms = virtImp.scanProperties(3, null);
+            SchemaMatchState sms = virtImp.scanProperties(3, null, (Boolean)sess.getAttribute("make-swap"));
             
             if ( sms == null ) {
                 LOG.trace("Failed to create SchemaMatchState");
@@ -202,6 +202,16 @@ public class SchemaMatchServlet extends HttpServlet {
             matches.setGeomTransforms(sms.geomTransforms);
             matches.setMetaTransforms(sms.metaTransforms);
             
+            List<String> lstProp = sms.getPropertyList("A");
+            System.out.println("\n\n\n\n\nPROPERTIES A\n\n\n\n\n\n\n");
+            for ( String prope : lstProp ) {
+                System.out.println(prope);
+            }
+            lstProp = sms.getPropertyList("B");
+            System.out.println("\n\n\n\n\nPROPERTIES B\n\n\n\n\n\n\n");
+            for ( String prope : lstProp ) {
+                System.out.println(prope);
+            }
             sess.setAttribute("property_patternsA", sms.getPropertyList("A"));
             sess.setAttribute("property_patternsB", sms.getPropertyList("B"));
             sess.setAttribute("predicates_matches", sms);

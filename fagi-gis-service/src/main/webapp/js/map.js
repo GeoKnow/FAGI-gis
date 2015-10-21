@@ -559,7 +559,7 @@ FAGI.MapUI.Callbacks.Linking = {
         
         requestEntity.geom = FAGI.MapUI.FAGI.MapUI.wkt.extractGeometry ( FAGI.ActiveState.activeFeature.geometry.getCentroid(true) );
         //alert(JSON.stringify(requestEntity));
-        FAGI.ActiveState.activeFeature.geometry.transform(WGS84, FAGI.MapUI.map.getProjectionObject());
+        FAGI.ActiveState.activeFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
         FAGI.Utilities.enableSpinner();
         $.ajax({
             // request type

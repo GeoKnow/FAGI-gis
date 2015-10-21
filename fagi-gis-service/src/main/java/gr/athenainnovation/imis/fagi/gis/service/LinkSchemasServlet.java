@@ -287,7 +287,7 @@ public class LinkSchemasServlet extends HttpServlet {
             lp.nodeB = links.get(s);
 
             VirtuosoImporter virtImp = (VirtuosoImporter) sess.getAttribute("virt_imp");
-            SchemaMatchState sms = virtImp.scanProperties(3, s);
+            SchemaMatchState sms = virtImp.scanProperties(3, s, (Boolean)sess.getAttribute("make-swap"));
             matches.foundA = sms.foundA;
             matches.foundB = sms.foundB;
             

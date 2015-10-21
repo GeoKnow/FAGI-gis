@@ -364,7 +364,7 @@ function createSingleUnvalidatedLinks(feat, links) {
                 featB[0].attributes.links[featB[0].attributes.links.length] = retFeat;
             } else {
                 var polygonFeature = FAGI.MapUI.wkt.read(element.geomB);
-                polygonFeature.geometry.transform(WGS84, FAGI.MapUI.map.getProjectionObject());
+                polygonFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
                 polygonFeature.attributes = {'links': [], 'a': element.subB, 'cluster': 'Unset', 'opacity': 0.3, 'oGeom': FAGI.MapUI.wkt.write(polygonFeature)};
                 var retFeat = createUnvalidatedLink(feat, polygonFeature);
                 
@@ -393,7 +393,7 @@ function createSingleUnvalidatedLinks(feat, links) {
                 featB[0].attributes.links[featB[0].attributes.links.length] = retFeat;
             } else {
                 var polygonFeature = FAGI.MapUI.wkt.read(element.geomB);
-                polygonFeature.geometry.transform(WGS84, FAGI.MapUI.map.getProjectionObject());
+                polygonFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
                 polygonFeature.attributes = {'links': [], 'a': element.subB, 'cluster': 'Unset', 'opacity': 0.3, 'oGeom': FAGI.MapUI.wkt.write(polygonFeature)};
                 var retFeat = createUnvalidatedLink(polygonFeature, feat);
                 
@@ -413,7 +413,7 @@ function createSingleUnvalidatedLinks(feat, links) {
 
 function createUnvalidatedLinkWithGeom(feat, elem, layer) {
     polygonFeature = FAGI.MapUI.wkt.read(elem);
-    polygonFeature.geometry.transform(WGS84, FAGI.MapUI.map.getProjectionObject());
+    polygonFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
 
     var start_point = polygonFeature.geometry.getCentroid(true);
     var end_point = feat.geometry.getCentroid(true);
@@ -1202,7 +1202,7 @@ function addGeom(feat, geom) {
     if (Object.prototype.toString.call(linkFeature) === '[object Array]') {
         //alert('Array');
         for (var i = 0; i < linkFeature.length; i++) {
-            linkFeature[i].geometry.transform(WGS84, FAGI.MapUI.map.getProjectionObject());
+            linkFeature[i].geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
             linkFeature[i].attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
             linkFeature[i].validated = true;
             linkFeature[i].prev_fused = true;
@@ -1213,7 +1213,7 @@ function addGeom(feat, geom) {
         toDeleteFeatures[toDeleteFeatures.length] = feat;
     } else {
         //alert('reached');
-        linkFeature.geometry.transform(WGS84, FAGI.MapUI.map.getProjectionObject());
+        linkFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
         linkFeature.attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
         
         //alert('done feature '+linkFeature);

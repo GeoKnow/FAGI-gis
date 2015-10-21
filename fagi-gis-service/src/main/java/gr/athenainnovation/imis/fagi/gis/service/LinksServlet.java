@@ -332,6 +332,8 @@ public class LinksServlet extends HttpServlet {
             }
             iter.close();
 
+            sess.setAttribute("make-swap", makeSwap);
+            
             iter = model.listStatements();
             while (iter.hasNext()) {
                 final Statement statement = iter.nextStatement();
@@ -450,7 +452,7 @@ public class LinksServlet extends HttpServlet {
             }
 
             // Upload links to Virtusoso graph
-            succeeded = SPARQLUtilities.createLinksGraph(output, vSet.getConnection(), grConf, dbConf.getBulkDir());
+            succeeded = SPARQLUtilities.createLinksGraph(output, grConf.getAllLinksGraph(), vSet.getConnection(), grConf, dbConf.getBulkDir());
             if ( !succeeded ) {
                 LOG.trace("Link graph creation failed");
                 LOG.debug("Link graph creation failed");
@@ -572,7 +574,7 @@ public class LinksServlet extends HttpServlet {
             if ( Constants.LATE_FETCH ) {
                 
             } else {
-                virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true);
+                virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true, (Boolean)sess.getAttribute("make-swap"));
             }
             final String createGraph = "SPARQL CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
 
