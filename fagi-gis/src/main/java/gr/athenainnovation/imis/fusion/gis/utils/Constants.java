@@ -12,7 +12,7 @@ package gr.athenainnovation.imis.fusion.gis.utils;
 public class Constants {
     
     // Whether to use Late Fetching
-    public static final boolean     LATE_FETCH = false;
+    public static final boolean     LATE_FETCH = true;
     
     //Postgres URL
     public static final String      DB_URL = "jdbc:postgresql:";

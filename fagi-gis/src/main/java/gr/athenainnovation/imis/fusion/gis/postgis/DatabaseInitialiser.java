@@ -118,7 +118,9 @@ public class DatabaseInitialiser {
     private Connection connect(final String dbName, final String dbUsername, final String dbPassword) throws SQLException {
         final String url = Constants.DB_URL.concat(dbName);
         final Connection dbConn = DriverManager.getConnection(url, dbUsername, dbPassword);
-        dbConn.setAutoCommit(false);
+        // Only time we use autocommit ON because
+        // you cannot create a DB in transactional mode
+        dbConn.setAutoCommit(true);
         LOG.info(ANSI_YELLOW+"Connection to db established."+ANSI_RESET);
         
         return dbConn;

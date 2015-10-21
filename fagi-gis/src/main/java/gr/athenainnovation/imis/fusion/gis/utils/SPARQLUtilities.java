@@ -30,9 +30,90 @@ public class SPARQLUtilities {
     
     private static final Logger LOG = Log.getClassFAGILogger(SPARQLUtilities.class);
     
-    public static boolean createLinksGraph(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) {
-        final String dropGraph = "SPARQL DROP SILENT GRAPH <"+ grConf.getAllLinksGraph()+  ">";
-        final String createGraph = "SPARQL CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
+    public static boolean clearFusedLinks(GraphConfig grConf, int activeCluster, Connection virt_conn) {
+        final String dropCluster = "SPARQL DROP SILENT GRAPH <"+ grConf.getClusterGraph()+  ">";
+        final String dropAllCluster = "SPARQL DROP SILENT GRAPH <"+ grConf.getAllClusterGraph()+  ">";
+        final String dropLinks = "SPARQL DROP SILENT GRAPH <"+ grConf.getLinksGraph()+  ">";
+        final String dropAllLinks = "SPARQL DROP SILENT GRAPH <"+ grConf.getAllLinksGraph()+  ">";
+        final String clearAllClusterAllLinkJoin =   "SPARQL DELETE WHERE {\n"
+                                                    + "\n"
+                                                    + "    GRAPH <"+grConf.getAllLinksGraph()+"> {\n"
+                                                    + "    ?s <http://www.w3.org/2002/07/owl#sameAs> ?o }\n"
+                                                    + "    GRAPH <"+grConf.getAllClusterGraph()+"> {\n"
+                                                    + "    ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } \n"
+                                                    + "}";
+        
+        System.out.println("DELETE ALL " + clearAllClusterAllLinkJoin);
+        
+        if (activeCluster > 0) {
+            try (PreparedStatement dropAllClusterStmt = virt_conn.prepareStatement(dropAllCluster);
+                 PreparedStatement dropClusterStmt = virt_conn.prepareStatement(dropCluster);
+                 PreparedStatement clearAllClusterAllLinkJoinStmt = virt_conn.prepareStatement(clearAllClusterAllLinkJoin)) {
+
+                clearAllClusterAllLinkJoinStmt.execute();
+                dropClusterStmt.execute();
+                dropAllClusterStmt.execute();
+
+            } catch (SQLException ex) {
+                LOG.trace("Dropping fused links failed");
+                LOG.debug("Dropping fused links failed");
+            }
+        } else {
+            try (PreparedStatement dropLinkStmt = virt_conn.prepareStatement(dropLinks);
+                 PreparedStatement dropAllLinkStmt = virt_conn.prepareStatement(dropAllLinks)) {
+
+                dropLinkStmt.execute();
+                dropAllLinkStmt.execute();
+
+            } catch (SQLException ex) {
+                LOG.trace("Dropping fused links failed");
+                LOG.debug("Dropping fused links failed");
+            }
+        }
+        
+        return true;
+    }
+    
+    public static boolean updateLastAccess(String graph, Connection virt_conn) {
+    
+        return true;
+    }
+    /*
+    public static boolean clearFusedLink(String sub, GraphConfig grConf, Connection virt_conn) {
+        final String clearLinkFromAll =   "SPARQL DELETE WHERE {\n"
+                                              + "\n"
+                                              + "    GRAPH <"+grConf.getAllLinksGraph()+"> {\n"
+                                              + "    <"+sub+"> <http://www.w3.org/2002/07/owl#sameAs> ?o }\n"
+                                              + "    GRAPH <"+grConf.getAllClusterGraph()+"> {\n"
+                                              + "    <"+sub+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } \n"
+                                              + "    GRAPH <"+grConf.getAllClusterGraph()+"> {\n"
+                                              + "    <"+sub+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } \n"
+                                              + "}";
+        
+        System.out.println("DELETE ALL " + clearLinkFromAll);
+        
+        
+        try (PreparedStatement dropAllClusterStmt = virt_conn.prepareStatement(dropAllCluster);
+             PreparedStatement dropClusterStmt = virt_conn.prepareStatement(dropCluster);
+             PreparedStatement dropLinkStmt = virt_conn.prepareStatement(dropLinks);
+             PreparedStatement clearAllClusterAllLinkJoinStmt = virt_conn.prepareStatement(clearAllClusterAllLinkJoin)) {
+            
+            clearAllClusterAllLinkJoinStmt.execute();
+            dropLinkStmt.execute();
+            dropClusterStmt.execute();
+            dropAllClusterStmt.execute();
+            
+        } catch (SQLException ex) {
+            LOG.trace("Dropping fused links failed");
+            LOG.debug("Dropping fused links failed");
+        }
+        return true;
+    }
+    */
+    
+    public static boolean createLinksGraph(List<Link> lst, String linkGraph, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) {
+        final String dropGraph = "SPARQL DROP SILENT GRAPH <"+ linkGraph+  ">";
+        final String createGraph = "SPARQL CREATE GRAPH <"+ linkGraph+  ">";
         
         boolean success = true;
 
@@ -48,8 +129,8 @@ public class SPARQLUtilities {
             dropStmt.close();
             
         } catch (SQLException ex) {
-            LOG.trace("Dropping "+grConf.getAllLinksGraph()+" failed");
-            LOG.debug("Dropping "+grConf.getAllLinksGraph()+" failed");
+            LOG.trace("Dropping "+linkGraph+" failed");
+            LOG.debug("Dropping "+linkGraph+" failed");
             
             success = false;
             return success;
@@ -60,8 +141,8 @@ public class SPARQLUtilities {
             createStmt.close();
             
         } catch (SQLException ex) {
-            LOG.trace("Creating "+grConf.getAllLinksGraph()+" failed");
-            LOG.debug("Creating "+grConf.getAllLinksGraph()+" failed");
+            LOG.trace("Creating "+linkGraph+" failed");
+            LOG.debug("Creating "+linkGraph+" failed");
             
             success = false;
             return success;
@@ -69,17 +150,17 @@ public class SPARQLUtilities {
         
         
         //bulkInsertLinks(lst, virt_conn, bulkInsertDir);
-        success = SPARQLInsertLink(lst, grConf, virt_conn);
+        success = SPARQLInsertLink(lst, linkGraph, grConf, virt_conn);
         
         return success;
     }
 
-    private static boolean SPARQLInsertLink(List<Link> l, GraphConfig grConf, Connection virt_conn) {
+    private static boolean SPARQLInsertLink(List<Link> l, String linkGraph, GraphConfig grConf, Connection virt_conn) {
         boolean success = true;
         StringBuilder sb = new StringBuilder();
         
         VirtuosoConnection conn = (VirtuosoConnection) virt_conn;
-        sb.append("SPARQL WITH <" + grConf.getAllLinksGraph() + "> INSERT {");
+        sb.append("SPARQL WITH <" +linkGraph + "> INSERT {");
         sb.append("`iri(??)` <" + Constants.SAME_AS + "> `iri(??)` . } ");
         try ( VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());) {
             System.out.println("Statement " + sb.toString());
@@ -96,16 +177,16 @@ public class SPARQLUtilities {
 
             vstmt.executeBatch();
         } catch (VirtuosoException ex) {
-            LOG.trace("VirtuosoException on "+grConf.getAllLinksGraph()+" failed");
-            LOG.debug("VirtuosoException on "+grConf.getAllLinksGraph()+" failed : " + ex.getMessage());
-            LOG.debug("VirtuosoException on "+grConf.getAllLinksGraph()+" failed : " + ex.getSQLState());
+            LOG.trace("VirtuosoException on "+linkGraph+" failed");
+            LOG.debug("VirtuosoException on "+linkGraph+" failed : " + ex.getMessage());
+            LOG.debug("VirtuosoException on "+linkGraph+" failed : " + ex.getSQLState());
             
             success = false;
             return success;
         } catch (BatchUpdateException ex) {
-            LOG.trace("BatchUpdateException on "+grConf.getAllLinksGraph()+" failed");
-            LOG.debug("BatchUpdateException on "+grConf.getAllLinksGraph()+" failed : " + ex.getMessage());
-            LOG.debug("BatchUpdateException on "+grConf.getAllLinksGraph()+" failed : " + ex.getSQLState());
+            LOG.trace("BatchUpdateException on "+linkGraph+" failed");
+            LOG.debug("BatchUpdateException on "+linkGraph+" failed : " + ex.getMessage());
+            LOG.debug("BatchUpdateException on "+linkGraph+" failed : " + ex.getSQLState());
             
             success = false;
             return success;

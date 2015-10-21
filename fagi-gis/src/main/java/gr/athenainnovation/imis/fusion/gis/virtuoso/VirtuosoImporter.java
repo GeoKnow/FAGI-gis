@@ -569,7 +569,7 @@ public final class VirtuosoImporter {
         }
     }
 
-    public boolean insertLinksMetadataChains(List<Link> links, final String fusedGraph, boolean scanProperties) { //metadata go in the new fusedGraph. the method is called from FuserWorker 
+    public boolean insertLinksMetadataChains(List<Link> links, final String fusedGraph, boolean scanProperties, boolean swpped) { //metadata go in the new fusedGraph. the method is called from FuserWorker 
         boolean success = true;
 
         long starttime, endtime;
@@ -1177,7 +1177,7 @@ public final class VirtuosoImporter {
         //System.out.println(root);
     }
 
-    public SchemaMatchState scanProperties(int optDepth, String link) {
+    public SchemaMatchState scanProperties(int optDepth, String link, Boolean swapped) {
         boolean success = true;
         
         try {
@@ -1429,11 +1429,10 @@ public final class VirtuosoImporter {
                 getFromA.append("} }\nWHERE\n");
                 getFromA.append("{\n");
                 getFromA.append(" GRAPH <" + gr_c.getSampleLinksGraph() + "> { ");
-                if (gr_c.isDominantA()) {
-                    getFromA.append(" ?s ?same ?o } .\n");
-                } else {
-                    getFromA.append(" ?o ?same ?s } .\n");
-                }
+                //if ( swapped )
+                    getFromA.append(" ?s <"+Constants.SAME_AS+"> ?o } .\n");     
+                //else
+                //    getFromA.append(" ?o <"+Constants.SAME_AS+"> ?s } .\n");                
                 if (isEndpointALocal) {
                     getFromA.append(" GRAPH <").append(gr_c.getGraphA()).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
                 } else {
@@ -1463,11 +1462,10 @@ public final class VirtuosoImporter {
                 getFromB.append("} }\nWHERE\n");
                 getFromB.append("{\n");
                 getFromB.append(" GRAPH <" + gr_c.getSampleLinksGraph() + "> { ");
-                if (gr_c.isDominantA()) {
-                    getFromB.append(" ?s ?same ?o } .\n");
-                } else {
-                    getFromB.append(" ?o ?same ?s } .\n");
-                }
+                //if ( swapped )
+                    getFromB.append(" ?s <"+Constants.SAME_AS+"> ?o } .\n");     
+                //else
+                    //getFromB.append(" ?o <"+Constants.SAME_AS+"> ?s } .\n");  
                 if (isEndpointBLocal) {
                     getFromB.append(" GRAPH <").append(gr_c.getGraphB()).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
                 } else {
