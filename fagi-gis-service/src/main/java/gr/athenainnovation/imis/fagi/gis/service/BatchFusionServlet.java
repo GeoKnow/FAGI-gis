@@ -567,14 +567,14 @@ public class BatchFusionServlet extends HttpServlet {
                 // Perform Metadata Fusion
                 for (int i = 1; i < selectedFusions.length; i++) {
                     if (Constants.LATE_FETCH) {
-                        //lateFetchData(i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
+                        lateFetchData(i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
                     }
                     handleMetadataFusion(selectedFusions[i].action, i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
                 }
 
             } while ( lastIndex != 0);
             
-            SPARQLUtilities.clearFusedLinks(grConf, activeCluster, vSet.getConnection());
+            //SPARQLUtilities.clearFusedLinks(grConf, activeCluster, vSet.getConnection());
             
             System.out.println(mapper.writeValueAsString(ret));
             
@@ -594,7 +594,8 @@ public class BatchFusionServlet extends HttpServlet {
     }
     
     private void lateFetchData(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
-            System.out.println("\n\n\n\n\nLATE FETCHING\n\n\n");
+        //System.out.println("\n\n\n\n\nLATE FETCHING\n\n\n");
+        long startTime, endTime;
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lstA = (List<String>) sess.getAttribute("property_patternsA");
@@ -666,6 +667,92 @@ public class BatchFusionServlet extends HttpServlet {
 
         isEndpointBLocal = isURLToLocalInstance(grConf.getEndpointB()); //"localhost" for localhost
 
+        for (String rightProp : rightPres) {
+            //String[] leftPreTokens = leftPre.split(",");
+            //String[] rightPreTokens = rightPre.split(",");
+            String[] mainPattern = rightProp.split(",");
+
+            List<String> patterns = Utilities.findCommonPrefixedPropertyChains(rightProp, lstB);
+
+            StringBuilder q = new StringBuilder();
+            String prev_s = "";
+            System.out.println("Patterns " + patterns);
+
+            for (String pattern : patterns) {
+                q.setLength(0);
+
+                String[] rightPreTokens = pattern.split(",");
+
+                System.out.println("Pattern : " + pattern);
+                System.out.println("Right Tokens : " + rightPreTokens.length);
+                System.out.println("Main Pattern : " + mainPattern.length);
+                getFromB.append("SPARQL INSERT\n");
+                getFromB.append("  { GRAPH <").append(grConf.getMetadataGraphB()).append("> {\n");
+                if (grConf.isDominantA()) {
+                    getFromB.append(" ?s <" + rightPreTokens[0] + "> ?o0 . \n");
+                } else {
+                    getFromB.append(" ?o <" + rightPreTokens[0] + "> ?o0 . \n");
+                }
+                prev_s = "?o0";
+                for (int i = 1; i < rightPreTokens.length; i++) {
+                    getFromB.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
+                    prev_s = "?o" + i;
+                }
+                getFromB.append("} }\nWHERE\n");
+                getFromB.append("{\n");
+                getFromB.append(" GRAPH <" + grConf.getLinksGraph()+ "> { ");
+                if (grConf.isDominantA()) {
+                    getFromB.append(" ?o ?same ?s } .\n");
+                } else {
+                    getFromB.append(" ?s ?same ?o } .\n");
+                }
+                if (isEndpointALocal) {
+                    getFromB.append(" GRAPH <").append(grConf.getGraphB()).append("> {\n");
+                    getFromB.append(" ?s <" + rightPreTokens[0] + "> ?o0 . \n");
+                    prev_s = "?o0";
+                    for (int i = 1; i < rightPreTokens.length; i++) {
+                        getFromB.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
+                        prev_s = "?o" + i;
+                    }
+                    getFromB.append(" }\n");
+                } else {
+                    getFromB.append(" SERVICE <" + grConf.getEndpointB() + "> { GRAPH <").append(grConf.getGraphB()).append("> { \n");
+                    getFromB.append(" ?o <" + rightPreTokens[0] + "> ?o0 . \n");
+                    prev_s = "?o0";
+                    for (int i = 1; i < rightPreTokens.length; i++) {
+                        getFromA.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
+                        prev_s = "?o" + i;
+                    }
+                    getFromB.append(" } }\n");
+                }
+                getFromB.append("}");
+
+                System.out.println("LATE FETCH " + getFromB.toString());
+                
+                int tries = 0;
+                startTime = System.nanoTime();
+                while (tries < Constants.MAX_SPARQL_TRIES) {
+                    try (PreparedStatement populateDataB = virt_conn.prepareStatement(getFromB.toString())) {
+
+                        populateDataB.executeUpdate();
+
+                    } catch (SQLException ex) {
+
+                        LOG.trace("SQLException thrown during temp graph populating");
+                        LOG.debug("SQLException thrown during temp graph populating Try : " + (tries + 1));
+                        LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
+                        LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
+
+                        tries++;
+                    }
+                }
+                endTime = System.nanoTime();
+                    
+                LOG.info("Uploading B lasted "+Utilities.nanoToSeconds(endTime-startTime));
+                    
+            }
+        }
+        
         for (String leftProp : leftPres) {
             //String[] leftPreTokens = leftPre.split(",");
             //String[] rightPreTokens = rightPre.split(",");
@@ -688,11 +775,11 @@ public class BatchFusionServlet extends HttpServlet {
                 getFromA.append("SPARQL INSERT\n");
                 getFromA.append("  { GRAPH <").append(grConf.getMetadataGraphA()).append("> {\n");
                 if (grConf.isDominantA()) {
-                    getFromA.append(" ?s <" + leftPreTokens[0] + "> ?o1 . \n");
+                    getFromA.append(" ?s <" + leftPreTokens[0] + "> ?o0 . \n");
                 } else {
-                    getFromA.append(" ?o <" + leftPreTokens[0] + "> ?o1 . \n");
+                    getFromA.append(" ?o <" + leftPreTokens[0] + "> ?o0 . \n");
                 }
-                prev_s = "?o1";
+                prev_s = "?o0";
                 for (int i = 1; i < leftPreTokens.length; i++) {
                     getFromA.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                     prev_s = "?o" + i;
@@ -706,9 +793,9 @@ public class BatchFusionServlet extends HttpServlet {
                     getFromA.append(" ?o ?same ?s } .\n");
                 }
                 if (isEndpointALocal) {
-                    getFromA.append(" GRAPH <").append(grConf.getGraphA()).append("> {  }\n");
-                    getFromA.append(" ?s <" + leftPreTokens[0] + "> ?o1 . \n");
-                    prev_s = "?o1";
+                    getFromA.append(" GRAPH <").append(grConf.getGraphA()).append("> {\n");
+                    getFromA.append(" ?s <" + leftPreTokens[0] + "> ?o0 . \n");
+                    prev_s = "?o0";
                     for (int i = 1; i < leftPreTokens.length; i++) {
                         getFromA.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                         prev_s = "?o" + i;
@@ -716,111 +803,39 @@ public class BatchFusionServlet extends HttpServlet {
                     getFromA.append(" }\n");
                 } else {
                     getFromA.append(" SERVICE <" + grConf.getEndpointA() + "> { GRAPH <").append(grConf.getGraphA()).append("> { \n");
-                    getFromA.append(" ?o <" + leftPreTokens[0] + "> ?o1 . \n");
-                    prev_s = "?o1";
+                    getFromA.append(" ?o <" + leftPreTokens[0] + "> ?o0 . \n");
+                    prev_s = "?o0";
                     for (int i = 1; i < leftPreTokens.length; i++) {
                         getFromA.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
                         prev_s = "?o" + i;
                     }
                     getFromA.append(" } }\n");
                 }
-                getFromA.append("\n");
-                getFromA.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
-                getFromA.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
-                getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
-                getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
-                getFromA.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
-                getFromA.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
-                getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
-                getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
                 getFromA.append("}");
 
                 System.out.println("LATE FETCH " + getFromA.toString());
                 
-                getFromB.append("sparql INSERT\n");
-                getFromB.append("  { GRAPH <").append(grConf.getMetadataGraphB()).append("> {\n");
-                if (grConf.isDominantA()) {
-                    getFromB.append(" ?s ?p ?o1 . \n");
-                } else {
-                    getFromB.append(" ?o ?p ?o1 . \n");
-                }
-                getFromB.append(" ?o1 ?p4 ?o3 .\n");
-                getFromB.append(" ?o3 ?p5 ?o4 .\n");
-                getFromB.append(" ?o4 ?p6 ?o5 \n");
-                getFromB.append("} }\nWHERE\n");
-                getFromB.append("{\n");
-                getFromB.append(" GRAPH <" + grConf.getSampleLinksGraph() + "> { ");
-                if (grConf.isDominantA()) {
-                    getFromB.append(" ?s ?same ?o } .\n");
-                } else {
-                    getFromB.append(" ?o ?same ?s } .\n");
-                }
-                if (isEndpointBLocal) {
-                    getFromB.append(" GRAPH <").append(grConf.getGraphB()).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
-                } else {
-                    getFromB.append(" SERVICE <" + grConf.getEndpointB() + "> { GRAPH <").append(grConf.getGraphB()).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
-                }
-                getFromB.append("\n");
-                getFromB.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
-                getFromB.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
-                getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
-                getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
-                getFromB.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
-                getFromB.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
-                getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
-                getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
-                getFromB.append("}");
-
-                /*
-                 prev_s = "?s";
-                 for (int i = 0; i < leftPreTokens.length - 2; i++) {
-                 insq.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");
-                 prev_s = "?o" + i;
-                 }
-                 insq.append(prev_s + " <" + domOnto + newPred + simplified + "> " + "?o" + (leftPreTokens.length - 1) + "");
-                 insq.append(" } } WHERE {");
-                 if (activeCluster > -1) {
-                 if (grConf.isDominantA()) {
-                 insq.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                 } else {
-                 insq.append("GRAPH <"+ grConf.getClusterGraph()+"> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                 }
-                 } else {
-                 if (grConf.isDominantA()) {
-                 insq.append("GRAPH <"+ grConf.getLinksGraph()+  "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
-                 } else {
-                 insq.append("GRAPH <"+ grConf.getLinksGraph()+  "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
-                 }
-                 }
-                 insq.append("\n GRAPH <" + grConf.getMetadataGraphA() + "> {");
-                 prev_s = "?s";
-                 for (int i = 0; i < leftPreTokens.length - 1; i++) {
-                 insq.append(prev_s + " <" + leftPreTokens[i] + "> " + "?o" + i + " . ");
-                 prev_s = "?o" + i;
-                 }
-                 insq.append(prev_s + " <" + leftPreTokens[leftPreTokens.length - 1] + "> " + "?o" + (leftPreTokens.length - 1) + " . ");
-
-                 insq.append("} }");
-                 */
-                System.out.println("GET FROM B \n" + getFromB);
-                System.out.println("GET FROM B \n" + getFromA);
-
                 // Populate with data from the Sample Liink set
-                try (PreparedStatement populateDataA = virt_conn.prepareStatement(getFromA.toString());
-                        PreparedStatement populateDataB = virt_conn.prepareStatement(getFromB.toString())) {
-                    //starttime = System.nanoTime();
+                int tries = 0;
+                startTime = System.nanoTime();
+                while (tries < Constants.MAX_SPARQL_TRIES) {
+                    try (PreparedStatement populateDataA = virt_conn.prepareStatement(getFromA.toString())) {
 
-                    populateDataA.executeUpdate();
-                    //populateDataB.executeUpdate();
+                        populateDataA.executeUpdate();
 
-                } catch (SQLException ex) {
+                    } catch (SQLException ex) {
 
-                    LOG.trace("SQLException thrown during temp graph populating");
-                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
-                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
+                        LOG.trace("SQLException thrown during temp graph populating");
+                        LOG.debug("SQLException thrown during temp graph populating Try : " + (tries + 1));
+                        LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
+                        LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
 
-                    //success = false;
+                        tries++;
+                    }
                 }
+                endTime = System.nanoTime();
+                    
+                LOG.info("Uploading A lasted "+Utilities.nanoToSeconds(endTime-startTime));
             }
         }
     }

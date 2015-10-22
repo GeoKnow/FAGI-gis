@@ -16,16 +16,21 @@ import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.ImporterWorker;
 import gr.athenainnovation.imis.fusion.gis.json.JSONLoadLinksResult;
 import gr.athenainnovation.imis.fusion.gis.json.JSONMatches;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.SchemaMatchState;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.ScoredMatch;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,6 +45,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
@@ -175,6 +181,107 @@ public class SchemaMatchServlet extends HttpServlet {
             }
             
             VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
+            if (Constants.LATE_FETCH) {
+
+                Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
+                final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, null);
+                datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
+                    @Override
+                    public void propertyChange(PropertyChangeEvent evt) {
+                        if ("progress".equals(evt.getPropertyName())) {
+                            //System.out.println("Tom");
+                        }
+                    }
+                });
+
+                Dataset sourceBDataset = new Dataset(grConf.getEndpointB(), grConf.getGraphB(), "");
+                final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_B, sourceBDataset, null, null);
+                datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
+                    @Override
+                    public void propertyChange(PropertyChangeEvent evt) {
+                        if ("progress".equals(evt.getPropertyName())) {
+                            //System.out.println("Tom2");
+                        }
+                    }
+                });
+
+                // Fire threads for uploading
+                datasetAImportWorker.execute();
+                datasetBImportWorker.execute();
+
+                // Get thread run results
+                Boolean retA, retB;
+                try {
+                    retB = datasetAImportWorker.get();
+                    retA = datasetBImportWorker.get();
+                } catch (InterruptedException | ExecutionException ex) {
+                    LOG.trace("Thread execution failed");
+                    LOG.debug("Thread execution failed");
+                    matches.getResult().setStatusCode(-1);
+                    matches.getResult().setMessage("Upload thread execution failed");
+
+                    out.println(mapper.writeValueAsString(matches));
+
+                    out.close();
+
+                    return;
+                }
+
+                if ((retA == false) || (retB == false)) {
+                    LOG.trace("Thread execution failed");
+                    LOG.debug("Thread execution failed");
+                    matches.getResult().setStatusCode(-1);
+                    matches.getResult().setMessage("Problem with link upload cleanup");
+
+                    out.println(mapper.writeValueAsString(matches));
+
+                    out.close();
+
+                    return;
+                }
+                LOG.trace("SQLException after");
+
+                LOG.trace("SQLException before");
+                // Recreate target temp graph
+                final String dropTempGraph = "SPARQL DROP SILENT GRAPH <" + grConf.getTargetTempGraph() + ">";
+                final String createTempGraph = "SPARQL CREATE GRAPH <" + grConf.getTargetTempGraph() + ">";
+
+                PreparedStatement stmt = null;
+                try {
+                    stmt = virt_conn.prepareStatement(dropTempGraph);
+                    stmt.execute();
+
+                    stmt = virt_conn.prepareStatement(dropTempGraph);
+                    stmt.execute();
+
+                    stmt.close();
+
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown");
+                    LOG.debug("SQLException thrown : " + ex.getMessage());
+                    LOG.debug("SQLException thrown : " + ex.getSQLState());
+                    matches.getResult().setStatusCode(-1);
+                    matches.getResult().setMessage("Problem with destroying Target Temporary graph");
+
+                    out.println(mapper.writeValueAsString(matches));
+
+                    out.close();
+
+                    return;
+                } finally {
+                    try {
+                        if (stmt != null) {
+                            stmt.close();
+                        }
+                    } catch (SQLException ex) {
+                        LOG.trace("SQLException thrown during statement close");
+                        LOG.debug("SQLException thrown during statement close : " + ex.getMessage());
+                        LOG.debug("SQLException thrown during statement close : " + ex.getSQLState());
+                    }
+                }
+                
+            }
+            
             SchemaMatchState sms = virtImp.scanProperties(3, null, (Boolean)sess.getAttribute("make-swap"));
             
             if ( sms == null ) {

@@ -1381,6 +1381,7 @@ function schemaMatch() {
         //alert(($(this).text()));
         //alert(getText($(this).get(0)));
         links[links.length] = getText( $(this).parent().get(0) );
+        //alert(getText($(this).get(0)));
     });
     /*
     for (var i = 0; i < listItem.length; i++) {
@@ -1416,6 +1417,8 @@ function schemaMatch() {
             schemaListA.innerHTML = "";
             
             document.getElementById("bFusionOptions").style.display = 'none';
+            
+            //$('#linksList').html("");
             
             initBatchFusionTable(responseJson);
             
