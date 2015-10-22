@@ -36,6 +36,11 @@ public class Constants {
     // That a SPARQL query can handle
     public static final int         BATCH_SIZE = 10000;
     
+    // In case of failures, how many times to repeat a query until giving up
+    public static final int         MAX_SPARQL_TRIES = 3;
+    
+    public static final float       NANOS_PER_SECOND = 1000000000f;
+    
     // Number of links to use for property matching sampling
     public static final int         SAMPLE_SIZE = 20;  
     

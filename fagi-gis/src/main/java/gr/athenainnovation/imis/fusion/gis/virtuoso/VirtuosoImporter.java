@@ -573,6 +573,7 @@ public final class VirtuosoImporter {
         boolean success = true;
 
         long starttime, endtime;
+        long startTime, endTime;
 
         // For compatibility with the CLI version
         if (!scanProperties) {
@@ -620,7 +621,7 @@ public final class VirtuosoImporter {
         starttime = System.nanoTime();
         //testThreads(links);
         endtime = System.nanoTime();
-        LOG.info(ANSI_YELLOW + "Thread test lasted " + ((endtime - starttime) / 1000000000f) + "" + ANSI_RESET);
+        //LOG.info(ANSI_YELLOW + "Thread test lasted " + ((endtime - starttime) / 1000000000f) + "" + ANSI_RESET);
 
         boolean isEndpointALocal = false;
         boolean isEndpointBLocal = false;
@@ -714,38 +715,77 @@ public final class VirtuosoImporter {
             if (!success) {
                 break;
             }
+/*
+            int tries = 0;
+                startTime = System.nanoTime();
+                while (tries < Constants.MAX_SPARQL_TRIES) {
+                   
+                        LOG.debug("SQLException thrown during temp graph populating Try : " + (tries + 1));
+                endTime = System.nanoTime();
+                    
+                LOG.info("Uploading A lasted "+Utilities.nanoToSeconds(endTime-startTime));*/
+            
+            int tries = 0;
+            startTime = System.nanoTime();
+            while (tries < Constants.MAX_SPARQL_TRIES) {
+                try (PreparedStatement getFromBStmt = virt_conn.prepareStatement(getFromA.toString())) {
+                    starttime = System.nanoTime();
 
-            try {
-                starttime = System.nanoTime();
+                    getFromBStmt.executeUpdate();
 
-                tempStmt = virt_conn.prepareStatement(getFromA.toString());
-                tempStmt.executeUpdate();
-
-                tempStmt = virt_conn.prepareStatement(getFromB.toString());
-                tempStmt.executeUpdate();
-
-            } catch (SQLException ex) {
-
-                LOG.trace("SQLException thrown during temp graph populating");
-                LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
-                LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
-
-                success = false;
-
-                return success;
-
-            } finally {
-                try {
-                    tempStmt.close();
                 } catch (SQLException ex) {
-                    LOG.trace("SQLException thrown during statement closing");
-                    LOG.debug("SQLException thrown during statement closing : " + ex.getMessage());
-                    LOG.debug("SQLException thrown during statement closing : " + ex.getSQLState());
+
+                    LOG.trace("SQLException thrown during temp graph B populating");
+                    LOG.debug("SQLException thrown during temp graph B populating Try : " + (tries + 1));
+                    LOG.debug("SQLException thrown during temp graph B populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp graph B populating : " + ex.getSQLState());
+
+                    tries++;
+                    
                 }
             }
 
-            endtime = System.nanoTime();
-            LOG.info("Metadata main parsed in " + (endtime - starttime) / 1000000000f);
+            if ( tries == Constants.MAX_SPARQL_TRIES) {
+                success = false;
+                return success;
+            }
+            
+            endTime = System.nanoTime();
+
+            LOG.info("Uploading A lasted " + Utilities.nanoToSeconds(endTime - startTime));
+
+            tries = 0;
+            startTime = System.nanoTime();
+            while (tries < Constants.MAX_SPARQL_TRIES) {
+                try (PreparedStatement getFromAStmt = virt_conn.prepareStatement(getFromA.toString())) {
+                    starttime = System.nanoTime();
+
+                    getFromAStmt.executeUpdate();
+
+                } catch (SQLException ex) {
+
+                    LOG.trace("SQLException thrown during temp graph A populating");
+                    LOG.debug("SQLException thrown during temp graph A populating Try : " + (tries + 1));
+                    LOG.debug("SQLException thrown during temp graph A populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp graph A populating : " + ex.getSQLState());
+
+                    tries++;
+
+                }
+            }
+            
+            if ( tries == Constants.MAX_SPARQL_TRIES) {
+                success = false;
+                return success;
+            }
+            
+            endTime = System.nanoTime();
+
+            LOG.info("Uploading B lasted " + Utilities.nanoToSeconds(endTime - startTime));
+            
+            
+            //endtime = System.nanoTime();
+            //LOG.info("Metadata main parsed in " + (endtime - starttime) / 1000000000f);
             i += Constants.BATCH_SIZE;
             count++;
         }

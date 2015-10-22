@@ -5,6 +5,7 @@
  */
 package gr.athenainnovation.imis.fusion.gis.utils;
 
+import static gr.athenainnovation.imis.fusion.gis.utils.Constants.NANOS_PER_SECOND;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.NetworkInterface;
@@ -73,6 +74,10 @@ public class Utilities {
         }
         
         return isLocal;
+    }
+    
+    public static float nanoToSeconds(long nano) {
+        return nano / NANOS_PER_SECOND;
     }
     
     public static List<String> findCommonPrefixedPropertyChains(String pattern, List<String> patterns) {
