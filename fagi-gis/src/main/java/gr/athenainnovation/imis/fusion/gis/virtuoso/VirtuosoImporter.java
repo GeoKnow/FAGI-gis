@@ -1217,7 +1217,7 @@ public final class VirtuosoImporter {
         //System.out.println(root);
     }
 
-    public SchemaMatchState scanProperties(int optDepth, String link, Boolean swapped) {
+    public SchemaMatchState scanProperties(int optDepth, String linkA, String linkB, Boolean swapped) {
         boolean success = true;
         
         try {
@@ -1261,7 +1261,105 @@ public final class VirtuosoImporter {
         foundB.clear();
         
         // If it' s a per link matching
-        if (link != null) {
+        if ( linkA != null && linkB != null ) {
+            // If we are using Late Fetch Optimisation we need to create
+            // the temp graphs here
+            if (Constants.LATE_FETCH) {
+                StringBuilder getFromB = new StringBuilder();
+                StringBuilder getFromA = new StringBuilder();
+
+                boolean isEndpointALocal;
+                boolean isEndpointBLocal;
+
+                isEndpointALocal = isURLToLocalInstance(gr_c.getEndpointA()); //"localhost" for localhost
+
+                isEndpointBLocal = isURLToLocalInstance(gr_c.getEndpointB()); //"localhost" for localhost
+
+                getFromA.append("SPARQL INSERT\n");
+                getFromA.append("  { GRAPH <").append(gr_c.getMetadataGraphA()).append("> {\n");
+                if (gr_c.isDominantA()) {
+                    getFromA.append(" <"+linkA+"> ?p ?o1 . \n");
+                } else {
+                    getFromA.append(" <"+linkB+"> ?p ?o1 . \n");
+                }
+                getFromA.append(" ?o1 ?p4 ?o3 .\n");
+                getFromA.append(" ?o3 ?p5 ?o4 .\n");
+                getFromA.append(" ?o4 ?p6 ?o5\n");
+                getFromA.append("} }\nWHERE\n");
+                getFromA.append("{\n");               
+                if (isEndpointALocal) {
+                    getFromA.append(" GRAPH <").append(gr_c.getGraphA()).append("> { {<"+linkA+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+                } else {
+                    getFromA.append(" SERVICE <" + gr_c.getEndpointA() + "> { GRAPH <").append(gr_c.getGraphA()).append("> { {<"+linkA+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
+                }
+                getFromA.append("\n");
+                getFromA.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+                getFromA.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+                getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+                getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+                getFromA.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+                getFromA.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+                getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+                getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+                getFromA.append("}");
+
+                getFromB.append("sparql INSERT\n");
+                getFromB.append("  { GRAPH <").append(gr_c.getMetadataGraphB()).append("> {\n");
+                if (gr_c.isDominantA()) {
+                    getFromB.append(" <"+linkA+"> ?p ?o1 . \n");
+                } else {
+                    getFromB.append(" <"+linkB+"> ?p ?o1 . \n");
+                }
+                getFromB.append(" ?o1 ?p4 ?o3 .\n");
+                getFromB.append(" ?o3 ?p5 ?o4 .\n");
+                getFromB.append(" ?o4 ?p6 ?o5 \n");
+                getFromB.append("} }\nWHERE\n");
+                getFromB.append("{\n"); 
+                if (isEndpointBLocal) {
+                    getFromB.append(" GRAPH <").append(gr_c.getGraphB()).append("> { {<"+linkB+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+                } else {
+                    getFromB.append(" SERVICE <" + gr_c.getEndpointB() + "> { GRAPH <").append(gr_c.getGraphB()).append("> { {<"+linkB+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
+                }
+                getFromB.append("\n");
+                getFromB.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+                getFromB.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+                getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+                getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+                getFromB.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+                getFromB.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+                getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+                getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+                getFromB.append("}");
+
+                System.out.println("GET FROM B \n" + getFromB);
+                System.out.println("GET FROM B \n" + getFromA);
+             
+                // Populate with data from the Sample Liink set
+                try (PreparedStatement populateDataA = virt_conn.prepareStatement(getFromA.toString());
+                        PreparedStatement populateDataB = virt_conn.prepareStatement(getFromB.toString())) {
+                    //starttime = System.nanoTime();
+
+                    populateDataA.executeUpdate();
+                    populateDataB.executeUpdate();
+
+                } catch (SQLException ex) {
+
+                    LOG.trace("SQLException thrown during temp graph populating");
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
+
+                    success = false;
+
+                }
+
+            }
+            
+            String link;
+            if (gr_c.isDominantA()) {
+                link = linkA;
+            } else {
+                link = linkB;
+            }
             for (int i = 0; i < optDepth + 1; i++) {
                 //System.out.println("DEPTH: "+i);
                 StringBuilder query = new StringBuilder();

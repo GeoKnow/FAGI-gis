@@ -13,6 +13,7 @@ public class Constants {
     
     // Whether to use Late Fetching
     public static final boolean     LATE_FETCH = true;
+    public static final boolean     MAP_STREAM = false;
     
     //Postgres URL
     public static final String      DB_URL = "jdbc:postgresql:";
@@ -21,14 +22,23 @@ public class Constants {
     
     // This is the FAGI-gis prefered hasGeometry predicate
     public static final String      HAS_GEOMETRY_REGEX = "http://www.opengis.net/ont/geosparql#hasGeometry";
-        
+    public static final String      HAS_GEOMETRY = HAS_GEOMETRY_REGEX;
+    public static final String      GEOMETRY_TYPE_REGEX = "http://www.openlinksw.com/schemas/virtrdf#Geometry";
+    
     // The REQUIRED FAGI gis Well Known Text predicate
     public static final String      AS_WKT_REGEX = "http://www.opengis.net/ont/geosparql#asWKT";
-    
+    public static final String      WKT = AS_WKT_REGEX;
+    public static final String      WKT_LITERAL_REGEX = "http://www.opengis.net/ont/geosparql#wktLiteral";
+        
     // Basic WGS predicates
     public static final String      LONG_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#long";
     public static final String      LAT_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#lat";
     
+    // Properties for inserting OSM Rec class recommendations
+    public static final String      OWL_CLASS = "http://www.w3.org/2002/07/owl#Class";
+    public static final String      LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
+    public static final String      TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+
     // This is the FAGI-gis REQUIRED link predicate
     public static final String      SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
 
@@ -42,7 +52,7 @@ public class Constants {
     public static final float       NANOS_PER_SECOND = 1000000000f;
     
     // Number of links to use for property matching sampling
-    public static final int         SAMPLE_SIZE = 20;  
+    public static final int         SAMPLE_SIZE = 5;  
     
     // FAGI special property Separator
     public static final String      PROPERTY_SEPARATOR = "=>";

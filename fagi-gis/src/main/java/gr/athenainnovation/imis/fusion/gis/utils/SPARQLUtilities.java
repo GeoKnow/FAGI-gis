@@ -5,22 +5,32 @@
  */
 package gr.athenainnovation.imis.fusion.gis.utils;
 
+import com.hp.hpl.jena.query.ParameterizedSparqlString;
+import com.hp.hpl.jena.update.UpdateExecutionFactory;
+import com.hp.hpl.jena.update.UpdateProcessor;
+import com.hp.hpl.jena.update.UpdateRequest;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Level;
+import org.apache.jena.atlas.web.auth.HttpAuthenticator;
+import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.log4j.Logger;
 import virtuoso.jdbc4.VirtuosoConnection;
 import virtuoso.jdbc4.VirtuosoException;
 import virtuoso.jdbc4.VirtuosoPreparedStatement;
+import virtuoso.jdbc4.VirtuosoResultSet;
+import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
@@ -29,6 +39,23 @@ import virtuoso.jdbc4.VirtuosoPreparedStatement;
 public class SPARQLUtilities {
     
     private static final Logger LOG = Log.getClassFAGILogger(SPARQLUtilities.class);
+    
+    // Various Geometry Query Factories
+    public static String formInsertQuery(String tGraph, String subject, String fusedGeometry) { 
+        return "INSERT INTO <" + tGraph + "> { <" + subject + "> <" + Constants.HAS_GEOMETRY + "> _:a . _:a <" + Constants.WKT + "> \"" + fusedGeometry + "\"^^<"+Constants.WKT_LITERAL_REGEX+"> }";
+    }
+    
+    public static String formInsertGeomQuery(String tGraph, String subject, String fusedGeometry) { 
+        return "INSERT INTO <" + tGraph + "> { <" + subject + "> <" + Constants.HAS_GEOMETRY + "> <" + subject + "_geom> . <" + subject +"_geom> <" + Constants.WKT + "> \"" + fusedGeometry + "\"^^<"+Constants.GEOMETRY_TYPE_REGEX+"> }";
+    }
+    
+    public static String formInsertConcatGeomQuery(String tGraph, String subject, String geomA, String geomB) { 
+        return "INSERT INTO <" + tGraph + "> { <" + subject + "> <" + Constants.HAS_GEOMETRY + "> <" + subject + "_geom> . <" + subject +"_geom> <" + Constants.WKT + "> \"" + "GEOMETRYCOLLECTION("+geomA+", "+geomB+")" + "\"^^<"+Constants.GEOMETRY_TYPE_REGEX+"> }";
+    }
+    
+    public static String formInsertQuery(String tGraph, String subject, String predicate, String object){
+        return "WITH <" + tGraph + "> INSERT { <" + subject +"> <" + predicate +"> " + object +" }";
+    }
     
     public static boolean clearFusedLinks(GraphConfig grConf, int activeCluster, Connection virt_conn) {
         final String dropCluster = "SPARQL DROP SILENT GRAPH <"+ grConf.getClusterGraph()+  ">";
@@ -78,38 +105,6 @@ public class SPARQLUtilities {
     
         return true;
     }
-    /*
-    public static boolean clearFusedLink(String sub, GraphConfig grConf, Connection virt_conn) {
-        final String clearLinkFromAll =   "SPARQL DELETE WHERE {\n"
-                                              + "\n"
-                                              + "    GRAPH <"+grConf.getAllLinksGraph()+"> {\n"
-                                              + "    <"+sub+"> <http://www.w3.org/2002/07/owl#sameAs> ?o }\n"
-                                              + "    GRAPH <"+grConf.getAllClusterGraph()+"> {\n"
-                                              + "    <"+sub+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } \n"
-                                              + "    GRAPH <"+grConf.getAllClusterGraph()+"> {\n"
-                                              + "    <"+sub+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } \n"
-                                              + "}";
-        
-        System.out.println("DELETE ALL " + clearLinkFromAll);
-        
-        
-        try (PreparedStatement dropAllClusterStmt = virt_conn.prepareStatement(dropAllCluster);
-             PreparedStatement dropClusterStmt = virt_conn.prepareStatement(dropCluster);
-             PreparedStatement dropLinkStmt = virt_conn.prepareStatement(dropLinks);
-             PreparedStatement clearAllClusterAllLinkJoinStmt = virt_conn.prepareStatement(clearAllClusterAllLinkJoin)) {
-            
-            clearAllClusterAllLinkJoinStmt.execute();
-            dropLinkStmt.execute();
-            dropClusterStmt.execute();
-            dropAllClusterStmt.execute();
-            
-        } catch (SQLException ex) {
-            LOG.trace("Dropping fused links failed");
-            LOG.debug("Dropping fused links failed");
-        }
-        return true;
-    }
-    */
     
     public static boolean createLinksGraph(List<Link> lst, String linkGraph, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) {
         final String dropGraph = "SPARQL DROP SILENT GRAPH <"+ linkGraph+  ">";
@@ -242,5 +237,264 @@ public class SPARQLUtilities {
                 */
         
         return true;
+    }
+    
+    /**
+     * Uppdates the specified remote graph.
+     * FAGI uses a faster SPARQL 1.1 operation if the
+     * process is happening locally
+     * @param grConf Graph Configuration fro the request
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @return success
+     * @throws SQLException if an SQL error occurs
+     */
+    public static boolean UpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws SQLException {
+       boolean isTargetEndpointLocal = Utilities.isURLToLocalInstance(grConf.getTargetGraph());
+
+        if ( isTargetEndpointLocal ) {
+            LocalUpdateGraphs(grConf, vSet);
+        } else {
+            SPARQLUpdateRemoteEndpoint(grConf, vSet);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Local update of theremote graph with SPARUL ADD
+     * @param grConf Graph Configuration fro the request
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @return success
+     */
+    public static boolean LocalUpdateGraphs(GraphConfig grConf, VirtGraph vSet) {
+        String addNewTriples = "SPARQL ADD GRAPH <" + grConf.getTargetTempGraph() + "> TO GRAPH <" + grConf.getTargetGraph()+ ">";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        boolean success = true;
+        
+        try ( VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(addNewTriples) ) {
+            vstmt.executeUpdate();
+        } catch (VirtuosoException ex) {
+            LOG.trace("VirtuosoException on remote failed");
+            LOG.debug("VirtuosoException on remote failed : " + ex.getMessage());
+            LOG.debug("VirtuosoException on remote failed : " + ex.getSQLState());
+            
+            success = false;
+        }
+        
+        return success;
+    }
+    
+    /**
+     * Remote update through concatenated SPARQL INSERTs
+     * @param grConf Graph Configuration fro the request
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @return success=
+     */
+    public static boolean SPARQLUpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) {
+        String selectURITriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isURI ( ?o ) ) } }";
+        String selectLiteralTriples = "SPARQL SELECT * WHERE { GRAPH <"+grConf.getTargetTempGraph()+"> { ?s ?p ?o FILTER ( isLiteral ( ?o ) ) } }";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        
+        boolean success = true;
+        boolean updating = true;
+        int addIdx = 0;
+        int cSize = 1;
+        int sizeUp = 1;
+        int tries = 0;
+        
+        // As long as there is data this loop creates concatenated SPARQL INSERTs
+        // to update the remote endpoint
+        // Iy uses the SPARQL HTTP protocol for issuing SPARQL commands
+        // on relies on HTTP Exceptions to reissue the inserts
+        
+        while (tries < Constants.MAX_SPARQL_TRIES) {
+            try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectURITriples);
+                    VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery()) {
+                // Different loop for URIs to ease creation of query
+                while (updating) {
+                    try {
+                        ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                        //queryStr.append("WITH <"+grConf.getTargetGraph()+"> ");
+                        queryStr.append("INSERT DATA { ");
+                        queryStr.append("GRAPH <" + grConf.getTargetGraph() + "> {");
+
+                        if (!vrs.next()) {
+                            break;
+                        }
+
+                        for (int i = 0; i < cSize; i++) {
+                            final String sub = vrs.getString(1);
+                            final String pre = vrs.getString(2);
+                            final String obj = vrs.getString(3);
+
+                            queryStr.appendIri(sub);
+                            queryStr.append(" ");
+                            queryStr.appendIri(pre);
+                            queryStr.append(" ");
+                            queryStr.appendIri(obj); // !!!!! URI
+                            queryStr.append(" ");
+                            queryStr.append(".");
+                            queryStr.append(" ");
+
+                            if (!vrs.next()) {
+                                updating = false;
+                                break;
+                            }
+                        }
+
+                        queryStr.append("} }");
+
+                        System.out.println("The insertion query takes this form " + queryStr.toString());
+
+                        cSize *= 2;
+
+                        UpdateRequest q = queryStr.asUpdate();
+                        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                        UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                        insertRemoteB.execute();
+                    } catch (org.apache.jena.atlas.web.HttpException ex) {
+                        System.out.println(ex.getMessage());
+                        cSize = 0;
+                    }
+
+                }
+            } catch (VirtuosoException ex) {
+                tries++;
+            }
+        }
+        
+        if ( tries == Constants.MAX_SPARQL_TRIES ) {
+            success = false;
+            return success;
+        }
+        
+        updating = true;
+        addIdx = 0;
+        cSize = 1;
+        sizeUp = 1;
+        tries = 0;
+        
+        while (tries < Constants.MAX_SPARQL_TRIES) {
+            try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectLiteralTriples);
+                    VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery()) {
+                // Different loop for Literal to ease creation of query
+                while (updating) {
+                    try {
+                        ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                        //queryStr.append("WITH <"+grConf.getTargetGraph()+"> ");
+                        queryStr.append("INSERT DATA { ");
+                        queryStr.append("GRAPH <" + grConf.getTargetGraph() + "> {");
+
+                        if (!vrs.next()) {
+                            break;
+                        }
+
+                        for (int i = 0; i < cSize; i++) {
+                            final String sub = vrs.getString(1);
+                            final String pre = vrs.getString(2);
+                            final String obj = vrs.getString(3);
+
+                            queryStr.appendIri(sub);
+                            queryStr.append(" ");
+                            queryStr.appendIri(pre);
+                            queryStr.append(" ");
+                            queryStr.appendLiteral(obj); // !!!!!! Literal
+                            queryStr.append(" ");
+                            queryStr.append(".");
+                            queryStr.append(" ");
+
+                            if (!vrs.next()) {
+                                updating = false;
+                                break;
+                            }
+                        }
+
+                        queryStr.append("} }");
+
+                        System.out.println("The insertion query takes this form " + queryStr.toString());
+
+                        cSize *= 2;
+
+                        UpdateRequest q = queryStr.asUpdate();
+                        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                        UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
+                        insertRemoteB.execute();
+                    } catch (org.apache.jena.atlas.web.HttpException ex) {
+                        System.out.println(ex.getMessage());
+                        cSize = 0;
+                    }
+
+                }
+            } catch (VirtuosoException ex) {
+                tries++;
+            }
+        }
+        
+        if ( tries == Constants.MAX_SPARQL_TRIES ) {
+            success = false;
+            return success;
+        }
+        
+        return success;
+    }
+    
+    private int createLinksGraphBatch(List<Link> lst, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws SQLException, IOException {
+        final String dropGraph = "sparql DROP SILENT GRAPH <"+grConf.getLinksGraph()+ ">";
+        final String createGraph = "sparql CREATE GRAPH <"+grConf.getLinksGraph()+ ">";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+
+        VirtuosoPreparedStatement dropStmt;
+        long starttime, endtime;
+        dropStmt = (VirtuosoPreparedStatement) conn.prepareStatement(dropGraph);
+        dropStmt.execute();
+        
+        dropStmt.close();
+        
+        VirtuosoPreparedStatement createStmt;
+        createStmt = (VirtuosoPreparedStatement) conn.prepareStatement(createGraph);
+        createStmt.execute();
+        
+        createStmt.close();
+        
+        //BulkInsertLinksBatch(lst, nextIndex);
+        return SPARQLInsertLinksBatch(lst, nextIndex, grConf, vSet);
+    }
+    
+    /**
+     * Bulk Insert a batch of Links thrugh SPARQL
+     * @param lst  A List of Link objects.
+     * @param nextIndex Offset in the list
+     */
+    private int SPARQLInsertLinksBatch(List<Link> l, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SPARQL WITH <"+grConf.getLinksGraph()+ "> INSERT {");
+        sb.append("`iri(??)` <"+Constants.SAME_AS+"> `iri(??)` . } ");
+        System.out.println("Statement " + sb.toString());
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
+                
+        int start = nextIndex;
+        int end = nextIndex + Constants.BATCH_SIZE;
+        if ( end > l.size() ) {
+            end = l.size();
+        }
+        
+        for ( int i = start; i < end; ++i ) {
+            Link link = l.get(i);
+            vstmt.setString(1, link.getNodeA());
+            vstmt.setString(2, link.getNodeB());
+            
+            vstmt.addBatch();
+        }
+        
+        vstmt.executeBatch();
+        
+        vstmt.close();
+        
+        if ( end == l.size() )
+            return 0;
+        else 
+            return end;
+            
     }
 }
