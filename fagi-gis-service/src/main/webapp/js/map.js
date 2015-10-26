@@ -2744,7 +2744,7 @@ function fusionPanel(event, val, node) {
         recommendation.owlClassB[recommendation.owlClassB.length] = element;
     });
     //alert(JSON.stringify(recommendation));
-    
+    /*
     $.ajax({
         // request type
         type: "POST",
@@ -2779,7 +2779,7 @@ function fusionPanel(event, val, node) {
             //$('#connLabel').text("connected");
         }
     });
-    
+    */
     var geom_typeA = val.geomsA[0].substring(0, val.geomsA[0].indexOf("("));
     var geom_typeB = val.geomsB[0].substring(0, val.geomsB[0].indexOf("("));
     avail_trans = "";
@@ -2791,27 +2791,30 @@ function fusionPanel(event, val, node) {
         avail_meta_trans += "<option value=\""+element+"\">" + element + "</option>";
     });
 
-    var s = "<p class=\"geoinfo\" id=\"link_name\">Ludacris</p>\n" +
-//" <div class=\"checkboxes\">\n"+
-//" <label for=\"chk1\"><input type=\"checkbox\" name=\"chk1\" id=\"chk1\" />Flag as misplaced fusion</label><br />\n"+
-//" </div>\n"+
-//" Description: <textarea name=\"textarea\" style=\"width:99%;height:50px;\" class=\"centered\"></textarea>\n"+
+    var s = " <p class=\"geoinfo\" id=\"link_name\">Ludacris</p>\n" +
             " <table class=\"rwd-table\" border=1 id=\"fusionTable\">\n" +
             " <tr>\n" +
             " <td>Value from " + $('#fg-dataset-input-a').val() + "</td>\n" +
             " <td>Predicate</td>\n" +
             " <td>Value from " + $('#fg-dataset-input-b').val() + "</td>\n" +
             " <td>Action</td>\n" +
-//" <td style=\"width:20%; text-align: center;\" align=\"left\" valign=\"bottom\">Result</td>\n"+
             " </tr>\n" +
             " <tr>\n" +
             " <td title=\"" + val.geomsA[0] + "\">" + geom_typeA + "</td>\n" +
             " <td>asWKT</td>\n" +
             " <td title=\"" + val.geomsB[0] + "\">" + geom_typeB + "</td>\n" +
             " <td><select id=\"geoTrans\" style=\"color: black; width: 100%;\">" + avail_trans + "</select></td>\n" +
-//" <td style=\"width:216; text-align: center;\" align=\"left\" valign=\"bottom\">Fused Geom</td>\n"+
             " </tr>\n" +
             " </table>" +
+            " <fieldset>" +
+            " <label for=\"fg-fuse-rest-selector\">Select a speed</label>" +
+            " <select name=\"fg-fuse-rest-selector\" id=\"fg-fuse-rest-selector\">" +
+            " <option>Keep A</option>" +
+            " <option selected=\"selected\">None</option>" +
+            " <option>Keep B</option>" +
+            " <option>Keep Both</option>" +
+            " </select>" +
+            " </fieldset> " +
             " <table border=0 id=\"shiftPanel\">" +
             " <tr>\n" +
             " <td style=\"white-space: nowrap; width:30px; text-align: center;\" align=\"left\" valign=\"center\">Shift (%):</td>\n" +
@@ -2820,24 +2823,13 @@ function fusionPanel(event, val, node) {
             " <td style=\"width:20px; text-align: center;\" align=\"left\" valign=\"bottom\"><input type=\"text\" style=\"width:50px;\" id=\"scale_fac\" name=\"x_scale\" value=\"1.0\"/></td>\n" +
             " <td style=\"white-space: nowrap; width:30px; text-align: center;\" align=\"left\" valign=\"center\">Rotate:</td>\n" +
             " <td style=\"width:20px; text-align: center;\" align=\"left\" valign=\"bottom\"><input type=\"text\" style=\"width:50px;\" id=\"rotate_fac\" name=\"x_rotate\" value=\"0.0\"/></td>\n" +
-//" <td style=\"width:21px; text-align: center;\" align=\"left\" valign=\"bottom\">Result</td>\n"+
             " </tr>\n" +
-//" <tr>\n"+
-//" <td style=\"text-align: center;\" align=\"left\" valign=\"bottom\">Scale X:</td>\n"+
-//" <td style=\"text-align: center;\" align=\"left\" valign=\"bottom\"><input type=\"text\" style=\"width:50px;\" id=\"x_scale\" name=\"x_scale\" value=\"1.0\"/></td>\n"+
-//" <td style=\"text-align: center;\" align=\"left\" valign=\"bottom\">Scale Y:</td>\n"+
-//" <td style=\"text-align: center;\" align=\"left\" valign=\"bottom\"><input type=\"text\" style=\"width:50px;\" id=\"y_scale\"name=\"y_scale\" value=\"1.0\"/></td>\n"+
-//" <td style=\"width:21px; text-align: center;\" align=\"left\" valign=\"bottom\">Result</td>\n"+
-//" </tr>\n"+
-//" <tr>\n"+
-//" <td style=\"text-align: center;\" align=\"left\" valign=\"bottom\">Rotate X:</td>\n"+
-//" <td style=\"text-align: center;\" align=\"left\" valign=\"bottom\"><input type=\"text\" style=\"width:50px;\" id=\"x_rotate\" name=\"x_rotate\" value=\"1.0\"/></td>\n"+
-//" <td style=\"width:21px; text-align: center;\" align=\"left\" valign=\"bottom\">Result</td>\n"+
-//" </tr>\n"+
             " </table>" +
             " <input id=\"fuseButton\" type=\"submit\" value=\"Fuse\" style=\"float:right\" onclick=\"return false;\"/>\n";
 
     document.getElementById("linkFusionTable").innerHTML = s;
+    //$("#fg-fuse-rest-selector").selectmenu();
+    //$("#fg-fuse-rest-selector").css("width", "200px");
     var tbl = document.getElementById("fusionTable");
     $('#fuseButton').click(performFusion);
     $('#fuseButton').prop("recommendation", recommendation);
@@ -3033,14 +3025,15 @@ function performFusion() {
 
     var sndJSON = JSON.stringify(sendJSON);
     var sndShiftJSON = JSON.stringify(shiftValuesJSON);
-
+    var restFuseAction = $( "#fg-fuse-rest-selector option:selected" ).text();
+    
     $.ajax({
         // request type
         type: "POST",
         // the URL for the request
         url: "FuseLinkServlet",
         // the data to send (will be converted to a query string)
-        data: {props: sendData, propsJSON: sndJSON, factJSON: sndShiftJSON, classes: send},
+        data: {props: sendData, propsJSON: sndJSON, factJSON: sndShiftJSON, classes: send, rest: restFuseAction},
         // the type of data we expect back
         dataType: "json",
         // code to run if the request succeeds;

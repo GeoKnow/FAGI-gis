@@ -1299,6 +1299,15 @@ function initBatchFusionTable (val) {
 //" <td style=\"width:216; text-align: center;\" align=\"left\" valign=\"bottom\">Fused Geom</td>\n"+
             " </tr>\n" +
             " </table>" +
+            " <fieldset id=\"fg-batch-fuse-rest-fieldset\"> " +
+            " <label for=\"fg-batch-fuse-rest-selector\" id=\"fg-batch-fuse-rest-label\">Select a speed</label>" +
+            " <select name=\"fg-batch-fuse-rest-selector\" id=\"fg-batch-fuse-rest-selector\">" +
+            " <option>Keep A</option>" +
+            " <option selected=\"selected\">None</option>" +
+            " <option>Keep B</option>" +
+            " <option>Keep Both</option>" +
+            " </select>" +
+            " </fieldset> " +
             " <table border=0 id=\"bshiftPanel\">" +
             " <tr>\n" +
             " <td style=\"white-space: nowrap; width:100px; text-align: center;\" align=\"left\" valign=\"center\">Shift (%):</td>\n" +
@@ -1320,7 +1329,8 @@ function initBatchFusionTable (val) {
             " <input id=\"bfuseButton\" type=\"submit\" value=\"Fuse\" style=\"float:right\" onclick=\"return false;\"/>\n";
 
     document.getElementById("batchFusionTable").innerHTML = s;
-    
+    //$("#fg-batch-fuse-rest-selector").selectmenu();
+    //$(".ui-menu-item").css("color", "black");
     $('#bfuseButton').click(performBatchFusion);
     $('#bgeoTrans option[value="ShiftAToB"]').attr('selected', 'selected');
     var preSelected = $('#bgeoTrans').find("option:selected").text();

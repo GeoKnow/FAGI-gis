@@ -576,6 +576,31 @@ footer {
     left:50px;
 }*/
 
+#fg-batch-fuse-rest-fieldset {
+    border: 0;
+    color: black;
+}
+#fg-batch-fuse-rest-label {
+    display: block;
+    margin: 30px 0 0 0;
+}
+#fg-batch-fuse-rest-selector {
+    width: 200px;
+}
+#fg-batch-fuse-rest-selector option {
+    color: black;
+}
+#fg-fuse-rest-fieldset {
+    border: 0;
+}
+#fg-fuse-rest-label {
+    display: block;
+    margin: 30px 0 0 0;
+}
+#fg-fuse-rest-selector {
+    width: 200px;
+}
+
 .geoinfo {
     text-align: center;
     font-size: 14px;

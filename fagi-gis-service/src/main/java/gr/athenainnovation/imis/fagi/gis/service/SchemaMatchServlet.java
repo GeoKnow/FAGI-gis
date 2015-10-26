@@ -282,7 +282,7 @@ public class SchemaMatchServlet extends HttpServlet {
                 
             }
             
-            SchemaMatchState sms = virtImp.scanProperties(3, null, (Boolean)sess.getAttribute("make-swap"));
+            SchemaMatchState sms = virtImp.scanProperties(3, null, null, (Boolean)sess.getAttribute("make-swap"));
             
             if ( sms == null ) {
                 LOG.trace("Failed to create SchemaMatchState");
