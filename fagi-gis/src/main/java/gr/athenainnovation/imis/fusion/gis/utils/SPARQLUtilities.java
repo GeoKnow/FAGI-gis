@@ -10,9 +10,11 @@ import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_YELLOW;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONClusterLink;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -97,6 +99,30 @@ public class SPARQLUtilities {
                 LOG.debug("Dropping fused links failed");
             }
         }
+        
+        return true;
+    }
+    
+    public static boolean clearFusedLink(String link, GraphConfig grConf, Connection virt_conn) {
+        final String clearLink =   "SPARQL DELETE WHERE {\n"
+                                                    + "\n"
+                                                    + "    GRAPH <"+grConf.getAllLinksGraph()+"> {\n"
+                                                    + "    <"+link+"> <http://www.w3.org/2002/07/owl#sameAs> ?o }\n"
+                                                    + "    GRAPH <"+grConf.getAllClusterGraph()+"> {\n"
+                                                    + "    <"+link+"> <http://www.w3.org/2002/07/owl#sameAs> ?o } \n"
+                                                    + "}";
+        
+        System.out.println("DELETE ALL OF LINK " + clearLink);
+        
+        try (PreparedStatement clearLinkStmt = virt_conn.prepareStatement(clearLink)) {
+
+            clearLinkStmt.execute();
+
+        } catch (SQLException ex) {
+            LOG.trace("Dropping fused links failed");
+            LOG.debug("Dropping fused links failed");
+        }
+
         
         return true;
     }
@@ -246,9 +272,8 @@ public class SPARQLUtilities {
      * @param grConf Graph Configuration fro the request
      * @param vSet JENA VirtGraph connection to local Virtuoso instance
      * @return success
-     * @throws SQLException if an SQL error occurs
      */
-    public static boolean UpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) throws SQLException {
+    public static boolean UpdateRemoteEndpoint(GraphConfig grConf, VirtGraph vSet) {
        boolean isTargetEndpointLocal = Utilities.isURLToLocalInstance(grConf.getTargetGraph());
 
         if ( isTargetEndpointLocal ) {
@@ -438,9 +463,9 @@ public class SPARQLUtilities {
         return success;
     }
     
-    private int createLinksGraphBatch(List<Link> lst, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws SQLException, IOException {
-        final String dropGraph = "sparql DROP SILENT GRAPH <"+grConf.getLinksGraph()+ ">";
-        final String createGraph = "sparql CREATE GRAPH <"+grConf.getLinksGraph()+ ">";
+    public static int createLinksGraphBatch(List<Link> lst, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws SQLException, IOException {
+        final String dropGraph = "SPARQL DROP SILENT GRAPH <"+grConf.getLinksGraph()+ ">";
+        final String createGraph = "SPARQL CREATE GRAPH <"+grConf.getLinksGraph()+ ">";
         VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
 
         VirtuosoPreparedStatement dropStmt;
@@ -462,10 +487,14 @@ public class SPARQLUtilities {
     
     /**
      * Bulk Insert a batch of Links thrugh SPARQL
+     * @param l
      * @param lst  A List of Link objects.
+     * @param grConf
      * @param nextIndex Offset in the list
+     * @return 
+     * @throws virtuoso.jdbc4.VirtuosoException 
      */
-    private int SPARQLInsertLinksBatch(List<Link> l, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
+    public static int SPARQLInsertLinksBatch(List<Link> l, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
         StringBuilder sb = new StringBuilder();
         sb.append("SPARQL WITH <"+grConf.getLinksGraph()+ "> INSERT {");
         sb.append("`iri(??)` <"+Constants.SAME_AS+"> `iri(??)` . } ");
@@ -497,4 +526,77 @@ public class SPARQLUtilities {
             return end;
             
     }
+
+    public static int createClusterGraph(JSONClusterLink[] cluster, int startIndex, GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
+        StringBuilder sb = new StringBuilder();
+        final String dropGraph = "SPARQL DROP SILENT GRAPH <"+ grConf.getClusterGraph()+  ">";
+        final String createGraph = "SPARQL CREATE GRAPH <"+ grConf.getClusterGraph()+ ">";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+
+        VirtuosoPreparedStatement dropStmt;
+        dropStmt = (VirtuosoPreparedStatement)conn.prepareStatement(dropGraph);
+        dropStmt.execute();
+
+        dropStmt.close();
+        
+        VirtuosoPreparedStatement createStmt;
+        createStmt = (VirtuosoPreparedStatement)conn.prepareStatement(createGraph);
+        createStmt.execute();
+        
+        createStmt.close();
+        
+        sb.append("SPARQL WITH <"+ grConf.getClusterGraph()+"> INSERT {");
+        sb.append("`iri(??)` <"+Constants.SAME_AS+"> `iri(??)` . } ");
+        System.out.println("Statement " + sb.toString());
+        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
+                
+        int start = startIndex;
+        int end = startIndex + Constants.BATCH_SIZE;
+        if ( end > cluster.length ) {
+            end = cluster.length;
+        }
+        
+        for ( int i = start; i < end; ++i ) {
+            JSONClusterLink link = cluster[i];
+            vstmt.setString(1, link.getNodeA());
+            vstmt.setString(2, link.getNodeB());
+            
+            vstmt.addBatch();
+        }
+        
+        vstmt.executeBatch();
+        
+        vstmt.close();
+        
+        if ( end == cluster.length )
+            return 0;
+        else 
+            return end;
+
+    }
+    
+    public static void createClusterGraph(JSONClusterLink[] cluster, DBConfig dbConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SPARQL WITH <http://localhost:8890/DAV/all_cluster_" + dbConf.getDBName()+"> INSERT {");
+        sb.append("`iri(??)` <"+Constants.SAME_AS+"> `iri(??)` . } ");
+        System.out.println("Statement " + sb.toString());
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
+                
+        int start = 0;
+        int end = cluster.length;
+        
+        for ( int i = start; i < end; ++i ) {
+            JSONClusterLink link = cluster[i];
+            vstmt.setString(1, link.getNodeA());
+            vstmt.setString(2, link.getNodeB());
+            
+            vstmt.addBatch();
+        }
+        
+        vstmt.executeBatch();
+        
+        vstmt.close();
+    }
+    
 }

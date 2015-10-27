@@ -44,7 +44,7 @@ public class Constants {
 
     // Batch Size refers to the MAX size of the links graph
     // That a SPARQL query can handle
-    public static final int         BATCH_SIZE = 10000;
+    public static final int         BATCH_SIZE = 100;
     
     // In case of failures, how many times to repeat a query until giving up
     public static final int         MAX_SPARQL_TRIES = 3;
