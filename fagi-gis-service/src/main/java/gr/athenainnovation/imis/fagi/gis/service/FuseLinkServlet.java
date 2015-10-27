@@ -375,11 +375,17 @@ public class FuseLinkServlet extends HttpServlet {
             for(int i = 1; i < selectedFusions.length; i++) {
                 handleMetadataFusion(selectedFusions[i].getAction(), i, nodeA, tGraph, sess, grConf, vSet, selectedFusions );
                 if ( Constants.LATE_FETCH ) {
-                    deleteSelectedProperties(restAction, i, nodeA, tGraph, sess, grConf, vSet, selectedFusions );
+                    deleteSelectedProperties(restAction, selectedFusions[i].getAction(), i, nodeA, tGraph, sess, grConf, vSet, selectedFusions );
                 }
             }
-            insertRemaining(nodeA, grConf, vSet);
+            //insertRemaining(nodeA, grConf, vSet);
+            SPARQLUtilities.clearFusedLink(nodeA, grConf, vSet.getConnection());
             
+            System.out.println(mapper.writeValueAsString(ret));
+            
+            // Update destinATION GRAPH
+            System.out.println("\n\n\n\n\nPreparing to update remote endpoint\n\n\n");
+            SPARQLUtilities.UpdateRemoteEndpoint(grConf, vSet);
             //System.out.println("JSON Geometry "+mapper.writeValueAsString(ret));
             out.println(mapper.writeValueAsString(ret));
        } catch (java.lang.OutOfMemoryError oome) {
@@ -464,7 +470,7 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
     
-    private void deleteSelectedProperties(String action, int idx, String node, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) {
+    private void deleteSelectedProperties(String action, String activeAction, int idx, String node, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONPropertyFusion[] selectedFusions) {
         if ( action.equalsIgnoreCase("None") ) {
             return;
         }
@@ -512,7 +518,6 @@ public class FuseLinkServlet extends HttpServlet {
             newPred = newPredTokes[0];
         }
         newPred = newPred.replaceAll(",", "_");
-        System.out.println("Long name : " + longName);
         String[] predicates = longName.split(Constants.PROPERTY_SEPARATOR);
         String leftPre = predicates[0];
         String rightPre = predicates[1];
@@ -520,16 +525,7 @@ public class FuseLinkServlet extends HttpServlet {
         rightPre = StringUtils.removeEnd(rightPre, "|");
         String[] leftPres = leftPre.split("\\|");
         String[] rightPres = rightPre.split("\\|");
-        System.out.println("Left pres " + leftPre);
-        for (String s : leftPres) {
-            System.out.print(s + " ");
-        }
-        System.out.println();
-        System.out.println("Right pres " + rightPre);
-        for (String s : rightPres) {
-            System.out.print(s + " ");
-        }
-
+        
         //testThreads(links);
         //LOG.info(ANSI_YELLOW + "Thread test lasted " + ((endtime - starttime) / 1000000000f) + "" + ANSI_RESET);
         boolean isEndpointALocal;
@@ -538,7 +534,12 @@ public class FuseLinkServlet extends HttpServlet {
         isEndpointALocal = isURLToLocalInstance(grConf.getEndpointA()); //"localhost" for localhost
 
         isEndpointBLocal = isURLToLocalInstance(grConf.getEndpointB()); //"localhost" for localhost
-        if (action.equalsIgnoreCase("Keep Both") || action.equalsIgnoreCase("Keep B")) {
+        
+        if ( activeAction.equalsIgnoreCase("Concatenation") || 
+             activeAction.equalsIgnoreCase("Keep Concatenated Both") ||
+             activeAction.equalsIgnoreCase("Keep Flattened Both") ||
+             action.equalsIgnoreCase("Keep Both") ||
+             action.equalsIgnoreCase("Keep B")) {
             for (String rightProp : rightPres) {
             //String[] leftPreTokens = leftPre.split(",");
                 //String[] rightPreTokens = rightPre.split(",");
@@ -577,7 +578,11 @@ public class FuseLinkServlet extends HttpServlet {
                     }
                 }
             }
-        } else if (action.equalsIgnoreCase("Keep Both") || action.equalsIgnoreCase("Keep A")) {
+        } else if ( activeAction.equalsIgnoreCase("Concatenation") || 
+             activeAction.equalsIgnoreCase("Keep Concatenated Both") ||
+             activeAction.equalsIgnoreCase("Keep Flattened Both") ||
+             action.equalsIgnoreCase("Keep Both") ||
+             action.equalsIgnoreCase("Keep A")) {
             for (String leftProp : leftPres) {
                 //String[] leftPreTokens = leftPre.split(",");
                 //String[] rightPreTokens = rightPre.split(",");

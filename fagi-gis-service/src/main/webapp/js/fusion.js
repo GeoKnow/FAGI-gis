@@ -989,23 +989,25 @@ function submitLinks(batchFusion) {
 
                         var sndJSON = JSON.stringify(sendJSON);
                         var sndShiftJSON = JSON.stringify(shiftValuesJSON);
+                        var restFuseAction = $( "#fg-batch-fuse-rest-selector option:selected" ).text();
+                                
                         $.ajax({
                             // request type
                             type: "POST",
                             // the URL for the request
                             url: "BatchFusionServlet",
                             // the data to send (will be converted to a query string)
-                            data: {propsJSON: sndJSON, factJSON: sndShiftJSON, clusterJSON: clusterJSON, cluster: $("#clusterSelector").val()},
+                            data: {propsJSON: sndJSON, factJSON: sndShiftJSON, clusterJSON: clusterJSON, cluster: $("#clusterSelector").val(), rest: restFuseAction},
                             // the type of data we expect back
                             dataType: "json",
                             // code to run if the request succeeds;
                             // the response is passed to the function
                             success: function (responseJson) {
                                 //$('#connLabel').text(responseJson);
+                                FAGI.Utilities.disableSpinner();
                                 batchFusionPreview(responseJson);
                                 //previewLinkedGeom(responseJson);
                                 //fusionPanel(event, responseJson);
-                                FAGI.Utilities.disableSpinner();
                             },
                             // code to run if the request fails; the raw request and
                             // status codes are passed to the function
@@ -1096,13 +1098,15 @@ function submitLinks(batchFusion) {
 
             var sndJSON = JSON.stringify(sendJSON);
             var sndShiftJSON = JSON.stringify(shiftValuesJSON);
+            var restFuseAction = $( "#fg-batch-fuse-rest-selector option:selected" ).text();
+            
             $.ajax({
                 // request type
                 type: "POST",
                 // the URL for the request
                 url: "BatchFusionServlet",
                 // the data to send (will be converted to a query string)
-                data: {propsJSON: sndJSON, factJSON: sndShiftJSON, clusterJSON: clusterJSON, cluster: $("#clusterSelector").val()},
+                data: {propsJSON: sndJSON, factJSON: sndShiftJSON, clusterJSON: clusterJSON, cluster: $("#clusterSelector").val(), rest: restFuseAction},
                 // the type of data we expect back
                 dataType: "json",
                 // code to run if the request succeeds;
@@ -1159,12 +1163,21 @@ function batchFusionPreview(geomsJSON) {
     var cluster = geomsJSON.cluster;
     var toDelFeatures =  new Array();
     if (cluster < 0) {
+        /*$.each(geomsJSON.fusedGeoms, function (index, element) {
+            var clusterLink = new Object();
+            var geom = element.geom;
+            addGeom(index, geom);
+            console.log("Got " + element.nb + " with geom " + element.geom);
+        });
+        */
+        
         $.each(FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
             var clusterLink = new Object();
             var geom = geomsJSON.fusedGeoms[element.attributes.a];
             addGeom(element, geom.geom);
             //console.log("Got " + geom.nb + " with geom " + geom.geom);
         });
+        
     } else if ( cluster == 9999 ) {
         $.each(FAGI.ActiveState.activeFeatureClusterA, function (index, element) {
             toDelFeatures[toDelFeatures.length] = element;
@@ -1216,19 +1229,15 @@ function addGeom(feat, geom) {
         linkFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
         linkFeature.attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
         
-        //alert('done feature '+linkFeature);
         linkFeature.prev_fused = true;
         linkFeature.validated = true;
-        //alert('reached 2');
-        //FAGI.MapUI.Layers.vectorsLinks.removeFeatures([feat]);
-        //toDeleteFeatures[toDeleteFeatures.length] = feat;
         FAGI.MapUI.Layers.vectorsFused.addFeatures([linkFeature]);
     }
 
-    FAGI.MapUI.Layers.vectorsA.redraw();
-    FAGI.MapUI.Layers.vectorsB.redraw();
-    FAGI.MapUI.Layers.vectorsLinks.refresh();
-    FAGI.MapUI.Layers.vectorsFused.refresh();
+    //FAGI.MapUI.Layers.vectorsA.redraw();
+    //FAGI.MapUI.Layers.vectorsB.redraw();
+    //FAGI.MapUI.Layers.vectorsLinks.refresh();
+    //FAGI.MapUI.Layers.vectorsFused.refresh();
     
     //return toDeleteFeatures;
 }
