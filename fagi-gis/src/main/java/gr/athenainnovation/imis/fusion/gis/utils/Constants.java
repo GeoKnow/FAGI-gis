@@ -62,4 +62,8 @@ public class Constants {
     public static final String      PATH_TO_WORDNET_OS_X = "/usr/local/WordNet-3.0/dict";
     public static final String      PATH_TO_WORDNET_WINDOWS = "C:\\Program Files (x86)\\WordNet\\2.1\\dict";
     
+    // Useful integer mapping to the two Datasets
+    public static final int         DATASET_A = 0;
+    public static final int         DATASET_B = 1;
+    
 }

@@ -62,7 +62,7 @@ public class DatabaseInitialiser {
         try {
             Class.forName("org.postgresql.Driver");
             db = DriverManager.getConnection(Constants.DB_URL, dbUsername, dbPassword);
-            db.setAutoCommit(false);
+            //db.setAutoCommit(false);
             stmt = db.createStatement();
 
             sql = "DROP DATABASE IF EXISTS " + dbName;
@@ -71,7 +71,7 @@ public class DatabaseInitialiser {
             sql = "CREATE DATABASE " + dbName;
             stmt.executeUpdate(sql);
 
-            db.commit();
+            //db.commit();
             
             LOG.info(ANSI_YELLOW + "Database creation complete" + ANSI_RESET);
         } catch (ClassNotFoundException ex) {

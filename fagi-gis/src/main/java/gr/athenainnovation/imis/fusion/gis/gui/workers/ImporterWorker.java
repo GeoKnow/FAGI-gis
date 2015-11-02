@@ -8,6 +8,7 @@ import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_Y
 import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import javax.swing.SwingWorker;
 import org.apache.log4j.Logger;
@@ -16,7 +17,7 @@ import org.apache.log4j.Logger;
  * Exports triples from a dataset using its SPARQL endpoint and then imports them into a PostGIS database.
  * @author Thomas Maroulis
  */
-public class ImporterWorker extends SwingWorker<Boolean, Void> {    
+public class ImporterWorker extends SwingWorker<HashMap<String, String>, Void> {    
     private static final Logger         LOG = Log.getClassFAGILogger(ImporterPanel.class);
     
     private final ErrorListener         errorListener;
@@ -74,27 +75,28 @@ public class ImporterWorker extends SwingWorker<Boolean, Void> {
     }
     
     @Override
-    protected Boolean doInBackground() {
-        Boolean success = new Boolean(true);
+    protected HashMap<String, String> doInBackground() {
+        HashMap<String, String> entries;
+        boolean success = true;
         Importer importer;
         importer = new Importer(dbConfig, this, grConf);
         
         success = importer.isInitialized();
         
         if ( !success )
-            return success;
+            return null;
         
-        success = importer.importGeometries(datasetIdent, sourceDataset);
+        entries = importer.importGeometries(datasetIdent, sourceDataset);
 
-        if ( !success )
-            return success;
+        if ( entries == null )
+            return null;
         
         success = importer.clean();
         
         if ( !success )
-            return success;
+            return null;
                 
-        return success;
+        return entries;
     }
     
     @Override

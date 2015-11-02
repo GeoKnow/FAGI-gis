@@ -27,6 +27,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.logging.Level;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
@@ -183,8 +185,9 @@ public class Importer {
      * @param sourceDataset source dataset from which to extract triples
      * @return success
      */
-    public boolean importGeometries(final int datasetIdent, final Dataset sourceDataset) {
+    public HashMap<String, String> importGeometries(final int datasetIdent, final Dataset sourceDataset) {
         boolean success = true;
+        final HashMap<String, String> geomEntries = new HashMap();
         
         checkArgument(datasetIdent == DATASET_A || datasetIdent == DATASET_B, "Illegal dataset code: " + datasetIdent);
         
@@ -280,13 +283,9 @@ public class Importer {
                 }
             }
         }
-//System.out.println("Query String "+queryString);
-        for ( String s : QueryEngineHTTP.supportedAskContentTypes ) {
-            //System.out.println("Supported ASK " + s);
-        }
-        //System.out.println("Count WKT " + countWKT+" Count WGS "+countWgs);
+
         QueryExecution queryExecution = null;
-        if ( !countWKT ){ //if geosparql geometry doesn' t exist        
+        if ( countWgs ) { //if geosparql geometry doesn' t exist        
             try {
                 //System.out.println("Query String "+queryString);
                 
@@ -302,6 +301,7 @@ public class Importer {
                     final double longitude = Double.parseDouble(rs.getString(3));
                     final String geometry = "POINT ("+ longitude + " " + latitude +")";
 
+                    geomEntries.put(subject, geometry);
                     success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
 
                 }
@@ -331,7 +331,9 @@ public class Importer {
 
                 success = false;
             }
-        } else { //if geosparql geometry exists
+        }
+        
+        if ( countWKT ) { //if geosparql geometry exists
             //System.out.println("geosparql");
             try {
                 virt_stmt = (VirtuosoPreparedStatement)virt_conn.prepareStatement("SPARQL " + queryWKT);
@@ -344,6 +346,7 @@ public class Importer {
                     final String subject = rs.getString(1);                 
                     final String geometry = rs.getString(2);
                     
+                    geomEntries.put(subject, geometry);
                     success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
 
                 }
@@ -376,7 +379,10 @@ public class Importer {
 
         addImportedTriplets(1 + 1);
         
-        return true;
+        if (success == false)
+            return null;
+        
+        return geomEntries;
     }
     
     /**
@@ -433,25 +439,21 @@ public class Importer {
     private boolean checkForWGS(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
         boolean result = false;
         
-        final String queryString = "SELECT ?s WHERE { ?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . ?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }";
+        final String queryString = "ASK { ?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . ?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }";
         QueryExecution queryExecution = null;
         try {
             final Query query = QueryFactory.create(queryString);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
             //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
-            System.out.println("source endpoint: " + sourceEndpoint + " query: " + query + "sourceGraph: " + sourceGraph);
 
             QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
             qeh.addDefaultGraph(sourceGraph);
             //QueryExecution queryExecution = qeh;
-            qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
-            ResultSet rs = qeh.execSelect();
-            
-            if ( rs.hasNext() ) {
-                return true;
-            }
+            qeh.setSelectContentType(QueryEngineHTTP.supportedAskContentTypes[3]);
+            boolean rs = qeh.execAsk();
 
-            //result = qeh.execAsk();
+            System.out.println("Has WGS ------- " + rs);
+            return rs;
         }
         catch (RuntimeException ex) {
             LOG.warn(ex.getMessage(), ex);
@@ -467,26 +469,24 @@ public class Importer {
     private boolean checkForWKT(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
         boolean result = false;
         
-        //final String queryString = "ASK WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g }";
-        final String queryString = "SELECT ?os WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g } LIMIT 1";
+        final String queryString = "ASK WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g }";
+        //final String queryString = "SELECT ?os WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g } LIMIT 1";
         QueryExecution queryExecution = null;
         try {
             final Query query = QueryFactory.create(queryString);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
             //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
-            System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
+            System.out.println("source endpoint: " + sourceEndpoint + " query: " + query + "sourceGraph: " + sourceGraph);
 
-            QueryEngineHTTP qeh =  QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
-        qeh.addDefaultGraph(sourceGraph);
-        //QueryExecution queryExecution = qeh;
-        qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
-        ResultSet rs = qeh.execSelect();
-        if (rs.hasNext() )
-            return true;
-        
-            //result = qeh.execAsk();
-        }
-        catch (RuntimeException ex) {
+            QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
+            qeh.addDefaultGraph(sourceGraph);
+            //QueryExecution queryExecution = qeh;
+            qeh.setSelectContentType(QueryEngineHTTP.supportedAskContentTypes[3]);
+            boolean rs = qeh.execAsk();
+
+            System.out.println("Has WKT ------- " + rs);
+            return rs;
+        } catch (RuntimeException ex) {
             LOG.warn(ex.getMessage(), ex);
         }
         finally {
