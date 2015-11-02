@@ -179,7 +179,7 @@ public class SchemaMatchServlet extends HttpServlet {
 
                 return;
             }
-            
+            //2105779425
             VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
             if (Constants.LATE_FETCH) {
 
@@ -210,7 +210,7 @@ public class SchemaMatchServlet extends HttpServlet {
                 datasetBImportWorker.execute();
 
                 // Get thread run results
-                Boolean retA, retB;
+                HashMap<String, String> retA, retB;
                 try {
                     retB = datasetAImportWorker.get();
                     retA = datasetBImportWorker.get();
@@ -227,7 +227,7 @@ public class SchemaMatchServlet extends HttpServlet {
                     return;
                 }
 
-                if ((retA == false) || (retB == false)) {
+                if ((retA == null) || (retB == null)) {
                     LOG.trace("Thread execution failed");
                     LOG.debug("Thread execution failed");
                     matches.getResult().setStatusCode(-1);

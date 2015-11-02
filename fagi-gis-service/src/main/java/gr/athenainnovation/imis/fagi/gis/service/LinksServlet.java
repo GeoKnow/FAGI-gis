@@ -395,8 +395,8 @@ public class LinksServlet extends HttpServlet {
             // [TODO] Could be inproved ( Too much work on the server )
             int i = 0;
             for (Link l : output) {
-                fetchedGeomsA.add(l.getNodeA());
-                fetchedGeomsA.add(l.getNodeB());
+                //fetchedGeomsA.add(l.getNodeA());
+                //fetchedGeomsA.add(l.getNodeB());
                 String check = "chk" + i;
                 htmlCode.append("<li><div>");
                 htmlCode.append("<label for=\"" + check + "\"><input type=\"checkbox\" value=\"\"name=\"" + check + "\" id=\"" + check + "\" />" + l.getNodeA() + "<-->" + l.getNodeB() + "</label>");
@@ -501,7 +501,8 @@ public class LinksServlet extends HttpServlet {
                 datasetBImportWorker.execute();
 
                 // Get thread run results
-                Boolean retA, retB;
+                HashMap<String, String> retA;
+                HashMap<String, String> retB;
                 try {
                     retB = datasetAImportWorker.get();
                     retA = datasetBImportWorker.get();
@@ -518,7 +519,7 @@ public class LinksServlet extends HttpServlet {
                     return;
                 }
 
-                if ((retA == false) || (retB == false)) {
+                if ((retA == null) || (retB == null)) {
                     LOG.trace("Thread execution failed");
                     LOG.debug("Thread execution failed");
                     ret.getResult().setStatusCode(-1);

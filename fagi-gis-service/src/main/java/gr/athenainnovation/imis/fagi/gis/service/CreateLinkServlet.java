@@ -6,11 +6,13 @@
 package gr.athenainnovation.imis.fagi.gis.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Maps;
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
 import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryException;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
@@ -18,12 +20,17 @@ import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.shared.JenaException;
+import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
+import gr.athenainnovation.imis.fusion.gis.utils.Utilities;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -34,7 +41,6 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -43,7 +49,11 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import org.apache.log4j.Logger;
+import virtuoso.jdbc4.VirtuosoConnection;
 import virtuoso.jdbc4.VirtuosoException;
+import virtuoso.jdbc4.VirtuosoPreparedStatement;
+import virtuoso.jdbc4.VirtuosoResultSet;
 import virtuoso.jena.driver.VirtGraph;
 
 /**
@@ -52,15 +62,9 @@ import virtuoso.jena.driver.VirtGraph;
  */
 @WebServlet(name = "CreateLinkServlet", urlPatterns = {"/CreateLinkServlet"})
 public class CreateLinkServlet extends HttpServlet {
-    private static final String HAS_GEOMETRY_REGEX = "http://www.opengis.net/ont/geosparql#hasGeometry";
-    private static final String AS_WKT_REGEX = "http://www.opengis.net/ont/geosparql#asWKT";
-    private static final String LONG_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#long";
-    private static final String LAT_REGEX = "http://www.w3.org/2003/01/geo/wgs84_pos#lat";
-    private static final String SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
-    private static final int DATASET_A = 0;
-    private static final int DATASET_B = 1;
-    private static final String DB_URL = "jdbc:postgresql:";
     
+    private static final Logger LOG = Log.getClassFAGILogger(CreateLinkServlet.class);    
+
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -71,10 +75,11 @@ public class CreateLinkServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException {
+            throws ServletException, SQLException {
         response.setContentType("text/html;charset=UTF-8");
         
         // per requsest state
+        PrintWriter             out = null;
         DBConfig                dbConf;
         GraphConfig             grConf;
         VirtGraph               vSet = null;
@@ -90,17 +95,18 @@ public class CreateLinkServlet extends HttpServlet {
         String                  dom ;
         String                  domSub ;
         HttpSession             sess ;
-    
-        try (PrintWriter out = response.getWriter()) {
+        ObjectMapper            mapper = new ObjectMapper();
+        long                    startTime, endTime;
+        JSONRequestResult       res;  
+        boolean                 insertResult;
+        
+        try {
             /* TODO output your page here. You may use following sample code. */
-           
-            sess = request.getSession(true);
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
-            //mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
-            mapper.setDateFormat(outputFormat);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            out = response.getWriter();
+            
+            res = new JSONRequestResult();
+            
+            sess = request.getSession(false);
             
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
@@ -112,104 +118,155 @@ public class CreateLinkServlet extends HttpServlet {
             System.out.println("Sub A : "+nodeA);
             System.out.println("Sub B : "+nodeB);
             
+            startTime = System.nanoTime();
+            
             dbConn = initGeomConnection(dbConf, out);
             vSet = insertLink(vSet, sess, dbConn, grConf, dbConf, nodeA, nodeB);
-            insertMetadata(vSet, dbConf, grConf,tGraph, nodeA, nodeB);
-            insertGeometry(dbConn, nodeA, grConf.getGraphA(), grConf.getEndpointA(), DATASET_A);
-            insertGeometry(dbConn, nodeB, grConf.getGraphB(), grConf.getEndpointB(), DATASET_B);
+            if ( !Constants.LATE_FETCH )
+                insertMetadata(vSet, dbConf, grConf,tGraph, nodeA, nodeB);
             
-            dbConn.close();
+            
+            insertResult = insertGeometry(vSet, dbConn, grConf, nodeA, grConf.getGraphA(), grConf.getEndpointA(), Constants.DATASET_A);
+            if (!insertResult) {
+                LOG.info("Dataset A has no geometric information ");
+
+                res.setStatusCode(-1);
+                res.setMessage("Dataset A has no geometric information");
+
+                out.println(mapper.writeValueAsString(res));
+
+                return;
+            }
+            
+            insertResult = insertGeometry(vSet, dbConn, grConf, nodeB, grConf.getGraphB(), grConf.getEndpointB(), Constants.DATASET_B);
+            
+            if (!insertResult) {
+                LOG.info("Dataset B has no geometric information ");
+
+                res.setStatusCode(-1);
+                res.setMessage("Dataset B has no geometric information");
+
+                out.println(mapper.writeValueAsString(res));
+
+                return;
+            }
+            
             vSet.close();
             
-            out.println("{}");
-        } finally {
+            endTime = System.nanoTime();
+        
+            LOG.info("Link Creation lasted " + (endTime - startTime ) / Constants.NANOS_PER_SECOND);
+          
+            res.setStatusCode(0);
+            res.setMessage("Link Created!!");
             
+            out.println(mapper.writeValueAsString(res));
+            
+        } catch (java.lang.OutOfMemoryError oome) {
+            LOG.trace("OutOfMemoryError thrown");
+            LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
+            
+            throw new ServletException("OutOfMemoryError thrown by Tomcat");
+        } catch (JsonProcessingException ex) {
+            LOG.trace("JsonProcessingException thrown");
+            LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
+            
+            throw new ServletException("JsonProcessingException thrown by Tomcat");
+        } catch (IOException ex) {
+            LOG.trace("IOException thrown");
+            LOG.debug("IOException thrown : " + ex.getMessage());
+            
+            throw new ServletException("IOException opening the servlet writer");
+        } finally {
             if (stmt != null) {
                 try {
                     stmt.close();
                 } catch (SQLException ex) {
-                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             if (stmtAddGeomA != null) {
                 try {
                     stmtAddGeomA.close();
                 } catch (SQLException ex) {
-                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             if (stmtAddGeomA != null) {
                 try {
                     stmtAddGeomA.close();
                 } catch (SQLException ex) {
-                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             if (dbConn != null) {
                 try {
                     dbConn.close();
                 } catch (SQLException ex) {
-                    Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         }
     }
 
-    private boolean validateLinking(GraphConfig grConf, VirtGraph vSet, String lsub, String rsub) throws SQLException {
+    private Boolean validateLinking(HttpSession sess, String lsub, String rsub, VirtGraph vSet, GraphConfig grConf) {
         Connection virt_conn = vSet.getConnection();
-        PreparedStatement stmt;
-        java.sql.ResultSet rs;
 
-        String checkA = "SPARQL SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + lsub + "> ?p ?o } }";
-        String checkB = "SPARQL SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + lsub + "> ?p ?o } }";
-        System.out.println("Found in A : " + checkA + " B : " + checkB);
-        System.out.println("Left sub : " + lsub + " Right sub : " + rsub);
-        stmt = virt_conn.prepareStatement(checkA);
-        rs = stmt.executeQuery();
-
+        String checkA = "SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + lsub + "> ?p ?o } }";
+        String checkB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + lsub + "> ?p ?o } }";
+       
         boolean foundInA = false;
         boolean foundInB = false;
-        while (rs.next()) {
-            foundInA = true;
-            break;
+        
+        try {
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointA(), QueryFactory.create(checkA), authenticator);
+            qeh.setSelectContentType((String) sess.getAttribute("content-type"));
+            com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+
+            if (resultSet.hasNext()) {
+                foundInA = true;
+            }
+
+            qeh.close();
+
+            qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointB(), QueryFactory.create(checkB), authenticator);
+            qeh.setSelectContentType((String) sess.getAttribute("content-type"));
+            resultSet = qeh.execSelect();
+
+            if (resultSet.hasNext()) {
+                foundInB = true;
+            }
+
+            qeh.close();
+
+        } catch (QueryException qex) {
+            LOG.trace("QueryException thrown during link validation");
+            LOG.debug("QueryException thrown during link validation : \n" + qex.getMessage());
+
+            return null;
         }
-
-        rs.close();
-        stmt.close();
-
-        stmt = virt_conn.prepareStatement(checkB);
-        rs = stmt.executeQuery();
-
-        while (rs.next()) {
-            foundInB = true;
-            break;
-        }
-
-        rs.close();
-        stmt.close();
-
-        System.out.println("Found in A : " + foundInA + " B : " + foundInB);
+        
         if (foundInA) {
             return false;
-        } else {
+        } else if ( foundInB ) {
+            LOG.info("Need to swap link subjects order");
             return true;
+        } else {
+            return null;
         }
     }
     
     VirtGraph insertLink(VirtGraph vSet, HttpSession sess, Connection dbConn, GraphConfig grConf, DBConfig dbConf, String nodeA, String nodeB) {
-                System.out.println("Linking ");
-                
+        System.out.println("Linking ");
+
         if (vSet == null) {
             try {
-                                System.out.println("Trying "+dbConf.getDBURL());
+                System.out.println("Trying " + dbConf.getDBURL());
 
                 vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
                         dbConf.getUsername(),
                         dbConf.getPassword());
             } catch (JenaException connEx) {
-                connEx.printStackTrace();
-                System.out.println(connEx.getMessage());
-                System.out.println("Connected ");
+                LOG.trace("JenaException thrown during connection for link creation");
+                LOG.debug("JenaException thrown during connection for link creation : \n" + connEx.getMessage());
+            
                 return null;
             }
         }
@@ -218,17 +275,17 @@ public class CreateLinkServlet extends HttpServlet {
             ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
             //queryStr.append("WITH <"+fusedGraph+"> ");
             queryStr.append("INSERT DATA { ");
-            queryStr.append("GRAPH <"+ grConf.getAllLinksGraph()+ "> { ");
+            queryStr.append("GRAPH <" + grConf.getAllLinksGraph() + "> { ");
 
-            boolean makeSwap = validateLinking(grConf, vSet, nodeA, nodeB);
-            
+            boolean makeSwap = validateLinking(sess, nodeA, nodeB, vSet, grConf);
+
             String subject = nodeA;
             String subjectB = nodeB;
-            if ( makeSwap ) {
+            if (makeSwap) {
                 subject = nodeB;
                 subjectB = nodeA;
             }
-            
+
             String insertLinkQuery = "INSERT INTO links (nodea, nodeb) VALUES (?,?)";
             final PreparedStatement insertLinkStmt = dbConn.prepareStatement(insertLinkQuery);
             Link link = new Link(subject, subjectB);
@@ -239,9 +296,9 @@ public class CreateLinkServlet extends HttpServlet {
             insertLinkStmt.executeBatch();
 
             dbConn.commit();
-        
+
             HashMap<String, String> links = (HashMap<String, String>) sess.getAttribute("links");
-            if ( links == null ) {
+            if (links == null) {
                 links = Maps.newHashMap();
                 links.put(subject, subjectB);
                 System.out.println("Creating link : " + subject + "    " + subjectB);
@@ -250,10 +307,10 @@ public class CreateLinkServlet extends HttpServlet {
                 System.out.println("Creating link : " + subject + "    " + subjectB);
                 links.put(subject, subjectB);
             }
-            
+
             queryStr.appendIri(subject);
             queryStr.append(" ");
-            queryStr.appendIri(SAME_AS);
+            queryStr.appendIri(Constants.SAME_AS);
             queryStr.append(" ");
             queryStr.appendIri(subjectB);
             queryStr.append(" ");
@@ -266,15 +323,15 @@ public class CreateLinkServlet extends HttpServlet {
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
             UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
             insertRemoteB.execute();
-            
+
             queryStr = new ParameterizedSparqlString();
             //queryStr.append("WITH <"+fusedGraph+"> ");
             queryStr.append("INSERT DATA { ");
-            queryStr.append("GRAPH <"+ grConf.getAllLinksGraph()+ "> { ");
-            
+            queryStr.append("GRAPH <" + grConf.getAllLinksGraph() + "> { ");
+
             queryStr.appendIri(subject);
             queryStr.append(" ");
-            queryStr.appendIri(SAME_AS);
+            queryStr.appendIri(Constants.SAME_AS);
             queryStr.append(" ");
             queryStr.appendIri(subjectB);
             queryStr.append(" ");
@@ -287,12 +344,19 @@ public class CreateLinkServlet extends HttpServlet {
             insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
             insertRemoteB.execute();
             //System.out.println("Add at "+addIdx+" Size "+cSize);
-        } catch (org.apache.jena.atlas.web.HttpException ex) {
-            ex.printStackTrace();
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (org.apache.jena.atlas.web.HttpException qex) {
+            LOG.trace("HttpException thrown during link creation");
+            LOG.debug("HttpException thrown during link creation : \n" + qex.getMessage());
+            
+            return null;
+        } catch (SQLException qex) {
+            LOG.trace("SQLException thrown during link creation");
+            LOG.debug("SQLException thrown during link creation : \n" + qex.getMessage());
+            LOG.debug("SQLException thrown during link creation : \n" + qex.getSQLState());
+
+            return null;
         }
-        
+
         return vSet;
     }
 
@@ -402,7 +466,7 @@ public class CreateLinkServlet extends HttpServlet {
     
     Connection initGeomConnection(DBConfig dbConf, PrintWriter out) {
         try {
-            String url = DB_URL.concat(dbConf.getDBName());
+            String url = Constants.DB_URL.concat(dbConf.getDBName());
             Connection dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
             dbConn.setAutoCommit(false);
             return dbConn;
@@ -438,7 +502,7 @@ public class CreateLinkServlet extends HttpServlet {
     }
     
     void addGeom ( int DS_ID,  PreparedStatement stmt, String sub, String geom ) throws SQLException {
-        if ( DS_ID == DATASET_A ) {
+        if ( DS_ID == Constants.DATASET_A ) {
             stmt.setString(1, sub);
             stmt.setString(2, geom);
             stmt.addBatch();
@@ -450,7 +514,7 @@ public class CreateLinkServlet extends HttpServlet {
     }
     
     void finishGeomUpload(int DS_ID, PreparedStatement stmt, Connection dbConn) throws SQLException {
-        if ( DS_ID == DATASET_A ) {
+        if ( DS_ID == Constants.DATASET_A ) {
             stmt.executeBatch();
         } else {
             stmt.executeBatch();
@@ -458,25 +522,297 @@ public class CreateLinkServlet extends HttpServlet {
         dbConn.commit();
     }
     
-    void insertGeometry(Connection dbConn, String node, String sourceGraph, String sourceEndpoint, int DS_ID) {
-        final String restrictionForWgs = "<"+node+"> ?p1 ?o1 . <"+node+"> ?p2 ?o2 "
-                + "FILTER(regex(?p1, \"" + LAT_REGEX + "\", \"i\"))"
-                + "FILTER(regex(?p2, \"" + LONG_REGEX + "\", \"i\"))";
+    /**
+     * This method fetches all triples with a subject matching parameter subjectRegex and a two triple chain with a predicate matching {@link Importer#HAS_GEOMETRY_REGEX} in the first triple and
+     * {@link Importer#AS_WKT_REGEX} in the second triple.
+     * Those triples are then imported into a PostGIS database using an instance of {@link PostGISImporter}.
+     * 
+     * @param datasetIdent {@link PostGISImporter#DATASET_A} for dataset A or {@link PostGISImporter#DATASET_B} for dataset B
+     * @param sourceDataset source dataset from which to extract triples
+     * @return success
+     */
+    boolean insertGeometry(VirtGraph vSet, Connection dbConn, GraphConfig grConf, String node, String sourceGraph, String sourceEndpoint, int DS_ID) {
+        boolean success = true;
         
-        final String restriction = "<"+node+"> ?p1 _:a . _:a <"+AS_WKT_REGEX+"> ?g ";
+        long endTime, startTime;
+        
+        VirtuosoConnection virt_conn = (VirtuosoConnection)vSet.getConnection();
+        VirtuosoPreparedStatement virt_stmt;
+        //check the serialisation of the dataset with a count query. If it doesn t find WKT the serialisation, the serialisation is wgs84        
+        
+        //wgs84
+        final String restrictionForWgs = 
+                "<"+node+"> ?p1 ?o1 . "+node+" ?p2 ?o2 "
+                + "FILTER(regex(?p1, \"" + Constants.LAT_REGEX + "\", \"i\")) "
+                + "FILTER(regex(?p2, \"" + Constants.LONG_REGEX + "\", \"i\"))";
+        
+        final String restrictionForWKT = "<"+node+"> ?p1 _:a . _:a <"+Constants.AS_WKT_REGEX+"> ?g ";
+        
+        // Should we use the SERVICE keyword?
+        boolean isEndpointLocal = Utilities.isURLToLocalInstance(sourceEndpoint);
+       
+            final String queryWGS;
+        if (DS_ID == Constants.DATASET_A) {
+            if (isEndpointLocal) {
+                queryWGS = "SELECT ?o1 ?o2 "
+                        + "WHERE { "
+                        + "GRAPH <" + sourceGraph + "> {" + restrictionForWgs + "} }";
+            } else {
+                queryWGS = "SELECT ?o1 ?o2 "
+                        + "WHERE { "
+                        + "SERVICE <" + sourceEndpoint + "> "
+                        + "{ GRAPH <" + sourceGraph + "> {" + restrictionForWgs + "}"
+                        + " } }";
+            }
+        } else {
+            if (isEndpointLocal) {
+                queryWGS = "SELECT ?o1 ?o2 "
+                        + "WHERE { "
+                        + "GRAPH <" + sourceGraph + "> {" + restrictionForWgs + "} }";
+            } else {
+                queryWGS = "SELECT ?o1 ?o2 "
+                        + "WHERE { "
+                        + "SERVICE <" + sourceEndpoint + "> "
+                        + "{ GRAPH <" + sourceGraph + "> {" + restrictionForWgs + "}"
+                        + " } }";
+            }
+        }
+        
+        startTime = System.nanoTime();
+        boolean countWgs = checkForWGS(sourceEndpoint, sourceGraph, restrictionForWgs, "?s");     
+        endTime = System.nanoTime();
+        LOG.info("check WGS lasted " + (endTime - startTime ) / Constants.NANOS_PER_SECOND);
+          
+        startTime = System.nanoTime();
+        boolean countWKT = checkForWKT(sourceEndpoint, sourceGraph, restrictionForWKT, "?os");
+        endTime = System.nanoTime();
+        LOG.info("check WKT lasted " + (endTime - startTime ) / Constants.NANOS_PER_SECOND);
+          
+        //int countWKT = 1;
+        //int countWgs = 0;
+        
+        final String queryWKT;
+        if (Constants.LATE_FETCH) {
+            if (DS_ID == Constants.DATASET_A) {
+                if (isEndpointLocal) {
+                    queryWKT = "SELECT ?g WHERE { GRAPH <" + sourceGraph + "> {" + restrictionForWKT + " } }";
+                } else {
+                    queryWKT = "SELECT ?g WHERE { SERVICE <" + sourceEndpoint + "> { GRAPH <" + sourceGraph + "> {" + restrictionForWKT + "} } }";
+                }
+            } else {
+                if (isEndpointLocal) {
+                    queryWKT = "SELECT ?g WHERE { GRAPH <" + sourceGraph + "> {" + restrictionForWKT + " } }";
+                } else {
+                    queryWKT = "SELECT ?g WHERE { SERVICE <" + sourceEndpoint + "> { GRAPH <" + sourceGraph + "> {" + restrictionForWKT + "} } }";
+                }
+            }
+        } else {
+            if (DS_ID == Constants.DATASET_A) {
+                if (isEndpointLocal) {
+                    queryWKT = "SELECT ?g WHERE { GRAPH <" + sourceGraph + "> {" + restrictionForWKT + " } }";
+                } else {
+                    queryWKT = "SELECT ?g WHERE { SERVICE <" + sourceEndpoint + "> { GRAPH <" + sourceGraph + "> {" + restrictionForWKT + "} } }";
+                }
+            } else {
+                if (isEndpointLocal) {
+                    queryWKT = "SELECT ?g WHERE { GRAPH <" + sourceGraph + "> {" + restrictionForWKT + " } }";
+                } else {
+                    queryWKT = "SELECT ?g WHERE { SERVICE <" + sourceEndpoint + "> { GRAPH <" + sourceGraph + "> {" + restrictionForWKT + "} } }";
+                }
+            }
+        }
+        
+        QueryExecution queryExecution = null;
+        if ( !countWKT ){ //if geosparql geometry doesn' t exist        
+            try {
+                PreparedStatement stmt = null;
+                if ( DS_ID == Constants.DATASET_A ) {
+                    stmt = initGeomStatementA(DS_ID, dbConn);
+                } else {
+                    stmt = initGeomStatementB(DS_ID, dbConn);
+                }
+                
+                virt_stmt = (VirtuosoPreparedStatement)virt_conn.prepareStatement("SPARQL " + queryWGS);
+                VirtuosoResultSet rs = (VirtuosoResultSet) virt_stmt.executeQuery();
+                
+                startTime = System.nanoTime();
+
+                while(rs.next()) {
+                    
+                    final double latitude = Double.parseDouble(rs.getString(1));
+                    final double longitude = Double.parseDouble(rs.getString(2));
+                    final String geometry = "POINT ("+ longitude + " " + latitude +")";
+
+                    //success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+                    addGeom(DS_ID, stmt, node, geometry);
+                }
+                
+                rs.close();
+                virt_stmt.close();
+               
+                //success = postGISImporter.finishUpdates();
+                //System.out.println("Count : "+currentCount);
+                endTime = System.nanoTime();
+                
+                //postGISImporter.finishUpdates();
+                
+                LOG.info("Loading WGS lasted "+Utilities.nanoToSeconds(endTime-startTime));
+            }
+            catch (SQLException ex) {
+                LOG.trace("SQLException thrown during WGS geometry update");
+                LOG.debug("SQLException thrown during WGS geometry update : \n" + ex.getMessage());
+                LOG.debug("SQLException thrown during WGS geometry update : \n" + ex.getSQLState());
+
+                SQLException exception = (SQLException) ex;
+                while(exception != null) {
+                    LOG.trace("SQLException expanded (see DEBUG) ");
+                    LOG.debug("SQLException expanded : \n" + exception.getMessage());
+                    LOG.debug("SQLException expanded : \n" + exception.getSQLState());
+                }
+
+                success = false;
+            }
+        } else { //if geosparql geometry exists
+            //System.out.println("geosparql");
+            try {
+                PreparedStatement stmt = null;
+                if ( DS_ID == Constants.DATASET_A ) {
+                    stmt = initGeomStatementA(DS_ID, dbConn);
+                } else {
+                    stmt = initGeomStatementB(DS_ID, dbConn);
+                }
+                
+                startTime = System.nanoTime();
+        
+                virt_stmt = (VirtuosoPreparedStatement)virt_conn.prepareStatement("SPARQL " + queryWKT);
+                VirtuosoResultSet rs = (VirtuosoResultSet) virt_stmt.executeQuery();
+                
+                startTime =  System.nanoTime();
+                
+                while(rs.next()) {
+                    
+                    final String geometry = rs.getString(1);
+                    
+                    //success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+                    addGeom(DS_ID, stmt, node, geometry);
+                }
+                
+                rs.close();
+                virt_stmt.close();
+               
+                endTime = System.nanoTime();
+                LOG.info("check WGS lasted " + (endTime - startTime ) / Constants.NANOS_PER_SECOND);
+                          //success = postGISImporter.finishUpdates();
+                //System.out.println("Count : "+currentCount);
+                endTime = System.nanoTime();
+                  
+                LOG.info("Loading WKT lasted "+Utilities.nanoToSeconds(endTime-startTime));
+
+            }
+            catch (SQLException ex) {
+                LOG.trace("SQLException thrown during WKT geometry update");
+                LOG.debug("SQLException thrown during WKT geometry update : \n" + ex.getMessage());
+                LOG.debug("SQLException thrown during WKT geometry update : \n" + ex.getSQLState());
+
+                SQLException exception = (SQLException) ex;
+                while(exception != null) {
+                    LOG.trace("SQLException expanded (see DEBUG) ");
+                    LOG.debug("SQLException expanded : \n" + exception.getMessage());
+                    LOG.debug("SQLException expanded : \n" + exception.getSQLState());
+                }
+
+                success = false;
+            }
+        }    
+
+        return true;
+    }
+    
+    private boolean checkForWGS(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
+        boolean result = false;
+        
+        final String queryString = "ASK { ?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . ?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }";
+        QueryExecution queryExecution = null;
+        try {
+            final Query query = QueryFactory.create(queryString);
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
+            System.out.println("source endpoint: " + sourceEndpoint + " query: " + query + "sourceGraph: " + sourceGraph);
+
+            QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
+            qeh.addDefaultGraph(sourceGraph);
+            //QueryExecution queryExecution = qeh;
+            qeh.setSelectContentType(QueryEngineHTTP.supportedSelectContentTypes[3]);
+            boolean rs = qeh.execAsk();
+
+            System.out.println("Has WGS ------- " + rs);
+            return rs;
+        }
+        catch (RuntimeException ex) {
+            LOG.warn(ex.getMessage(), ex);
+        }
+        finally {
+            if(queryExecution != null) {
+                queryExecution.close();
+            }
+        }
+        return result;
+    }
+    
+    private boolean checkForWKT(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
+        boolean result = false;
+        
+        final String queryString = "ASK { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g }";
+        QueryExecution queryExecution = null;
+        try {
+            final Query query = QueryFactory.create(queryString);
+            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
+            System.out.println("source endpoint: " + sourceEndpoint + " query: " + query + "sourceGraph: " + sourceGraph);
+
+            QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
+            qeh.addDefaultGraph(sourceGraph);
+            //QueryExecution queryExecution = qeh;
+            qeh.setSelectContentType(QueryEngineHTTP.supportedAskContentTypes[3]);
+            System.out.println("ASK Type " + QueryEngineHTTP.supportedAskContentTypes[3]);
+
+            boolean rs = qeh.execAsk();
+
+            System.out.println("Has WKT ------- " + rs);
+            return rs;
+        } catch (RuntimeException ex) {
+            LOG.warn(ex.getMessage(), ex);
+        } finally {
+            if(queryExecution != null) {
+                queryExecution.close();
+            }
+        }
+        return result;
+    }
+    
+    boolean insertGeometry(Connection dbConn, String node, String sourceGraph, String sourceEndpoint, int DS_ID) {
+        boolean foundAtLeastOneTypeOfGeometry = false;
+        final String restrictionForWgs = "<"+node+"> ?p1 ?o1 . <"+node+"> ?p2 ?o2 "
+                + "FILTER(regex(?p1, \"" + Constants.LAT_REGEX + "\", \"i\"))"
+                + "FILTER(regex(?p2, \"" + Constants.LONG_REGEX + "\", \"i\"))";
+        
+        final String restriction = "<"+node+"> ?p1 _:a . _:a <"+Constants.AS_WKT_REGEX+"> ?g ";
         final String queryString1 = "SELECT ?o1 ?o2 WHERE { GRAPH <"+sourceGraph+"> {" + restrictionForWgs + "} }";
         
         boolean countWgs = checkForWGS(sourceEndpoint, sourceGraph, restrictionForWgs, "?s");  
         boolean countWKT = checkForWKT(sourceEndpoint, sourceGraph, restriction, "?os");
         
+        // Is at least one type of geometry existant
+        foundAtLeastOneTypeOfGeometry = countWgs | countWKT;
+                
         final String queryString;
         queryString = "SELECT ?g WHERE { GRAPH <"+sourceGraph+"> {" + restriction + " } }";
                 
         QueryExecution queryExecution = null;
-        if (!countWKT){ //if geosparql geometry doesn' t exist        
+        if (countWgs){ //if geosparql geometry doesn' t exist        
             try {
                 PreparedStatement stmt = null;
-                if ( DS_ID == DATASET_A ) {
+                if ( DS_ID == Constants.DATASET_A ) {
                     stmt = initGeomStatementA(DS_ID, dbConn);
                 } else {
                     stmt = initGeomStatementB(DS_ID, dbConn);
@@ -526,12 +862,13 @@ public class CreateLinkServlet extends HttpServlet {
                     queryExecution.close();
                 }
             }
-        }                                   
-        else { //if geosparql geometry exists
+        }   
+        
+        if ( countWKT ) { //if geosparql geometry exists
             //System.out.println("geosparql");
             try {
                 PreparedStatement stmt = null;
-                if ( DS_ID == DATASET_A ) {
+                if ( DS_ID == Constants.DATASET_A ) {
                     stmt = initGeomStatementA(DS_ID, dbConn);
                 } else {
                     stmt = initGeomStatementB(DS_ID, dbConn);
@@ -587,54 +924,8 @@ public class CreateLinkServlet extends HttpServlet {
                 }
             }
         }
-    }
-          
-    private boolean checkForWGS(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
-        boolean result = false;
-    //ASK WHERE { ?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . ?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }
-        final String queryString = "ASK WHERE { ?s <"+LAT_REGEX+"> ?o1 . ?s <"+LONG_REGEX+"> ?o2 }";
-        QueryExecution queryExecution = null;
-        try {
-            final Query query = QueryFactory.create(queryString);
-            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-            queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
-            //System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
-
-            result = queryExecution.execAsk();
-        }
-        catch (RuntimeException ex) {
-            //LOG.warn(ex.getMessage(), ex);
-        }
-        finally {
-            if(queryExecution != null) {
-                queryExecution.close();
-            }
-        }
-        return result;
-    }
-    
-    private boolean checkForWKT(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
-        boolean result = false;
         
-        final String queryString = "ASK WHERE { ?os ?p1 _:a . _:a <"+AS_WKT_REGEX+"> ?g }";
-        QueryExecution queryExecution = null;
-        try {
-            final Query query = QueryFactory.create(queryString);
-            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-            queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
-            //System.out.println("source endpoint: " +sourceEndpoint +" query: "+ query + "sourceGraph: " + sourceGraph);
-
-            result = queryExecution.execAsk();
-        }
-        catch (RuntimeException ex) {
-            //LOG.warn(ex.getMessage(), ex);
-        }
-        finally {
-            if(queryExecution != null) {
-                queryExecution.close();
-            }
-        }
-        return result;
+        return foundAtLeastOneTypeOfGeometry;
     }
     
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
@@ -652,7 +943,6 @@ public class CreateLinkServlet extends HttpServlet {
         try {
             processRequest(request, response);
         } catch (SQLException ex) {
-            Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             /*
             if (stmt != null) {
@@ -701,7 +991,6 @@ public class CreateLinkServlet extends HttpServlet {
         try {
             processRequest(request, response);
         } catch (SQLException ex) {
-            Logger.getLogger(CreateLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             /*
             if (stmt != null) {

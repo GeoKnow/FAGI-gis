@@ -547,7 +547,7 @@ FAGI.MapUI.Callbacks.Linking = {
             if ( !FAGI.ActiveState.activeFeature.attributes.links[i].validated )
                 return;
         
-        FAGI.ActiveState.activeFeature.geometry.transform(FAGI.MapUI.map.getProjectionObject(), WGS84);
+        FAGI.ActiveState.activeFeature.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
         var requestEntity = new Object();
         requestEntity.sub = FAGI.ActiveState.activeFeature.attributes.a;
         requestEntity.ds = 'A';
@@ -557,7 +557,7 @@ FAGI.MapUI.Callbacks.Linking = {
         document.getElementById("popupFindLinkMenu").style.opacity = 0;
         document.getElementById("popupFindLinkMenu").style.display = 'none';
         
-        requestEntity.geom = FAGI.MapUI.FAGI.MapUI.wkt.extractGeometry ( FAGI.ActiveState.activeFeature.geometry.getCentroid(true) );
+        requestEntity.geom = FAGI.MapUI.wkt.extractGeometry ( FAGI.ActiveState.activeFeature.geometry.getCentroid(true) );
         //alert(JSON.stringify(requestEntity));
         FAGI.ActiveState.activeFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
         FAGI.Utilities.enableSpinner();
@@ -2807,7 +2807,7 @@ function fusionPanel(event, val, node) {
             " </tr>\n" +
             " </table>" +
             " <fieldset>" +
-            " <label for=\"fg-fuse-rest-selector\">Select a speed</label>" +
+            " <label for=\"fg-fuse-rest-selector\">Remaining Metadata Action</label>" +
             " <select name=\"fg-fuse-rest-selector\" id=\"fg-fuse-rest-selector\">" +
             " <option>Keep A</option>" +
             " <option selected=\"selected\">None</option>" +

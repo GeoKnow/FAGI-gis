@@ -502,8 +502,8 @@ function createNewLink(nodeA, nodeB) {
         
         linkFeature.prev_fused = false;
         linkFeature.validated = true;
-        nodeA.attributes.links[0] = linkFeature;
-        nodeB.attributes.links[0] = linkFeature;
+        nodeA.attributes.links[nodeA.attributes.links.length] = linkFeature;
+        nodeB.attributes.links[nodeB.attributes.links.length] = linkFeature;
 
         FAGI.MapUI.Layers.vectorsLinksTemp.destroyFeatures();
         FAGI.MapUI.Layers.vectorsLinks.addFeatures([linkFeature]);
@@ -535,6 +535,7 @@ function createNewLink(nodeA, nodeB) {
         });
     } else {
         FAGI.ActiveState.lastPo = null;
+        FAGI.MapUI.Layers.vectorsLinksTemp.destroyFeatures();
         alert('You cannot fuse geometries of the same dataset');
     }
 }
@@ -1288,28 +1289,22 @@ function initBatchFusionTable (val) {
     });
     
     var s = "<p class=\"geoinfo\" id=\"link_name\">Fusion Table</p>\n" +
-//" <div class=\"checkboxes\">\n"+
-//" <label for=\"chk1\"><input type=\"checkbox\" name=\"chk1\" id=\"chk1\" />Flag as misplaced fusion</label><br />\n"+
-//" </div>\n"+
-//" Description: <textarea name=\"textarea\" style=\"width:99%;height:50px;\" class=\"centered\"></textarea>\n"+
             " <table class=\"rwd-table\" border=1 id=\"bFusionTable\">\n" +
             " <tr>\n" +
             " <td>Value from " + $('#fg-dataset-input-a').val() + "</td>\n" +
             " <td>Predicate</td>\n" +
             " <td>Value from " + $('#fg-dataset-input-b').val() + "</td>\n" +
             " <td>Action</td>\n" +
-//" <td style=\"width:20%; text-align: center;\" align=\"left\" valign=\"bottom\">Result</td>\n"+
             " </tr>\n" +
             " <tr>\n" +
             " <td title=\"" + "WKT Geometry" + "\">" + "WKT Geometry" + "</td>\n" +
             " <td>asWKT</td>\n" +
             " <td title=\"" + "WKT Geometry" + "\">" + "WKT Geometry" + "</td>\n" +
             " <td><select id=\"bgeoTrans\" style=\"color: black; width: 100%;\">" + avail_trans + "</select></td>\n" +
-//" <td style=\"width:216; text-align: center;\" align=\"left\" valign=\"bottom\">Fused Geom</td>\n"+
             " </tr>\n" +
             " </table>" +
             " <fieldset id=\"fg-batch-fuse-rest-fieldset\"> " +
-            " <label for=\"fg-batch-fuse-rest-selector\" id=\"fg-batch-fuse-rest-label\">Select a speed</label>" +
+            " <label for=\"fg-batch-fuse-rest-selector\" id=\"fg-batch-fuse-rest-label\">Remaining Metadata Action</label>" +
             " <select name=\"fg-batch-fuse-rest-selector\" id=\"fg-batch-fuse-rest-selector\">" +
             " <option>Keep A</option>" +
             " <option selected=\"selected\">None</option>" +
