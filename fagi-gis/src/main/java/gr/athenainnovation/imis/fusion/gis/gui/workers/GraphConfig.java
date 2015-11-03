@@ -21,7 +21,7 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
  * Keeps info about graph names and given endpoints.
  */
 public class GraphConfig {
-    private String graphA, graphB, graphL, endpointA, endpointB, endpointL, endpointLoc, endpointT;
+    private String graphA, graphB, graphL, typeGraphA, typeGraphB, endpointA, endpointB, endpointL, endpointLoc, endpointT;
     private String metadataGraphA, metadataGraphB, targetGraph, targetTempGraph;
     private String allLinksGraph, allClusterGraph, clusterGraph, linksGraph, sampleLinksGraph;
     
@@ -40,7 +40,9 @@ public class GraphConfig {
         this.endpointLoc = "";
         this.endpointT = "";
         this.dominantA = true;
-        
+        this.typeGraphA = "";
+        this.typeGraphB = "";
+
         geoPropertiesA = new ArrayList<>();
         geoPropertiesB = new ArrayList<>();
         geoTypesA = new ArrayList<>();
@@ -55,7 +57,9 @@ public class GraphConfig {
         this.endpointLoc = "";
         this.endpointT = "";
         this.dominantA = isADominant;
-        
+        this.typeGraphA = "";
+        this.typeGraphB = "";
+
         geoPropertiesA = new ArrayList<>();
         geoPropertiesB = new ArrayList<>();
         geoTypesA = new ArrayList<>();
@@ -70,7 +74,9 @@ public class GraphConfig {
         this.endpointLoc = endpointLoc;
         this.endpointT = endpointT;
         this.dominantA = true;
-        
+        this.typeGraphA = "";
+        this.typeGraphB = "";
+
         geoPropertiesA = new ArrayList<>();
         geoPropertiesB = new ArrayList<>();
         geoTypesA = new ArrayList<>();
@@ -84,7 +90,9 @@ public class GraphConfig {
         this.endpointB = checkNotNull(endpointB, "endpoint cannot be null.");
         this.endpointLoc = endLoc;
         this.dominantA = true;
-        
+        this.typeGraphA = "";
+        this.typeGraphB = "";
+
         geoPropertiesA = new ArrayList<>();
         geoPropertiesB = new ArrayList<>();
         geoTypesA = new ArrayList<>();
@@ -100,11 +108,29 @@ public class GraphConfig {
         this.dominantA = true;
         this.graphL = graphL;
         this.endpointL = endL;
+        this.typeGraphA = "";
+        this.typeGraphB = "";
         
         geoPropertiesA = new ArrayList<>();
         geoPropertiesB = new ArrayList<>();
         geoTypesA = new ArrayList<>();
         geoTypesB = new ArrayList<>();
+    }
+
+    public String getTypeGraphA() {
+        return typeGraphA;
+    }
+
+    public void setTypeGraphA(String typeGraphA) {
+        this.typeGraphA = typeGraphA;
+    }
+
+    public String getTypeGraphB() {
+        return typeGraphB;
+    }
+
+    public void setTypeGraphB(String typeGraphB) {
+        this.typeGraphB = typeGraphB;
     }
 
     public String getSampleLinksGraph() {

@@ -31,4 +31,10 @@ public class Patterns {
     // Word breaker
     public static final Pattern PATTERN_WORD_BREAKER = Pattern.compile( "(([a-z]|[A-Z])[a-z]+)|(([a-z]|[A-Z])[A-Z]+)" );
     
+    // POLYGON Pattern
+    public static final Pattern PATTERN_POLYGON = Pattern.compile(  "POLYGON\\(\\((.*?)\\)\\)" );
+    
+    // Triple Pattern
+    public static final Pattern PATTERN_TRIPLE = Pattern.compile( "\\{([^F]*)" );
+    
 }
