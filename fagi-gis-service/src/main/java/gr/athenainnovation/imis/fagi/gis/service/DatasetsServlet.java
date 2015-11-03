@@ -101,6 +101,8 @@ public class DatasetsServlet extends HttpServlet {
             final String targetGraph = request.getParameter("t_graph") ;
             final String metadataGraphA = targetGraph + "_" + dbConf.getDBName() + "A_fagi" ;
             final String metadataGraphB = targetGraph + "_" + dbConf.getDBName() + "B_fagi" ;
+            final String typeGraphA = targetGraph + "_" + dbConf.getDBName() + "A_types_fagi" ;
+            final String typeGraphB = targetGraph + "_" + dbConf.getDBName() + "B_types_fagi" ;
             final String targetTempGraph = targetGraph+"_"+dbConf.getDBName()+"_fagi" ;
             
             // Set graph configuration
@@ -108,6 +110,8 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setEndpointB(request.getParameter("db_end"));
             graphConf.setGraphA(request.getParameter("da_name"));
             graphConf.setGraphB(request.getParameter("db_name"));
+            graphConf.setTypeGraphA(request.getParameter("db_name"));
+            graphConf.setTypeGraphB(request.getParameter("db_name"));
             graphConf.setEndpointT(request.getParameter("t_end"));
             graphConf.setGraphL(request.getParameter("l_graph"));
             graphConf.setEndpointL(request.getParameter("l_end"));
@@ -127,6 +131,8 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setClusterGraph(clusterGraph);
             graphConf.setMetadataGraphA(metadataGraphA);
             graphConf.setMetadataGraphB(metadataGraphB);
+            graphConf.setTypeGraphA(typeGraphA);
+            graphConf.setTypeGraphB(typeGraphB);
             
             LOG.info("Endpoint " + graphConf.getEndpointL());
             LOG.info("Graph " + graphConf.getGraphL());

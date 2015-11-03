@@ -7,6 +7,7 @@ package gr.athenainnovation.imis.fagi.gis.service;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QuerySolution;
@@ -19,6 +20,9 @@ import com.vividsolutions.jts.io.WKTReader;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONEntity;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -48,6 +52,8 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 @WebServlet(name = "FindLinkServlet", urlPatterns = {"/FindLinkServlet"})
 public class FindLinkServlet extends HttpServlet {
     
+    private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(FindLinkServlet.class);    
+    
     // Well Known Text Reader for JTS
     private static final WKTReader wkt = new WKTReader();
     
@@ -55,40 +61,6 @@ public class FindLinkServlet extends HttpServlet {
     private static final String strPatternText = "[a-zA-Z]+(\\b[a-zA-Z]+\\b)*([a-zA-Z])";
     private static Pattern patternText = Pattern.compile( strPatternText );
     private static Pattern patternInt = Pattern.compile( "^(\\d+)$" );
-    
-    private static class JSONEntity {
-        String sub;
-        String ds;
-        String geom;
-
-        public JSONEntity() {
-        }
-
-        public String getSub() {
-            return sub;
-        }
-
-        public void setSub(String sub) {
-            this.sub = sub;
-        }
-
-        public String getDs() {
-            return ds;
-        }
-
-        public void setDs(String ds) {
-            this.ds = ds;
-        }
-
-        public String getGeom() {
-            return geom;
-        }
-
-        public void setGeom(String geom) {
-            this.geom = geom;
-        }
-
-    }
     
     private class IntWrapper {
         public int i;
@@ -133,80 +105,6 @@ public class FindLinkServlet extends HttpServlet {
         
     }
     
-    private class JSONGeomLink {
-        String subA, geomA;
-        String subB, geomB;
-        double dist, jIndex;
-        
-        public JSONGeomLink() {
-        }
-
-        public JSONGeomLink(String subA, String geomA, String subB, String geomB) {
-            this.subA = subA;
-            this.geomA = geomA;
-            this.subB = subB;
-            this.geomB = geomB;
-        }
-
-        public JSONGeomLink(String subA, String geomA, String subB, String geomB, double dist, double jIndex) {
-            this.subA = subA;
-            this.geomA = geomA;
-            this.subB = subB;
-            this.geomB = geomB;
-            this.dist = dist;
-            this.jIndex = jIndex;
-        }
-        
-        public String getSubA() {
-            return subA;
-        }
-
-        public void setSubA(String subA) {
-            this.subA = subA;
-        }
-
-        public String getGeomA() {
-            return geomA;
-        }
-
-        public void setGeomA(String geomA) {
-            this.geomA = geomA;
-        }
-
-        public String getSubB() {
-            return subB;
-        }
-
-        public void setSubB(String subB) {
-            this.subB = subB;
-        }
-
-        public String getGeomB() {
-            return geomB;
-        }
-
-        public void setGeomB(String geomB) {
-            this.geomB = geomB;
-        }
-
-        public double getDist() {
-            return dist;
-        }
-
-        public void setDist(double dist) {
-            this.dist = dist;
-        }
-
-        public double getjIndex() {
-            return jIndex;
-        }
-
-        public void setjIndex(double jIndex) {
-            this.jIndex = jIndex;
-        }
-
-    }
-    
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -222,12 +120,15 @@ public class FindLinkServlet extends HttpServlet {
         
         // Per request state
         JSONEntity              ent;
+        JSONRequestResult       res;
         GraphConfig             grConf;
         DBConfig                dbConf;
         HttpSession             sess;
-    
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
+        PrintWriter             out = null;
+        
+        try {
+            out = response.getWriter();
+            
             sess = request.getSession(false);
             
             if ( sess == null ) {
@@ -469,6 +370,33 @@ public class FindLinkServlet extends HttpServlet {
             }
             System.out.println(mapper.writeValueAsString(newLinks));
             out.print(mapper.writeValueAsString(newLinks));
+        } catch (java.lang.OutOfMemoryError oome) {
+            LOG.trace("OutOfMemoryError thrown");
+            LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
+            
+            if ( out != null ) 
+                out.print("{\"error\":\"error\"}");
+            
+            throw new ServletException("OutOfMemoryError thrown by Tomcat");
+        } catch (JsonProcessingException ex) {
+            LOG.trace("JsonProcessingException thrown");
+            LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
+            
+            if ( out != null ) 
+                out.print("{\"error\":\"error\"}");
+            
+            throw new ServletException("JsonProcessingException thrown by Tomcat");
+        } catch (IOException ex) {
+            LOG.trace("IOException thrown");
+            LOG.debug("IOException thrown : " + ex.getMessage());
+            
+            throw new ServletException("IOException opening the servlet writer");
+        } finally {
+            if (vSet != null) {
+                vSet.close();
+            }
+            if (out != null )
+                out.close();
         }
     }
 

@@ -15,6 +15,7 @@ import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
@@ -22,7 +23,9 @@ import gr.athenainnovation.imis.fusion.gis.json.JSONBArea;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.json.JSONUnlinkedEntities;
 import gr.athenainnovation.imis.fusion.gis.json.JSONUnlinkedEntity;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
+import gr.athenainnovation.imis.fusion.gis.utils.Patterns;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -36,6 +39,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import org.apache.jena.atlas.web.HttpException;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.log4j.Logger;
@@ -48,13 +52,6 @@ import org.apache.log4j.Logger;
 public class FetchUnlinkedServlet extends HttpServlet {
 
     private static final Logger LOG = Log.getClassFAGILogger(FetchUnlinkedServlet.class);    
-    
-    private static final String strPolygonPattern = "POLYGON\\(\\((.*?)\\)\\)";
-    private static final String strTriplePattern = "\\{([^F]*)";
-    
-    private static final Pattern patternPolygon = Pattern.compile( strPolygonPattern );
-    private static final Pattern patternTriples = Pattern.compile( strTriplePattern );
-    private static final Pattern patternInt = Pattern.compile( "^(\\d+)$" );
         
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -210,7 +207,8 @@ public class FetchUnlinkedServlet extends HttpServlet {
         queryExecution.close();
     }
 
-    private void fetchGeoms(List<JSONUnlinkedEntity> l, String graph, String service, String p, String t, JSONBArea BBox, HttpSession sess) {
+    private boolean fetchGeoms(List<JSONUnlinkedEntity> l, String graph, String service, String p, String t, JSONBArea BBox, HttpSession sess) {
+        boolean success = true;
         StringBuilder geoQuery = new StringBuilder();
         final float X_MAX = 180f;
         final float Y_MAX = 85.05f;
@@ -257,8 +255,6 @@ public class FetchUnlinkedServlet extends HttpServlet {
         }
         qeh.setSelectContentType(xmlType);
         //QueryExecution queryExecution = qeh;
-        final ResultSet resultSet = qeh.execSelect();
-        
         HashSet<String> fetchedGeomsA = (HashSet<String>) sess.getAttribute("fetchedGeomsA");
         HashSet<String> fetchedGeomsB = (HashSet<String>) sess.getAttribute("fetchedGeomsB");
 
@@ -271,40 +267,64 @@ public class FetchUnlinkedServlet extends HttpServlet {
             fetchedGeomsB = new HashSet<>();
             sess.setAttribute("fetchedGeomsB", fetchedGeomsB);
         }
-    
+
         System.out.println("Fetched from A : " + fetchedGeomsA.size());
         System.out.println("Fetched from B : " + fetchedGeomsB.size());
         
-        int newGeom = 0;
-        while ( resultSet.hasNext() ) {
-            final QuerySolution querySolution = resultSet.next();
-                    
-            final String geo = querySolution.getLiteral("?geo").getString();
-            final String sub = querySolution.getResource("?s").getURI();
-            
-            if ( fetchedGeomsA.contains(sub) )
-                continue;
-            
-            fetchedGeomsA.add(sub);
-            newGeom++;
-            
-            l.add(new JSONUnlinkedEntity(geo, sub));
-            //System.out.println("Fetched "+geo);
+        int tries = 0;
+        
+        while ( tries < Constants.MAX_SPARQL_TRIES ) {
+            try {
+                final ResultSet resultSet = qeh.execSelect();
+
+                int newGeom = 0;
+                while (resultSet.hasNext()) {
+                    final QuerySolution querySolution = resultSet.next();
+
+                    final String geo = querySolution.getLiteral("?geo").getString();
+                    final String sub = querySolution.getResource("?s").getURI();
+
+                    if (fetchedGeomsA.contains(sub)) {
+                        continue;
+                    }
+
+                    fetchedGeomsA.add(sub);
+                    newGeom++;
+
+                    l.add(new JSONUnlinkedEntity(geo, sub));
+                    //System.out.println("Fetched "+geo);
+                }
+
+                qeh.close();
+            } catch (HttpException ex) {
+                LOG.trace("HttpException during geometry fetch");
+                LOG.debug("HttpException during geometry fetch");
+                
+                tries++;
+            } catch (JenaException ex) {
+                LOG.trace("JenaException during geometry fetch");
+                LOG.debug("JenaException during geometry fetch");
+                
+                tries++;
+            }
         }
         
-        qeh.close();
+        if ( tries == Constants.MAX_SPARQL_TRIES )
+            success = false;
+        
+        return success;
     }
     
     private String normalizeQuery(String q) {
         StringBuilder ret = new StringBuilder();
         ret.append( "SELECT ?subject ?geometry WHERE {" );
-        Matcher m = patternPolygon.matcher(q);
+        Matcher m = Patterns.PATTERN_POLYGON.matcher(q);
         String bbox = "empty";
         String triplePattern = "empty";
         if ( m.find() ) {
             bbox = "POLYGON((" + m.group(1) + "))";
         }
-        m = patternTriples.matcher(q);
+        m = Patterns.PATTERN_TRIPLE.matcher(q);
         if ( m.find() ) {
             triplePattern = m.group(1);
         }
