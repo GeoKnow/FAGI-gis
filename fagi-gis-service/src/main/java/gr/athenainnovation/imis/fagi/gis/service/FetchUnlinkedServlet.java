@@ -210,8 +210,7 @@ public class FetchUnlinkedServlet extends HttpServlet {
     private boolean fetchGeoms(List<JSONUnlinkedEntity> l, String graph, String service, String p, String t, JSONBArea BBox, HttpSession sess) {
         boolean success = true;
         StringBuilder geoQuery = new StringBuilder();
-        final float X_MAX = 180f;
-        final float Y_MAX = 85.05f;
+        
         //System.out.println(BBox.getRight());
         //System.out.println(BBox.getLeft());
         //System.out.println(BBox.getTop());
@@ -220,18 +219,18 @@ public class FetchUnlinkedServlet extends HttpServlet {
             geoQuery.append("SELECT ?s ?geo WHERE {\n"
                     + "?s <"+p+"> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n");
             if (BBox.getLeft() < 0) {
-                geoQuery.append("FILTER ( ( bif:st_xmax(?geo) + " + X_MAX + " )  < " + (BBox.getRight() + X_MAX) + ")\n"
-                        + "FILTER ( ( bif:st_xmax(?geo) + " + X_MAX + " ) > " + (BBox.getLeft() + X_MAX) + ")\n");
+                geoQuery.append("FILTER ( ( bif:st_xmax(?geo) + " + Constants.MERC_X_MAX + " )  < " + (BBox.getRight() + Constants.MERC_X_MAX) + ")\n"
+                        + "FILTER ( ( bif:st_xmax(?geo) + " + Constants.MERC_X_MAX + " ) > " + (BBox.getLeft() + Constants.MERC_X_MAX) + ")\n");
             } else {
-                geoQuery.append("FILTER ( ( bif:st_xmax(?geo) + " + X_MAX + " )  < " + (BBox.getRight() + X_MAX) + ")\n"
-                        + "FILTER ( ( bif:st_xmax(?geo) + " + X_MAX + " ) > " + (BBox.getLeft() + X_MAX) + ")\n");
+                geoQuery.append("FILTER ( ( bif:st_xmax(?geo) + " + Constants.MERC_X_MAX + " )  < " + (BBox.getRight() + Constants.MERC_X_MAX) + ")\n"
+                        + "FILTER ( ( bif:st_xmax(?geo) + " + Constants.MERC_X_MAX + " ) > " + (BBox.getLeft() + Constants.MERC_X_MAX) + ")\n");
             }
             if (BBox.getBottom() < 0) {
-                geoQuery.append("FILTER ( ( bif:st_ymax(?geo) + " + Y_MAX + " ) > " + (BBox.getTop() + Y_MAX) + ")\n"
-                        + "FILTER ( ( bif:st_ymax(?geo) + " + Y_MAX + " ) < " + (BBox.getBottom() + Y_MAX) + ")\n");
+                geoQuery.append("FILTER ( ( bif:st_ymax(?geo) + " + Constants.MERC_Y_MAX + " ) > " + (BBox.getTop() + Constants.MERC_Y_MAX) + ")\n"
+                        + "FILTER ( ( bif:st_ymax(?geo) + " + Constants.MERC_Y_MAX + " ) < " + (BBox.getBottom() + Constants.MERC_Y_MAX) + ")\n");
             } else {
-                geoQuery.append("FILTER ( ( bif:st_ymax(?geo) + " + Y_MAX + " ) < " + (BBox.getTop() + Y_MAX) + ")\n"
-                        + "FILTER ( ( bif:st_ymax(?geo) + " + Y_MAX + " ) > " + (BBox.getBottom() + Y_MAX) + ")\n");
+                geoQuery.append("FILTER ( ( bif:st_ymax(?geo) + " + Constants.MERC_Y_MAX + " ) < " + (BBox.getTop() + Constants.MERC_Y_MAX) + ")\n"
+                        + "FILTER ( ( bif:st_ymax(?geo) + " + Constants.MERC_Y_MAX + " ) > " + (BBox.getBottom() + Constants.MERC_Y_MAX) + ")\n");
             }
             geoQuery.append("}");
         } else {
@@ -298,12 +297,12 @@ public class FetchUnlinkedServlet extends HttpServlet {
                 qeh.close();
             } catch (HttpException ex) {
                 LOG.trace("HttpException during geometry fetch");
-                LOG.debug("HttpException during geometry fetch");
+                LOG.debug("HttpException during geometry fetch : " + ex.getMessage());
                 
                 tries++;
             } catch (JenaException ex) {
                 LOG.trace("JenaException during geometry fetch");
-                LOG.debug("JenaException during geometry fetch");
+                LOG.debug("JenaException during geometry fetch : " + ex.getMessage());
                 
                 tries++;
             }

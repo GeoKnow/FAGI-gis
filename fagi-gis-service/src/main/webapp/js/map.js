@@ -435,12 +435,15 @@ FAGI.PanelsUI.Callbacks = {
             // the data to send (will be converted to a query string)
             data: {"filter": null, "dataset": ""},
             // the type of data we expect back
-            dataType: "text",
+            dataType: "json",
             // code to run if the request succeeds;
             // the response is passed to the function
-            success: function (responseText) {
-                var list = document.getElementById("linksList");
-                list.innerHTML = responseText;
+            success: function (responseJson) {
+                if (responseJson.result.statusCode == 0) {
+                    $("#linksList").html(responseJson.linksHTML);
+                } else {
+                    alert(responseJson.result.message);
+                }
             },
             // code to run if the request fails; the raw request and
             // status codes are passed to the function
