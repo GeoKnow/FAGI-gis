@@ -28,6 +28,8 @@ public class Constants {
     // The REQUIRED FAGI gis Well Known Text predicate
     public static final String      AS_WKT_REGEX = "http://www.opengis.net/ont/geosparql#asWKT";
     public static final String      WKT = AS_WKT_REGEX;
+    
+    // WKT Literal
     public static final String      WKT_LITERAL_REGEX = "http://www.opengis.net/ont/geosparql#wktLiteral";
         
     // Basic WGS predicates
@@ -66,4 +68,10 @@ public class Constants {
     public static final int         DATASET_A = 0;
     public static final int         DATASET_B = 1;
     
+    // Quick approx from Merc map Distance to meter distance
+    public static final int         MAGIC_MERC_TO_METERS_NUMBER = 111195;
+    public static final float       MAGIC_METERS_TO_MErc_NUMBER = 1.0F/111195;
+    
+    public static final float       MERC_X_MAX = 180f;
+    public static final float       MERC_Y_MAX = 85.05f;
 }

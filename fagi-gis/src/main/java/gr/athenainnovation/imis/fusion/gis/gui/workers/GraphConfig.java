@@ -8,19 +8,27 @@ import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.query.Syntax;
+import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import org.apache.jena.atlas.web.HttpException;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import org.apache.log4j.Logger;
 
 /**
  * Keeps info about graph names and given endpoints.
  */
 public class GraphConfig {
+    
+    private static final Logger LOG = Log.getClassFAGILogger(GraphConfig.class);    
+    
     private String graphA, graphB, graphL, typeGraphA, typeGraphB, endpointA, endpointB, endpointL, endpointLoc, endpointT;
     private String metadataGraphA, metadataGraphB, targetGraph, targetTempGraph;
     private String allLinksGraph, allClusterGraph, clusterGraph, linksGraph, sampleLinksGraph;
@@ -332,49 +340,111 @@ public class GraphConfig {
         System.out.println("Geo Types B " + geoTypesB);
     }
     
+    /*
+    SELECT ?geo
+WHERE {
+?s <http://geovocab.org/geometry#geometry> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .
+} limit 1
+    SELECT distinct(?p) 
+WHERE {
+?s ?p ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .
+}
+    */
     private void fillGeoProperties(String g, String s, Set<String> l, Set<String> t) {
-        String geoQuery = "SELECT distinct ?pre bif:geometryType(?geo) AS ?geo_t \n" +
+        final String geoQuery = "SELECT distinct ?pre ?geo_t \n" +
                           "WHERE { \n" +
                           "GRAPH <"+g+"> {\n" +
                           "  {\n" +
-                          "    ?s ?pre ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n" +
+                          "    ?s ?pre ?o . ?o <"+Constants.AS_WKT_REGEX+"> ?geo_t .\n" +
                           "  } } }";
-        System.out.println("Graph "+geoQuery);
-        System.out.println("Graph "+g);
-        System.out.println("Graph "+s);
-        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-        //Query query = QueryFactory.create();
-        //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-        //QueryFactory.parse(query, geoQuery, "", Syntax.syntaxSPARQL_11);
-        QueryEngineHTTP qeh = new QueryEngineHTTP(s, geoQuery, authenticator);
-
-        System.out.println("Requesting " + QueryEngineHTTP.supportedSelectContentTypes[3]);
-        System.out.println("Requesting " + QueryEngineHTTP.supportedSelectContentTypes[0]);
-        System.out.println("Requesting " + QueryEngineHTTP.supportedSelectContentTypes[1]);
+        
+        final String wgsQuery = "ASK { ?s <"+Constants.LAT_REGEX+"> ?o1 . ?s <"+Constants.LONG_REGEX+"> ?o2 }";
+        
+        boolean hasWGS = false;
+        
+        System.out.println(geoQuery);
         String xmlType = "";
         for (String type : QueryEngineHTTP.supportedSelectContentTypes) {
             if (type.contains("xml")) {
                 xmlType = type;
             }
         }
-        qeh.setSelectContentType(xmlType);
-        //qeh.addDefaultGraph(g);
-        //QueryExecution queryExecution = qeh;
-        final ResultSet resultSet = qeh.execSelect();
-        /*
-        "WHERE\n" +
-        */
-        while(resultSet.hasNext()) {
-            final QuerySolution querySolution = resultSet.next();
-            final String geo = querySolution.get("?pre").toString();
-            final String geo_t = querySolution.get("?geo_t").toString();
-            //System.out.println("Geo Type : "+geo_t);
-            if ( geo.toLowerCase().contains("geometry") ) {
-                l.add(geo);
-                t.add(geo_t);
+        int tries = 0;
+        QueryEngineHTTP qeh = null;
+        while (tries < Constants.MAX_SPARQL_TRIES) {
+            try {
+                final Query query = QueryFactory.create(wgsQuery);
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
+
+                qeh = QueryExecutionFactory.createServiceRequest(s, query, authenticator);
+                qeh.addDefaultGraph(g);
+                qeh.setSelectContentType(xmlType);
+                hasWGS = qeh.execAsk();
+
+                System.out.println("Has WGS ------- " + hasWGS);
+
+                break;
+            } catch (HttpException ex) {
+                LOG.trace("HttpException during geometry fetch");
+                LOG.debug("HttpException during geometry fetch : " + ex.getMessage());
+
+                tries++;
+            } catch (JenaException ex) {
+                LOG.trace("JenaException during geometry fetch");
+                LOG.debug("JenaException during geometry fetch : " + ex.getMessage());
+
+                tries++;
+            } finally {
+                if (qeh != null) {
+                    qeh.close();
+                }
             }
         }
+
+        if ( hasWGS )
+            t.add("WGS");
         
+        qeh = null;
+        
+        tries = 0;
+        while (tries < Constants.MAX_SPARQL_TRIES) {
+            try {
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                qeh = new QueryEngineHTTP(s, geoQuery, authenticator);
+                qeh.setSelectContentType(xmlType);
+                final ResultSet resultSet = qeh.execSelect();
+                while (resultSet.hasNext()) {
+                    final QuerySolution querySolution = resultSet.next();
+                    final String geo = querySolution.get("?pre").toString();
+                    String geo_t = querySolution.get("?geo_t").toString();
+                    System.out.println("Geo Type : "+geo_t);
+                    geo_t = geo_t.substring(0, geo_t.indexOf("("));
+                    
+                    System.out.println("Geo Type : "+geo_t);
+                    if (geo.toLowerCase().contains("geometry")) {
+                        l.add(geo);
+                        t.add(geo_t);
+                    }
+                }
+                
+                break;
+            } catch (HttpException ex) {
+                LOG.trace("HttpException during geometry fetch");
+                LOG.debug("HttpException during geometry fetch : " + ex.getMessage());
+
+                tries++;
+            } catch (JenaException ex) {
+                LOG.trace("JenaException during geometry fetch");
+                LOG.debug("JenaException during geometry fetch : " + ex.getMessage());
+
+                tries++;
+            } finally {
+                if (qeh != null) {
+                    qeh.close();
+                }
+            }
+        }
         qeh.close();
     }
 }

@@ -439,14 +439,14 @@ public class Importer {
     private boolean checkForWGS(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
         boolean result = false;
         
-        final String queryString = "ASK { ?s <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?o1 . ?s <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?o2 }";
-        QueryExecution queryExecution = null;
+        final String queryString = "ASK { ?s <"+Constants.LAT_REGEX+"> ?o1 . ?s <"+Constants.LONG_REGEX+"> ?o2 }";
+        QueryEngineHTTP qeh = null;
         try {
             final Query query = QueryFactory.create(queryString);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
             //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
 
-            QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
+            qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
             qeh.addDefaultGraph(sourceGraph);
             //QueryExecution queryExecution = qeh;
             qeh.setSelectContentType(QueryEngineHTTP.supportedAskContentTypes[3]);
@@ -459,8 +459,8 @@ public class Importer {
             LOG.warn(ex.getMessage(), ex);
         }
         finally {
-            if(queryExecution != null) {
-                queryExecution.close();
+            if(qeh != null) {
+                qeh.close();
             }
         }
         return result;
@@ -471,14 +471,14 @@ public class Importer {
         
         final String queryString = "ASK WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g }";
         //final String queryString = "SELECT ?os WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g } LIMIT 1";
-        QueryExecution queryExecution = null;
+        QueryEngineHTTP qeh = null;
         try {
             final Query query = QueryFactory.create(queryString);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
             //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
             System.out.println("source endpoint: " + sourceEndpoint + " query: " + query + "sourceGraph: " + sourceGraph);
 
-            QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
+            qeh = QueryExecutionFactory.createServiceRequest(sourceEndpoint, query, authenticator);
             qeh.addDefaultGraph(sourceGraph);
             //QueryExecution queryExecution = qeh;
             qeh.setSelectContentType(QueryEngineHTTP.supportedAskContentTypes[3]);
@@ -490,8 +490,8 @@ public class Importer {
             LOG.warn(ex.getMessage(), ex);
         }
         finally {
-            if(queryExecution != null) {
-                queryExecution.close();
+            if(qeh != null) {
+                qeh.close();
             }
         }
         return result;
