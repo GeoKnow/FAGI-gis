@@ -2,6 +2,7 @@ package gr.athenainnovation.imis.fusion.gis.core;
 
 //import com.google.common.base.Optional;
 import static com.google.common.base.Preconditions.*;
+import com.google.common.collect.Maps;
 import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
@@ -188,6 +189,7 @@ public class Importer {
     public HashMap<String, String> importGeometries(final int datasetIdent, final Dataset sourceDataset) {
         boolean success = true;
         final HashMap<String, String> geomEntries = new HashMap();
+        final HashMap<String, String> geomTypes = Maps.newHashMap();
         
         checkArgument(datasetIdent == DATASET_A || datasetIdent == DATASET_B, "Illegal dataset code: " + datasetIdent);
         
@@ -207,7 +209,6 @@ public class Importer {
         //wgs84
         final String restrictionForWgs = 
                 "?s ?p1 ?o1 . ?s ?p2 ?o2 "
-                + "FILTER(regex(?s, \"" + subjectRegex + "\", \"i\")) " // REMOVE?????
                 + "FILTER(regex(?p1, \"" + Constants.LAT_REGEX + "\", \"i\")) "
                 + "FILTER(regex(?p2, \"" + Constants.LONG_REGEX + "\", \"i\"))";
         
@@ -297,6 +298,13 @@ public class Importer {
                 while(rs.next()) {
                     
                     final String subject = rs.getString(1);     
+                    /*
+                    // Only support one geometry per link
+                    String prevType = geomTypes.getOrDefault(subject, "NONE");
+                    if ( Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType) 
+                            < Constants.GEOM_TYPE_PRECEDENCE_TABLE.get("POINT") )
+                        continue;
+                    */
                     final double latitude = Double.parseDouble(rs.getString(2));
                     final double longitude = Double.parseDouble(rs.getString(3));
                     final String geometry = "POINT ("+ longitude + " " + latitude +")";
@@ -343,9 +351,18 @@ public class Importer {
                 
                 while(rs.next()) {
                     
-                    final String subject = rs.getString(1);                 
+                    final String subject = rs.getString(1);                        
                     final String geometry = rs.getString(2);
                     
+                    // Only support one geometry per link
+                    String prevType = geomTypes.getOrDefault(subject, "NONE");
+                    String newType = geometry.substring(0, geometry.indexOf("("));
+                    System.out.println(newType);
+                    if ( Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType) 
+                            < Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(newType) )
+                        continue;
+                    
+                    geomTypes.put(subject, newType);
                     geomEntries.put(subject, geometry);
                     success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
 
@@ -469,7 +486,7 @@ public class Importer {
     private boolean checkForWKT(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
         boolean result = false;
         
-        final String queryString = "ASK WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g }";
+        final String queryString = "ASK WHERE { ?s <"+Constants.AS_WKT_REGEX+"> ?g }";
         //final String queryString = "SELECT ?os WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g } LIMIT 1";
         QueryEngineHTTP qeh = null;
         try {

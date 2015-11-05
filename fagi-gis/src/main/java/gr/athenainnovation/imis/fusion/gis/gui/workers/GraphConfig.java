@@ -33,6 +33,9 @@ public class GraphConfig {
     private String metadataGraphA, metadataGraphB, targetGraph, targetTempGraph;
     private String allLinksGraph, allClusterGraph, clusterGraph, linksGraph, sampleLinksGraph;
     
+    private int depthA;
+    private int depthB;
+    
     private boolean dominantA;
     
     private List<String> geoPropertiesA;
@@ -123,6 +126,22 @@ public class GraphConfig {
         geoPropertiesB = new ArrayList<>();
         geoTypesA = new ArrayList<>();
         geoTypesB = new ArrayList<>();
+    }
+
+    public int getDepthA() {
+        return depthA;
+    }
+
+    public void setDepthA(int depthA) {
+        this.depthA = depthA;
+    }
+
+    public int getDepthB() {
+        return depthB;
+    }
+
+    public void setDepthB(int depthB) {
+        this.depthB = depthB;
     }
 
     public String getTypeGraphA() {

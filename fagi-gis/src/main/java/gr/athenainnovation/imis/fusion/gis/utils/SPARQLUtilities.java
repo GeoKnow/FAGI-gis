@@ -6,6 +6,11 @@
 package gr.athenainnovation.imis.fusion.gis.utils;
 
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
+import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
+import com.hp.hpl.jena.query.QueryFactory;
+import com.hp.hpl.jena.shared.JenaException;
+import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
@@ -25,6 +30,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.logging.Level;
+import org.apache.jena.atlas.web.HttpException;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.log4j.Logger;
@@ -599,4 +605,58 @@ public class SPARQLUtilities {
         vstmt.close();
     }
     
+    public static int getGraphDepth(String g, String e) {
+        int depth = 0;
+        boolean notEmpty = true;
+        
+        while (depth < Constants.MAX_METADATA_DEPTH && notEmpty) {
+            StringBuilder queryString = new StringBuilder();
+            queryString.append("ASK WHERE { ");
+            String prev_s = "?s";
+            for ( int i = 0; i < ( ( Constants.MAX_METADATA_DEPTH - depth ) - 1 ); i++ ) {
+                queryString.append(prev_s + " ?p"+i+" ?o"+i+" . ");
+                prev_s = "?o"+i;
+            }
+            queryString.append(prev_s + " " + "?p"+Constants.MAX_METADATA_DEPTH + " _:a");
+            queryString.append(" }");
+
+            System.out.println(queryString);
+            //final String queryString = "SELECT ?os WHERE { ?os ?p1 _:a . _:a <http://www.opengis.net/ont/geosparql#asWKT> ?g } LIMIT 1";
+            QueryEngineHTTP qeh = null;
+            try {
+                final Query query = QueryFactory.create(queryString.toString());
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                //queryExecution = QueryExecutionFactory.sparqlService(sourceEndpoint, query, sourceGraph, authenticator);
+                System.out.println("source endpoint: " + e + " query: " + query + "sourceGraph: " + g);
+
+                qeh = QueryExecutionFactory.createServiceRequest(e, query, authenticator);
+                qeh.addDefaultGraph(g);
+                //QueryExecution queryExecution = qeh;
+                qeh.setSelectContentType(QueryEngineHTTP.supportedAskContentTypes[3]);
+                boolean rs = qeh.execAsk();
+
+                if ( rs )
+                    return Constants.MAX_METADATA_DEPTH - depth;
+                
+                depth++;
+                System.out.println("WKT depth ------- " + depth + " has WKT " + rs);
+            } catch (HttpException ex) {
+                LOG.trace("HttpException during geometry fetch");
+                LOG.debug("HttpException during geometry fetch : " + ex.getMessage());
+
+                depth++;
+            } catch (JenaException ex) {
+                LOG.trace("JenaException during geometry fetch");
+                LOG.debug("JenaException during geometry fetch : " + ex.getMessage());
+
+                depth++;
+           } finally {
+                if (qeh != null) {
+                    qeh.close();
+                }
+            }
+        }
+        
+        return depth;
+    }
 }
