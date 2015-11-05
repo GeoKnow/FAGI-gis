@@ -17,6 +17,7 @@ import gr.athenainnovation.imis.fusion.gis.json.JSONDatasetConfigResult;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
+import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import java.io.IOException;
 import java.io.PrintWriter;
 import javax.servlet.ServletException;
@@ -134,6 +135,14 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setTypeGraphA(typeGraphA);
             graphConf.setTypeGraphB(typeGraphB);
             
+            int depthA = SPARQLUtilities.getGraphDepth(graphConf.getGraphA(), graphConf.getEndpointA());
+            int depthB = SPARQLUtilities.getGraphDepth(graphConf.getGraphB(), graphConf.getEndpointB());
+            
+            graphConf.setDepthA(depthA);
+            graphConf.setDepthB(depthB);
+            
+            LOG.info("DepthA " + depthA);
+            LOG.info("DepthB " + depthB);
             LOG.info("Endpoint " + graphConf.getEndpointL());
             LOG.info("Graph " + graphConf.getGraphL());
 

@@ -221,14 +221,8 @@ public class LinksServlet extends HttpServlet {
         long                    startTime, endTime;
         
         try {
-            try {
-                out = response.getWriter();
-            } catch (IOException ex) {
-                LOG.trace("IOException thrown in servlet Writer");
-                LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage() );
-                
-                return;
-            }
+            out = response.getWriter();
+            
             sess = request.getSession(false);
             
             StringBuilder htmlCode = new StringBuilder();
@@ -720,13 +714,19 @@ public class LinksServlet extends HttpServlet {
 
                 out.close();
             }
+        } catch (IOException ex) {
+            LOG.trace("IOException thrown in servlet Writer");
+            LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage());
+
+            return;
         } finally {
-            if ( vSet != null ) {
+            if (vSet != null) {
                 vSet.close();
             }
-            
-            if ( out != null )
+
+            if (out != null) {
                 out.close();
+            }
         }
     }
 
