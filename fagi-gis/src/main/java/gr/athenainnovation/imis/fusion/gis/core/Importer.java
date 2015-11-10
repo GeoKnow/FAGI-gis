@@ -355,14 +355,14 @@ public class Importer {
                     final String geometry = rs.getString(2);
                     
                     // Only support one geometry per link
-                    String prevType = geomTypes.getOrDefault(subject, "NONE");
+                    /*String prevType = geomTypes.getOrDefault(subject, "NONE");
                     String newType = geometry.substring(0, geometry.indexOf("("));
                     System.out.println(newType);
                     if ( Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType) 
                             < Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(newType) )
-                        continue;
+                        continue;*/
                     
-                    geomTypes.put(subject, newType);
+                    //geomTypes.put(subject, newType);
                     geomEntries.put(subject, geometry);
                     success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
 
