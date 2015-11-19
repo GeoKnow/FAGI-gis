@@ -266,6 +266,8 @@ public class LinksServlet extends HttpServlet {
                 return;
             }
             
+            SPARQLUtilities.clearGraph(grConf.getTargetTempGraph(), vSet);
+            
             Connection virt_conn = vSet.getConnection();
             // Checking Content Type allows to know if there is a file provided
             InputStream filecontent = null;

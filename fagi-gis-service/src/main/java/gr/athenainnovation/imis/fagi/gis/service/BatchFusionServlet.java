@@ -556,7 +556,7 @@ public class BatchFusionServlet extends HttpServlet {
                 }
             } while ( lastIndex != 0);
             
-            //insertRemaining(restAction, grConf, vSet);
+            insertRemaining(restAction, grConf, vSet);
 
             //SPARQLUtilities.clearFusedLinks(grConf, activeCluster, vSet.getConnection());
             

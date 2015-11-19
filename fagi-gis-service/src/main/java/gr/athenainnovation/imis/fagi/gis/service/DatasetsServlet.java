@@ -135,6 +135,7 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setTypeGraphA(typeGraphA);
             graphConf.setTypeGraphB(typeGraphB);
             
+            /*
             int depthA = SPARQLUtilities.getGraphDepth(graphConf.getGraphA(), graphConf.getEndpointA());
             int depthB = SPARQLUtilities.getGraphDepth(graphConf.getGraphB(), graphConf.getEndpointB());
             
@@ -145,7 +146,8 @@ public class DatasetsServlet extends HttpServlet {
             LOG.info("DepthB " + depthB);
             LOG.info("Endpoint " + graphConf.getEndpointL());
             LOG.info("Graph " + graphConf.getGraphL());
-
+            */
+            
             sess.setAttribute("gr_conf", graphConf);
             sess.setAttribute("t_graph", targetGraph);
             sess.setAttribute("t_end", request.getParameter("t_end"));
