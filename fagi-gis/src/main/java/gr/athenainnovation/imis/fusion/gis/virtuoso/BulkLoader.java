@@ -186,7 +186,7 @@ public class BulkLoader implements TripleHandler {
     
     @Override
     public void finish() {
-        updateLocalStore();
+        //updateLocalStore();
         /*//GraphUtil.delete(set, toDel);
         //GraphUtil.add(set, toAdd);
         UpdateRequest request = UpdateFactory.create() ;
@@ -336,7 +336,8 @@ public class BulkLoader implements TripleHandler {
                     //System.out.println("Add at "+addIdx+" Size "+cSize);
                     addIdx += (cSize-addIdx);
                     sizeUp *= 2;
-                    cSize += sizeUp;
+                    //cSize += sizeUp;
+                    cSize += 4;
                     if (cSize >= geoms.size()) {
                         cSize = geoms.size();
                     }
@@ -357,11 +358,13 @@ public class BulkLoader implements TripleHandler {
                     //break;
                     //System.out.println("Going back at "+addIdx+" Size "+cSize);
                 } catch (Exception ex) {
+                    ex.printStackTrace();
                     System.out.println(ex.getLocalizedMessage());
                     break;
                 }
             }
             
+            /*
             updating = true;
             addIdx = 0;
             cSize = 1;
@@ -428,6 +431,6 @@ public class BulkLoader implements TripleHandler {
                     System.out.println(ex.getLocalizedMessage());
                     break;
                 }
-            }
+            }*/
     }
 }

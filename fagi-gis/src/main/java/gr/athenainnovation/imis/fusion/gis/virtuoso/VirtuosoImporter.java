@@ -188,6 +188,7 @@ public final class VirtuosoImporter {
         }
 
         trh = new BulkLoader(graphConfig, fusedGraph, dbConfig.getDBName(), set, graphConfig.getEndpointT());
+        //trh = new BulkLoader(graphConfig, gr_c.getTargetTempGraph(), dbConfig.getDBName(), set, graphConfig.getEndpointT());
         trh.init();
 
     }

@@ -316,6 +316,33 @@ public class SPARQLUtilities {
     }
     
     /**
+     * Clear a local graph
+     * @param g Named Graph
+     * @param vSet JENA VirtGraph connection to local Virtuoso instance
+     * @return success=
+     */
+    public static boolean clearGraph(String g, VirtGraph vSet) {
+        boolean success = true;
+        final String dropGraph = "SPARQL DROP SILENT GRAPH <"+g+ ">";
+        final String createGraph = "SPARQL CREATE GRAPH <"+g+ ">";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+
+        long starttime, endtime;
+        try (VirtuosoPreparedStatement dropStmt = (VirtuosoPreparedStatement) conn.prepareStatement(dropGraph);
+                VirtuosoPreparedStatement createStmt = (VirtuosoPreparedStatement) conn.prepareStatement(createGraph)) {
+
+            dropStmt.execute();
+            createStmt.execute();
+
+        } catch (VirtuosoException ex) {
+            LOG.trace("VirtuosoException on temp target delete");
+            LOG.debug("VirtuosoException on temp target delete : " + ex.getMessage());
+        }
+
+        return success;
+    }
+   
+    /**
      * Remote update through concatenated SPARQL INSERTs
      * @param grConf Graph Configuration fro the request
      * @param vSet JENA VirtGraph connection to local Virtuoso instance
