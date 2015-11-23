@@ -30,6 +30,7 @@ import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.logging.Level;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
@@ -286,31 +287,39 @@ public class Importer {
         }
 
         QueryExecution queryExecution = null;
-        if ( countWgs ) { //if geosparql geometry doesn' t exist        
+        if ( countWgs ) { //if geosparql geometry doesn' t exist     
+            System.out.println("\n\n\n\n\nSIZE " + " " + Constants.GEOM_TYPE_PRECEDENCE_TABLE.size() +"\n\n\n\n\n");
             try {
                 //System.out.println("Query String "+queryString);
-                
+                System.out.println("WHAT????? -1");
+                final int pointPrec = Constants.GEOM_TYPE_PRECEDENCE_TABLE.get("POINT");
+                System.out.println("WHAT????? " + pointPrec);
                 virt_stmt = (VirtuosoPreparedStatement)virt_conn.prepareStatement("SPARQL " + queryWGS);
                 VirtuosoResultSet rs = (VirtuosoResultSet) virt_stmt.executeQuery();
-                
+                System.out.println("WHAT????? 1");
                 startTime = System.nanoTime();
-
+                System.out.println("WHAT????? 2");
                 while(rs.next()) {
-                    
+                System.out.println("WHAT????? 10");
                     final String subject = rs.getString(1);     
-                    /*
+                System.out.println("WHAT????? 11");
                     // Only support one geometry per link
-                    String prevType = geomTypes.getOrDefault(subject, "NONE");
+                    String prevType = geomTypes.get(subject);
+                    if ( prevType == null )
+                        prevType = "NONE";
+                    System.out.println("THE OLD TYPE " + prevType + " " + Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType));
+                    
                     if ( Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType) 
-                            < Constants.GEOM_TYPE_PRECEDENCE_TABLE.get("POINT") )
+                            < pointPrec )
                         continue;
-                    */
+                    
                     final double latitude = Double.parseDouble(rs.getString(2));
                     final double longitude = Double.parseDouble(rs.getString(3));
                     final String geometry = "POINT ("+ longitude + " " + latitude +")";
-
+                    System.out.println("THE NEW TYPE " + geometry + " " + Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType));
                     geomEntries.put(subject, geometry);
-                    success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+                    geomTypes.put(subject, "POINT");
+                    //success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
 
                 }
                 
@@ -321,7 +330,7 @@ public class Importer {
                 //System.out.println("Count : "+currentCount);
                 endTime = System.nanoTime();
                 
-                postGISImporter.finishUpdates();
+                //postGISImporter.finishUpdates();
                 
                 LOG.info("Loading WGS lasted "+Utilities.nanoToSeconds(endTime-startTime));
             }
@@ -355,23 +364,26 @@ public class Importer {
                     final String geometry = rs.getString(2);
                     
                     // Only support one geometry per link
-                    /*String prevType = geomTypes.getOrDefault(subject, "NONE");
+                    String prevType = geomTypes.get(subject);
+                    if ( prevType == null )
+                        prevType = "NONE";
                     String newType = geometry.substring(0, geometry.indexOf("("));
-                    System.out.println(newType);
+                    System.out.println("THE NEW TYPE " + newType + " " + Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(newType));
+                    System.out.println("THE OLD TYPE " + prevType + " " + Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType));
                     if ( Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType) 
                             < Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(newType) )
-                        continue;*/
+                        continue;
                     
-                    //geomTypes.put(subject, newType);
+                    geomTypes.put(subject, newType);
                     geomEntries.put(subject, geometry);
-                    success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+                    //success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
 
                 }
                 
                 rs.close();
                 virt_stmt.close();
                
-                success = postGISImporter.finishUpdates();
+                //success = postGISImporter.finishUpdates();
                 //System.out.println("Count : "+currentCount);
                 endTime = System.nanoTime();
                   
@@ -393,6 +405,14 @@ public class Importer {
                 success = false;
             }
         }    
+
+        for ( Map.Entry<String, String> entry : geomEntries.entrySet() ) {
+            String subject = entry.getKey();
+            String geometry = entry.getValue();
+            success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+        }
+        
+        postGISImporter.finishUpdates();
 
         addImportedTriplets(1 + 1);
         

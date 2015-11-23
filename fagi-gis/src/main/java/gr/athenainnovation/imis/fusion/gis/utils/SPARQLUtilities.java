@@ -288,6 +288,8 @@ public class SPARQLUtilities {
             SPARQLUpdateRemoteEndpoint(grConf, vSet);
         }
         
+        clearGraph(grConf.getTargetTempGraph(), vSet);
+        
         return true;
     }
     

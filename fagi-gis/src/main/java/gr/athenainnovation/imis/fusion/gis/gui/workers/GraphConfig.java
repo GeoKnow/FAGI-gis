@@ -370,12 +370,20 @@ WHERE {
 }
     */
     private void fillGeoProperties(String g, String s, Set<String> l, Set<String> t) {
+        final String geoQuery = "SELECT distinct ?pre bif:geometryType(?geo_t) AS ?geo_t \n" +
+                          "WHERE { \n" +
+                          "GRAPH <"+g+"> {\n" +
+                          "  {\n" +
+                          "    ?s ?pre ?o . ?o <"+Constants.AS_WKT_REGEX+"> ?geo_t .\n" +
+                          "  } } }";
+        /*
         final String geoQuery = "SELECT distinct ?pre ?geo_t \n" +
                           "WHERE { \n" +
                           "GRAPH <"+g+"> {\n" +
                           "  {\n" +
                           "    ?s ?pre ?o . ?o <"+Constants.AS_WKT_REGEX+"> ?geo_t .\n" +
                           "  } } }";
+        */
         
         final String wgsQuery = "ASK { ?s <"+Constants.LAT_REGEX+"> ?o1 . ?s <"+Constants.LONG_REGEX+"> ?o2 }";
         
@@ -421,8 +429,8 @@ WHERE {
             }
         }
 
-        if ( hasWGS )
-            t.add("WGS");
+        //if ( hasWGS )
+        //    t.add("WGS");
         
         qeh = null;
         
@@ -437,8 +445,8 @@ WHERE {
                     final QuerySolution querySolution = resultSet.next();
                     final String geo = querySolution.get("?pre").toString();
                     String geo_t = querySolution.get("?geo_t").toString();
-                    System.out.println("Geo Type : "+geo_t);
-                    geo_t = geo_t.substring(0, geo_t.indexOf("("));
+                    //System.out.println("Geo Type : "+geo_t);
+                    //geo_t = geo_t.substring(0, geo_t.indexOf("("));
                     
                     System.out.println("Geo Type : "+geo_t);
                     if (geo.toLowerCase().contains("geometry")) {
