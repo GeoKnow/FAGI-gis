@@ -46,14 +46,14 @@
             
             str = request.getParameter("dataset-a");
             if ( str == null ) 
-                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm");
+                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
                 //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
             else
                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
             
             str = request.getParameter("dataset-b");
             if ( str == null ) 
-                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik");
+                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
                 //request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
             else
                 request.setAttribute("dataset-b", request.getParameter("dataset-b"));
@@ -76,8 +76,8 @@
             
             str = request.getParameter("postgis-username");
             if ( str == null ) 
-                request.setAttribute("postgis-username", "nickvitsas");
-                //request.setAttribute("postgis-username", "postgres");
+                //request.setAttribute("postgis-username", "nickvitsas");
+                request.setAttribute("postgis-username", "postgres");
                 //request.setAttribute("postgis-username", "fagi");
             else
                 request.setAttribute("postgis-username", request.getParameter("postgis-username"));

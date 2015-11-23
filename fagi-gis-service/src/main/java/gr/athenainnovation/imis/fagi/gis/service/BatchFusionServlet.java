@@ -1574,7 +1574,7 @@ public class BatchFusionServlet extends HttpServlet {
         String[] newPredTokes = name.split(Constants.PROPERTY_SEPARATOR);
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
-            newPred = newPredTokes[1];
+            newPred = newPredTokes[0];
         } else {
             newPred = newPredTokes[0];
         }
@@ -1891,7 +1891,7 @@ public class BatchFusionServlet extends HttpServlet {
         String[] newPredTokes = name.split(Constants.PROPERTY_SEPARATOR);
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
-            newPred = newPredTokes[1];
+            newPred = newPredTokes[0];
         } else {
             newPred = newPredTokes[0];
         }
@@ -2416,7 +2416,7 @@ public class BatchFusionServlet extends HttpServlet {
         String[] newPredTokes = name.split(Constants.PROPERTY_SEPARATOR);
         String newPred = "";
         if ( newPredTokes.length == 2 ) {
-            newPred = newPredTokes[1];
+            newPred = newPredTokes[0];
         } else {
             newPred = newPredTokes[0];
         }

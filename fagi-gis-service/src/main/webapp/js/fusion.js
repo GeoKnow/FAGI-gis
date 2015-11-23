@@ -28,8 +28,6 @@ function init() {
         event.preventDefault();
       });
       
-    
-     
     // Allow authentication for Remote Endpoints
     $('#fg-auth-dropdown-a').accordion({
       collapsible: false,
@@ -558,6 +556,7 @@ $('#addLinkSchema').click(function () {
     var listItemsA = listA.getElementsByTagName("li");
     $.each(listItemsA, function (index, element) {
         element.style.backgroundColor = element.backColor;
+        element.match_count = 0;
         var scoreLbl = element.getElementsByTagName("div");
         if (typeof scoreLbl[0] !== "undefined") {
             scoreLbl[0].innerHTML = "";
@@ -576,6 +575,7 @@ $('#addLinkSchema').click(function () {
     var listItemsB = listB.getElementsByTagName("li");
     $.each(listItemsB, function (index, element) {
         element.style.backgroundColor = element.backColor;
+        element.match_count = 0;
         var scoreLbl = element.getElementsByTagName("div");
         if (typeof scoreLbl[0] !== "undefined") {
             scoreLbl[0].innerHTML = "";
@@ -657,6 +657,7 @@ $('#addSchema').click(function () {
     $.each(listItemsA, function (index, element) {
         //alert(element.prev_selected);
         element.style.backgroundColor = element.backColor;
+        element.match_count = 0;
         var scoreLbl = element.getElementsByTagName("div");
         if (typeof scoreLbl[0] !== "undefined") {
             scoreLbl[0].innerHTML = "";
@@ -671,6 +672,7 @@ $('#addSchema').click(function () {
     $.each(listItemsB, function (index, element) {
         //alert(element.prev_selected);
         element.style.backgroundColor = element.backColor;
+        element.match_count = 0;
         var scoreLbl = element.getElementsByTagName("div");
         if (typeof scoreLbl[0] !== "undefined") {
             scoreLbl[0].innerHTML = "";
@@ -737,17 +739,16 @@ function replaceAt(str, at, withChar) {
     return str.substr(0, at) + withChar + str.substr(at+withChar.length);
 }
 
-var lastMatchedSchemaClicked = null;
-var lastLinkMatchedSchemaClicked = null;
+
 
 function matchedSchemaClicked() {
-    lastMatchedSchemaClicked = this;
+    FAGI.ActiveState.lastMatchedSchemaClicked = this;
     //alert(document.getElementById("matchList"));
     //alert(this);
 }
 
 function linkMatchedSchemaClicked() {
-    lastLinkMatchedSchemaClicked = this;
+    FAGI.ActiveState.lastLinkMatchedSchemaClicked = this;
     //alert(document.getElementById("matchList"));
     //alert(this);
 }
@@ -835,15 +836,39 @@ function performClustering () {
  document.getElementById("matchList").appendChild(node);
  });
  */
+
 $('#removeSchema').click(function () {
-    document.getElementById("matchList").removeChild(lastMatchedSchemaClicked);
-    //alert('done');
+    var start = $('#matchList li').index(FAGI.ActiveState.lastMatchedSchemaClicked);
+    //alert("Start : "+start);
+    document.getElementById("matchList").removeChild(FAGI.ActiveState.lastMatchedSchemaClicked);
+    //alert('done : ' + FAGI.ActiveState.lastMatchedSchemaClicked.rowIndex);
+    $("#bFusionTable tr").eq(FAGI.ActiveState.lastMatchedSchemaClicked.rowIndex-1).remove();
+    var rowCount = $('#matchList li').length;
+    //alert(rowCount);
+    for (var i = start; i < rowCount; i++) {
+        //alert($("#matchList li").eq(i).get(0));
+        //alert($("#matchList li").eq(i).get(0).rowIndex);
+        $("#matchList li").eq(i).get(0).rowIndex--;
+        //alert($("#matchList li").eq(i).get(0).rowIndex);
+    }
     //alert($('#schemasB').val());
     //alert($('#schemasB').text());
 });
 
 $('#removeLinkSchema').click(function () {
-    document.getElementById("matchList").removeChild(lastLinkMatchedSchemaClicked);
+    var start = $('#linkMatchList li').index(FAGI.ActiveState.lastLinkMatchedSchemaClicked);
+    //alert("Start : "+start);
+    document.getElementById("linkMatchList").removeChild(FAGI.ActiveState.lastLinkMatchedSchemaClicked);
+    //alert('done : ' + FAGI.ActiveState.lastLinkMatchedSchemaClicked.rowIndex);
+    $("#fusionTable tr").eq(FAGI.ActiveState.lastLinkMatchedSchemaClicked.rowIndex-1).remove();
+    var rowCount = $('#linkMatchList li').length;
+    //alert(rowCount);
+    for (var i = start; i < rowCount; i++) {
+        //alert($("#linkMatchList li").eq(i).get(0));
+        //alert($("#linkMatchList li").eq(i).get(0).rowIndex);
+        $("#linkMatchList li").eq(i).get(0).rowIndex--;
+        //alert($("#linkMatchList li").eq(i).get(0).rowIndex);
+    }
     //alert('done');
     //alert($('#schemasB').val());
     //alert($('#schemasB').text());

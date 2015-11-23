@@ -19,6 +19,7 @@ import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -319,12 +320,12 @@ public class BatchFindLinkServlet extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
         
         // Per rquest data
-        HttpSession sess;
-        GraphConfig grConf;
-        VirtGraph vSet = null;
-        Connection dbConn = null;
-        JSONBArea BBox;
-        JSONGeomLinkList ret = null;
+        HttpSession             sess;
+        GraphConfig             grConf;
+        VirtGraph               vSet = null;
+        Connection              dbConn = null;
+        JSONBArea               BBox;
+        JSONGeomLinkList        ret = null;
         
         try (PrintWriter out = response.getWriter()) {
             sess = request.getSession(false);
@@ -385,7 +386,7 @@ public class BatchFindLinkServlet extends HttpServlet {
             
             String p = geoPropsA.get(0);
             for (String t : geoTypesA) {
-                if (t.equalsIgnoreCase("POLYGON")) {
+                if (t.equalsIgnoreCase("POLYGONsa")) {
                     geoQuery.append("SELECT ?s ?p ?o ?geo\n WHERE {\n"
                             + "?s <" + p + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n");
                     if (BBox.getLeft() < 0) {
@@ -451,7 +452,7 @@ public class BatchFindLinkServlet extends HttpServlet {
             geoQuery.setLength(0);
             p = geoPropsB.get(0);
             for (String t : geoTypesB) {
-                if (t.equalsIgnoreCase("POLYGONs")) {
+                if (t.equalsIgnoreCase("POLYGONsa")) {
                     geoQuery.append("SELECT ?s ?p ?o ?geo\n WHERE {\n"
                             + "?s <" + p + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n");
                     if (BBox.getLeft() < 0) {
@@ -544,7 +545,7 @@ public class BatchFindLinkServlet extends HttpServlet {
                 } else {
                     geoQuery.append("?s <" + geoPropsB.get(0) + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n");
                 }
-                geoQuery.append("FILTER (bif:st_contains (?geo, bif:st_geomfromtext(\"" + geoA.getCentroid().toText() + "\"), " + ((float) 100 / 111195) + "))\n"
+                geoQuery.append("FILTER (bif:st_contains (?geo, bif:st_geomfromtext(\"" + geoA.getCentroid().toText() + "\"), " + ((float) 100 * Constants.MAGIC_METERS_TO_MErc_NUMBER) + "))\n"
                         + "} } }");
 
                 //System.out.println("For loop query "+geoQuery.toString());

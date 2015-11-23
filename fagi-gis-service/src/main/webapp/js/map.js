@@ -139,7 +139,7 @@ FAGI.MapUI = {
                                 }*/
                                 }),
                                 
-    resetAllPopus       :       function (e) {
+    resetAllPopups       :       function (e) {
         
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
@@ -161,7 +161,7 @@ FAGI.MapUI = {
     },
     
     resetMapControl         :       function() {
-        FAGI.MapUI.resetAllPopus();
+        FAGI.MapUI.resetAllPopups();
         FAGI.MapUI.resetMultipleSelect();
     },
     
@@ -365,11 +365,11 @@ FAGI.MapUI.Controls = {
     dragControlB        :       null,
     selectControl       :       null,
     boxControl          :       null,
-    multipleSelector    :       null,
-    transformControl    :       null,
-    drawControls        :       null
+    multipleSelector     :       null,
+    transformControl     :       null,
+    drawControls         :       null
 };
-    FAGI.MapUI.Controls
+
 FAGI.Utilities = {
     
     enableSpinner           :       function () {
@@ -600,75 +600,78 @@ FAGI.MapUI.Callbacks.Linking = {
 FAGI.ActiveState = {
     
     // Has the user Previewed the geometries
-    linksPreviewed              :       false,
+    linksPreviewed                      :       false,
     
     // Active transformation action
-    transType                   :       FAGI.Constants.MOVE_TRANS,
+    transType                           :       FAGI.Constants.MOVE_TRANS,
 
     // Is multiple selectin active
-    multipleEnabled             :       false,
+    multipleEnabled                     :       false,
     
     // Hollding last and current Mouse Position during
     // link creation
-    lastPo                      :       null,
-    nowPo                       :       null,
+    lastPo                              :       null,
+    nowPo                               :       null,
 
     // Cancel link creation process
-    cancelLink                  :       false,
+    cancelLink                          :       false,
     
     // Btach Mode
-    batchMode                   :       false,
+    batchMode                           :       false,
 
     // Clusters created during multiple selection
-    activeFeatureClusterA       :       {},
-    activeFeatureClusterB       :       {},
+    activeFeatureClusterA               :       {},
+    activeFeatureClusterB               :       {},
 
     // Constantly updated with the mouse position
-    mouse                       :       {x: 0, y: 0},
-    current_tip                 :       {x: 0, y: 0},
+    mouse                               :       {x: 0, y: 0},
+    current_tip                        :       {x: 0, y: 0},
      
      // Is a feature currently selected
-    current_feature             :       null,
-    feature_is_selected         :       false,
+    current_feature                     :       null,
+    feature_is_selected                 :       false,
     
-    previewed                   :       false,
-    mselectActive               :       false,
+    previewed                           :       false,
+    mselectActive                       :       false,
      
     // Temp OpenLayers features
-    polygonFeature              :       null,
-    polygonFeatureW             :       null,
+    polygonFeature                      :       null,
+    polygonFeatureW                     :       null,
     
     // Monitors active selection of geometries
-    activeFeature               :       null,
-    prevActiveFeature           :       null,
+    activeFeature                       :       null,
+    prevActiveFeature                   :       null,
 
     // Updated during dragging for the corresponding dataset
     // Only used during batch fusion actions
-    globalOffsetAX              :       0.0,
-    globalOffsetAY              :       0.0,
-    globalOffsetBX              :       0.0,
-    globalOffsetBY              :       0.0,
-    globalOffsetVecAX           :       0.0,
-    globalOffsetVecAY           :       0.0,
-    globalOffsetVecBX           :       0.0,
-    globalOffsetVecBY           :       0.0,
+    globalOffsetAX                      :       0.0,
+    globalOffsetAY                      :       0.0,
+    globalOffsetBX                      :       0.0,
+    globalOffsetBY                      :       0.0,
+    globalOffsetVecAX                   :       0.0,
+    globalOffsetVecAY                   :       0.0,
+    globalOffsetVecBX                   :       0.0,
+    globalOffsetVecBY                   :       0.0,
      
     // Used durng dragging to monitor actively
     // dragged geimetry
-    selectedGeomA               :       null,
-    selectedGeomB               :       null,
+    selectedGeomA                       :       null,
+    selectedGeomB                       :       null,
 
     // Score Threshold
-    scoreThreshold              :       0.3,
+    scoreThreshold                      :       0.3,
     
     // The loading Spinner that disables any FAGI Input
-    spinnerEnabled              :       true,
+    spinnerEnabled                      :       true,
 
     // Active SPARQL Queries
-    activeQueryA                :       FAGI.Constants.DEFAULT_QUERY,
-    activeQueryB                :       FAGI.Constants.DEFAULT_QUERY,
-    activeBBoxQueryA            :       FAGI.Constants.DEFAULT_QUERY,
-    activeBBoxQueryB            :       FAGI.Constants.DEFAULT_QUERY
+    activeQueryA                        :       FAGI.Constants.DEFAULT_QUERY,
+    activeQueryB                        :       FAGI.Constants.DEFAULT_QUERY,
+    activeBBoxQueryA                    :       FAGI.Constants.DEFAULT_QUERY,
+    activeBBoxQueryB                    :       FAGI.Constants.DEFAULT_QUERY,
+    
+    lastMatchedSchemaClicked            :        null,
+    lastLinkMatchedSchemaClicked        :        null
     
 };
 
@@ -987,54 +990,54 @@ $(document).ready(function () {
         }
         //else do nothing and map wont zoom
     };
+    // On map click, close any open popup
+    FAGI.MapUI.map.events.register("click",FAGI.MapUI.map, FAGI.MapUI.resetMapControl);
     
-     OpenLayers.Control.MouseWheel = OpenLayers.Class(OpenLayers.Control, {                
-     defaultHandlerOptions: {
-     'cumulative': true
-     },
-     
-     initialize: function(options) {
-     this.handlerOptions = OpenLayers.Util.extend(
-     {}, this.defaultHandlerOptions
-     );
-     OpenLayers.Control.prototype.initialize.apply(
-     this, arguments
-     ); 
-     this.handler = new OpenLayers.Handler.MouseWheel(
-     this,
-     {'zoomstart': this.onPause},
-     this.handlerOptions
-     );
-     }, 
-     
-     onPause: function(evt) {
-     //alert(evt);
-     }
-     });
-     
-     var nav = new OpenLayers.Control.Navigation({'zoomWheelEnabled': true});
-     nav.wheelChange = luda;
-     FAGI.MapUI.map.addControl(nav);
-     
-     var controlers = {
-     "cumulative": new OpenLayers.Control.MouseWheel({
-     handlerOptions: {
-     "cumulative": true
-     }
-     })
-     };
-     
-     var control;
-     for(var key in controlers) {
-     control = controlers[key];
-     // only to route output here
-     control.key = key;
-     //alert(key);
-     FAGI.MapUI.map.addControl(control);
-     }
-     control.activate();
-     var wms3 = new OpenLayers.Layer.WMS( "OpenLayers WMS", {isBaseLayer: true},
-     "http://vmap0.tiles.osgeo.org/wms/vmap0", {layers: 'basic'} );
+    OpenLayers.Control.MouseWheel = OpenLayers.Class(OpenLayers.Control, {
+        defaultHandlerOptions: {
+            'cumulative': true
+        },
+        initialize: function (options) {
+            this.handlerOptions = OpenLayers.Util.extend(
+                    {}, this.defaultHandlerOptions
+                    );
+            OpenLayers.Control.prototype.initialize.apply(
+                    this, arguments
+                    );
+            this.handler = new OpenLayers.Handler.MouseWheel(
+                    this,
+                    {'zoomstart': this.onPause},
+            this.handlerOptions
+                    );
+       },
+        onPause: function (evt) {
+            //alert(evt);
+        }
+    });
+
+    var nav = new OpenLayers.Control.Navigation({'zoomWheelEnabled': true});
+    nav.wheelChange = luda;
+    FAGI.MapUI.map.addControl(nav);
+
+    var controlers = {
+        "cumulative": new OpenLayers.Control.MouseWheel({
+            handlerOptions: {
+                "cumulative": true
+            }
+        })
+    };
+
+    var control;
+    for (var key in controlers) {
+        control = controlers[key];
+        // only to route output here
+        control.key = key;
+        //alert(key);
+        FAGI.MapUI.map.addControl(control);
+    }
+    control.activate();
+    var wms3 = new OpenLayers.Layer.WMS("OpenLayers WMS", {isBaseLayer: true},
+    "http://vmap0.tiles.osgeo.org/wms/vmap0", {layers: 'basic'});
      
 
     // allow testing of specific renderers via "?renderer=Canvas", etc
@@ -1116,8 +1119,6 @@ $(document).ready(function () {
     FAGI.MapUI.map.addControl(FAGI.MapUI.Controls.selectControl);
     FAGI.MapUI.Controls.selectControl.activate();
     
-    
-    
     // Set layer specific on select callbacks
     FAGI.MapUI.Layers.vectorsA.events.on({
         'featureselected': onFeatureSelect,
@@ -1139,7 +1140,7 @@ $(document).ready(function () {
     FAGI.MapUI.Layers.vectorsFused.events.on({
         'featureselected': onFusedSelect,
         'featureunselected': onFusedUnselect,
-        scope: FAGI.MapUI.Layers.vectorsLinks
+        scope: FAGI.MapUI.Layers.vectorsFused
     });
     FAGI.MapUI.Layers.bboxLayer.events.on({
         'featureselected': onBBoxSelect,
@@ -1186,17 +1187,14 @@ $(document).ready(function () {
     FAGI.MapUI.map.zoomToMaxExtent();
     FAGI.MapUI.map.updateSize();
     FAGI.MapUI.map.render('map');
-    
-    // On map click, close any open popup
-    FAGI.MapUI.map.events.register("click",FAGI.MapUI.map, FAGI.MapUI.resetMapControl);
 });
 
 function newPolygonAdded(a, b) {
-    alert("clicked");
+    //alert("clicked");
 }
 
 function enableBBoxTransform() {
-    alert('transform');
+    //alert('transform');
 }
 
 var activeBBox;
@@ -2381,8 +2379,11 @@ function onFusedUnselect(event) {
     event.feature.attributes.la.style = {display: 'none'};
     event.feature.attributes.lb.style = {display: 'none'};
 
-    FAGI.MapUI.Layers.vectorsA.redraw();
-    FAGI.MapUI.Layers.vectorsB.redraw();
+    FAGI.MapUI.Layers.vectorsA.drawFeature(event.feature.attributes.la);
+    FAGI.MapUI.Layers.vectorsA.drawFeature(event.feature.attributes.lb);
+    
+    //FAGI.MapUI.Layers.vectorsA.redraw();
+    //FAGI.MapUI.Layers.vectorsB.redraw();
 }
 
 function onLinkFeatureSelect(event) {
