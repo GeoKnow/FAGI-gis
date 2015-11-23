@@ -186,7 +186,7 @@ public class BulkLoader implements TripleHandler {
     
     @Override
     public void finish() {
-        //updateLocalStore();
+        updateLocalStore();
         /*//GraphUtil.delete(set, toDel);
         //GraphUtil.add(set, toAdd);
         UpdateRequest request = UpdateFactory.create() ;
