@@ -223,12 +223,12 @@ public class Importer {
             if (isEndpointLocal) {
                 queryWGS = "SELECT ?s ?o1 ?o2 "
                         + "WHERE { "
-                        + "GRAPH <" + this.grConf.getAllLinksGraph() + "> {?s ?lp ?os} . "
+                        + "GRAPH <" + this.grConf.getLinksGraph() + "> {?s ?lp ?os} . "
                         + "GRAPH <" + sourceGraph + "> {" + restrictionForWgs + "} }";
             } else {
                 queryWGS = "SELECT ?s ?o1 ?o2 "
                         + "WHERE { "
-                        + "GRAPH <" + this.grConf.getAllLinksGraph() + "> {?s ?lp ?os} . "
+                        + "GRAPH <" + this.grConf.getLinksGraph() + "> {?s ?lp ?os} . "
                         + "SERVICE <" + sourceEndpoint + "> "
                         + "{ GRAPH <" + sourceGraph + "> {" + restrictionForWgs + "}"
                         + " } }";
@@ -237,12 +237,12 @@ public class Importer {
             if (isEndpointLocal) {
                 queryWGS = "SELECT ?s ?o1 ?o2 "
                         + "WHERE { "
-                        + "GRAPH <" + this.grConf.getAllLinksGraph() + "> {?os ?lp ?s} . "
+                        + "GRAPH <" + this.grConf.getLinksGraph() + "> {?os ?lp ?s} . "
                         + "GRAPH <" + sourceGraph + "> {" + restrictionForWgs + "} }";
             } else {
                 queryWGS = "SELECT ?s ?o1 ?o2 "
                         + "WHERE { "
-                        + "GRAPH <" + this.grConf.getAllLinksGraph() + "> {?os ?lp ?s} . "
+                        + "GRAPH <" + this.grConf.getLinksGraph() + "> {?os ?lp ?s} . "
                         + "SERVICE <" + sourceEndpoint + "> "
                         + "{ GRAPH <" + sourceGraph + "> {" + restrictionForWgs + "}"
                         + " } }";
@@ -316,6 +316,7 @@ public class Importer {
                     final double latitude = Double.parseDouble(rs.getString(2));
                     final double longitude = Double.parseDouble(rs.getString(3));
                     final String geometry = "POINT ("+ longitude + " " + latitude +")";
+                    //System.out.println("\n\n\n\n "+ geometry +" \n\n\n\n");
                     System.out.println("THE NEW TYPE " + geometry + " " + Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType));
                     geomEntries.put(subject, geometry);
                     geomTypes.put(subject, "POINT");
@@ -326,7 +327,7 @@ public class Importer {
                 rs.close();
                 virt_stmt.close();
                
-                success = postGISImporter.finishUpdates();
+                //success = postGISImporter.finishUpdates();
                 //System.out.println("Count : "+currentCount);
                 endTime = System.nanoTime();
                 
@@ -362,7 +363,7 @@ public class Importer {
                     
                     final String subject = rs.getString(1);                        
                     final String geometry = rs.getString(2);
-                    
+                    //System.out.println("\n\n\n\n "+ geometry +" \n\n\n\n");
                     // Only support one geometry per link
                     String prevType = geomTypes.get(subject);
                     if ( prevType == null )
@@ -409,6 +410,8 @@ public class Importer {
         for ( Map.Entry<String, String> entry : geomEntries.entrySet() ) {
             String subject = entry.getKey();
             String geometry = entry.getValue();
+            System.out.println("\n\n\n\n "+ subject +" \n\n\n\n");
+            System.out.println("\n\n\n\n "+ geometry +" \n\n\n\n");
             success = postGISImporter.loadGeometry(datasetIdent, subject, geometry);
         }
         

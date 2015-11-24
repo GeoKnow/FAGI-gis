@@ -165,30 +165,31 @@ public class DatabaseInitialiser {
         Connection db = null;
         PreparedStatement stmt = null;
         String sql;
+        System.out.println("\n\n\n\n\n\nClearing old database\n\n\n\n\n\n");
         try {
             Class.forName("org.postgresql.Driver");
             final String url = Constants.DB_URL.concat(dbConfig.getDBName());
             db = DriverManager.getConnection(url, dbUsername, dbPassword);
             db.setAutoCommit(false);
             
-            String deleteATable = "DELETE FROM dataset_b_geometries";
+            String deleteATable = "DELETE FROM dataset_a_geometries";
             stmt = db.prepareStatement(deleteATable);
             stmt.executeUpdate();
 
             stmt.close();
-
-            String deleteBTable = "DELETE FROM dataset_a_geometries";
+            
+            String deleteBTable = "DELETE FROM dataset_b_geometries";
             stmt = db.prepareStatement(deleteBTable);
             stmt.executeUpdate();
 
             stmt.close();
-            
+                        
             String deleteFTable = "DELETE FROM fused_geometries";
             stmt = db.prepareStatement(deleteFTable);
             stmt.executeUpdate();
 
             stmt.close();
-            
+                 
             db.commit();
             
             success = true;
