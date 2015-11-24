@@ -138,7 +138,8 @@ FAGI.MapUI = {
                                     }
                                 }*/
                                 }),
-                                
+    
+    // Clicking on the map resets all open popups
     resetAllPopups       :       function (e) {
         
         document.getElementById("popupTransformMenu").style.opacity = 0;
@@ -146,14 +147,20 @@ FAGI.MapUI = {
 
         document.getElementById("popupFindLinkMenu").style.opacity = 0;
         document.getElementById("popupFindLinkMenu").style.display = 'none';
-        
+
         document.getElementById("popupValidateMenu").style.opacity = 0;
         document.getElementById("popupValidateMenu").style.display = 'none';
+
+        document.getElementById("popupBBoxMenu").style.opacity = 0;
+        document.getElementById("popupBBoxMenu").style.display = 'none';
+
+        // Also destroy anything on the BBox layer
+        FAGI.MapUI.Layers.bboxLayer.destroyFeatures();
+
+        document.getElementById("fg-popup-batch-find-link-menu").style.opacity = 0;
+        document.getElementById("fg-popup-batch-find-link-menu").style.display = 'none';
         
-        document.getElementById("popupFindLinkMenu").style.opacity = 0;
-        document.getElementById("popupFindLinkMenu").style.display = 'none';
-        
-       return true;
+        return true;
     },
     
     resetMultipleSelect   :         function () {
@@ -507,7 +514,7 @@ FAGI.MapUI.Callbacks = {
 
 FAGI.MapUI.Callbacks.Linking = {
     
-    onCreateLinkButtonPressed        :      function () {
+    onCreateLinkButtonPressed                :      function () {
         
         if ( $('#createLinkButton').html() === "Cancel Link" ) {
             FAGI.MapUI.Layers.vectorsLinksTemp.destroyFeatures();
@@ -535,7 +542,17 @@ FAGI.MapUI.Callbacks.Linking = {
         }
     },
     
-    onFindLinkButtonPressed           :       function () {        
+    onBatchFindLinkButtonPressed           :       function () {        
+        document.getElementById("popupBBoxMenu").style.opacity = 0;
+        document.getElementById("popupBBoxMenu").style.display = 'none';
+        
+        document.getElementById("fg-popup-batch-find-link-menu").style.opacity = 0.7;
+        document.getElementById("fg-popup-batch-find-link-menu").style.display = 'inline';
+        document.getElementById("fg-popup-batch-find-link-menu").style.top = FAGI.ActiveState.mouse.y;
+        document.getElementById("fg-popup-batch-find-link-menu").style.left = FAGI.ActiveState.mouse.x; 
+    },
+    
+    onFindLinkButtonPressed                 :       function () {        
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
 
@@ -545,7 +562,11 @@ FAGI.MapUI.Callbacks.Linking = {
         document.getElementById("popupFindLinkMenu").style.left = FAGI.ActiveState.mouse.x; 
     },
     
-    onFindLinkPopupButtonPressed      :       function () {
+    onBatchFindLinkPopupButtonPressed      :       function () {
+        fetchContainedAndLink();
+    },
+    
+    onFindLinkPopupButtonPressed            :       function () {
         for ( var i = 0; i < FAGI.ActiveState.activeFeature.attributes.links.length; i++ ) 
             if ( !FAGI.ActiveState.activeFeature.attributes.links[i].validated )
                 return;
@@ -783,6 +804,12 @@ $(document).ready(function () {
     
         document.getElementById("popupFindLinkMenu").style.opacity = 0.0;
         document.getElementById("popupFindLinkMenu").style.display = 'none'; 
+    });
+    $("#fg-close-batch-findlink-menu-btn").click(function () {
+        FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
+    
+        document.getElementById("fg-popup-batch-find-link-menu").style.opacity = 0.0;
+        document.getElementById("fg-popup-batch-find-link-menu").style.display = 'none'; 
     });
     $("#close-bbox-menu-btn").click(function () {
         FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
@@ -1195,6 +1222,7 @@ function newPolygonAdded(a, b) {
 
 function enableBBoxTransform() {
     //alert('transform');
+    transform.activate();
 }
 
 var activeBBox;
@@ -1211,17 +1239,18 @@ function fetchContainedAndLink() {
     
     feature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
 
-    document.getElementById("popupBBoxMenu").style.opacity = 0;
-    document.getElementById("popupBBoxMenu").style.display = 'none';
-    
+    document.getElementById("fg-popup-batch-find-link-menu").style.opacity = 0;
+    document.getElementById("fg-popup-batch-find-link-menu").style.display = 'none';
+        
     FAGI.Utilities.enableSpinner();
+    //alert('Radius ' + $("#fg-batch-radius-spinner").spinner("value"));
     $.ajax({
         // request type
         type: "POST",
         // the URL for the request
         url: "BatchFindLinkServlet",
         // the data to send (will be converted to a query string)
-        data: {bboxJSON: JSON.stringify(bboxJSON)},
+        data: {bboxJSON: JSON.stringify(bboxJSON), radius: $("#fg-batch-radius-spinner").spinner("value")},
         // the type of data we expect back
         dataType: "json",
         // code to run if the request succeeds;
@@ -1321,11 +1350,8 @@ function endDragBox(bbox) {
 }
 
 function boxResize(event) {
-    console.log(event.feature.geometry.bounds);
-}
-
-function boxResize(event) {
     alert(event.feature.geometry.bounds);
+    transform.deactivate();
 }
 
 function onBBoxSelect(e) {
@@ -2748,7 +2774,7 @@ function fusionPanel(event, val, node) {
         recommendation.owlClassB[recommendation.owlClassB.length] = element;
     });
     //alert(JSON.stringify(recommendation));
-    
+    /*
     $.ajax({
         // request type
         type: "POST",
@@ -2783,7 +2809,8 @@ function fusionPanel(event, val, node) {
             //$('#connLabel').text("connected");
         }
     });
-    
+    */
+   
     var geom_typeA = val.geomsA[0].substring(0, val.geomsA[0].indexOf("("));
     var geom_typeB = val.geomsB[0].substring(0, val.geomsB[0].indexOf("("));
     avail_trans = "";
@@ -3255,9 +3282,9 @@ var unlinkedEntityStyleB = new OpenLayers.Style(
 );
 
 function addUnlinkedMapDataJsonWithLinks(jsonentitiess) {
-    alert(jsonentitiess.dataset);
+    //alert(jsonentitiess.dataset);
     $('#valAllButton').data("dataset", jsonentitiess.dataset);
-    alert($('#valAllButton').data("dataset"));
+    //alert($('#valAllButton').data("dataset"));
     if (jsonentitiess.dataset == "A") {
         $.each(jsonentitiess.entitiesA, function (index, element) {
             if (element == "")

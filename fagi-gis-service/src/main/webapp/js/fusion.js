@@ -94,7 +94,8 @@ function init() {
     $('#fetchBBoxSPARQLButton').click(enableSPARQLFetch);
     $('#transformBBoxButton').click(enableBBoxTransform);
     $('#fetchBBoxContainedButton').click(fetchContained);
-    $('#fetchBBoxFindButton').click(fetchContainedAndLink);
+    //$('#fetchBBoxFindButton').click(fetchContainedAndLink);
+    $('#fetchBBoxFindButton').click(FAGI.MapUI.Callbacks.Linking.onBatchFindLinkButtonPressed);
     
     $('#moveButton').click(function () {FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
         FAGI.MapUI.Controls.dragControlA.activate();
@@ -226,6 +227,7 @@ function init() {
     // Set Callbacks for Link Creation
     $('#createLinkButton').click(FAGI.MapUI.Callbacks.Linking.onCreateLinkButtonPressed);
     $("#popupFindLinkButton").click(FAGI.MapUI.Callbacks.Linking.onFindLinkPopupButtonPressed);
+    $("#fg-popup-find-link-button").click(FAGI.MapUI.Callbacks.Linking.onBatchFindLinkPopupButtonPressed);
     $('#findLinkButton').click(FAGI.MapUI.Callbacks.Linking.onFindLinkButtonPressed);
     
     $('.dropdown').css("z-index", "700000");
@@ -239,6 +241,15 @@ function init() {
         }});
     radSpinner.spinner("value", 100);
 
+    radSpinner = $("#fg-batch-radius-spinner").spinner({step: 1,
+        numberFormat: "n",
+        min: 1,
+        max: 1000,
+        spin: function (event, ui) {
+            $(this).change();
+        }});
+    radSpinner.spinner("value", 100);
+    
     var spinner = $("#spinner").spinner({step: 0.05,
         numberFormat: "n",
         min: 0.0,

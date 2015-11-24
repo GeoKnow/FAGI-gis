@@ -197,6 +197,17 @@
             <input id="popupFindLinkButton" type="submit" value="Fetch Geometries" style="float:right; color: black;" onclick="return false;"/>
         </div>
                
+        <div class="tooltip" id="fg-popup-batch-find-link-menu">
+            <button id="fg-close-batch-findlink-menu-btn" type="button" class="btn btn-primary">X</button>
+            <table style="width:100%; color:white;">
+                <tr>
+                    <td>Select Radius (m) : </td>
+                    <td><input id="fg-batch-radius-spinner" name="value"></td> 
+                </tr>
+            </table>
+            <input id="fg-popup-find-link-button" type="submit" value="Fetch Geometries" style="float:right; color: black;" onclick="return false;"/>
+        </div>
+        
         <div class="tooltip" id="popupBBoxMenu">
             <button id="close-bbox-menu-btn" type="button" class="btn btn-primary">X</button>
             <ul id="bboxMenu">

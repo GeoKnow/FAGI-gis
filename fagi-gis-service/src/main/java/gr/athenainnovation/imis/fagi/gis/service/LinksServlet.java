@@ -537,13 +537,12 @@ public class LinksServlet extends HttpServlet {
 
                 PreparedStatement stmt = null;
                 try {
+                    
                     stmt = virt_conn.prepareStatement(dropTempGraph);
                     stmt.execute();
 
-                    stmt = virt_conn.prepareStatement(dropTempGraph);
+                    stmt = virt_conn.prepareStatement(createTempGraph);
                     stmt.execute();
-
-                    stmt.close();
 
                 } catch (SQLException ex) {
                     LOG.trace("SQLException thrown");

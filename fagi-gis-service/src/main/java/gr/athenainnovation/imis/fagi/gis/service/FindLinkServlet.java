@@ -141,6 +141,10 @@ public class FindLinkServlet extends HttpServlet {
                 return;
             }
             
+            if ( request.getParameter("entity") == null 
+              || request.getParameter("radius") == null )
+                return;
+            
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
             dbConf = (DBConfig)sess.getAttribute("db_conf");
         

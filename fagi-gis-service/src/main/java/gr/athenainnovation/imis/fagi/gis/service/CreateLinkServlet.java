@@ -126,7 +126,7 @@ public class CreateLinkServlet extends HttpServlet {
                 insertMetadata(vSet, dbConf, grConf,tGraph, nodeA, nodeB);
             
             
-            insertResult = insertGeometry(vSet, dbConn, grConf, nodeA, grConf.getGraphA(), grConf.getEndpointA(), Constants.DATASET_A);
+            insertResult = insertGeometry(dbConn, nodeA, grConf.getGraphA(), grConf.getEndpointA(), Constants.DATASET_A);
             if (!insertResult) {
                 LOG.info("Dataset A has no geometric information ");
 
@@ -138,7 +138,7 @@ public class CreateLinkServlet extends HttpServlet {
                 return;
             }
             
-            insertResult = insertGeometry(vSet, dbConn, grConf, nodeB, grConf.getGraphB(), grConf.getEndpointB(), Constants.DATASET_B);
+            insertResult = insertGeometry(dbConn, nodeB, grConf.getGraphB(), grConf.getEndpointB(), Constants.DATASET_B);
             
             if (!insertResult) {
                 LOG.info("Dataset B has no geometric information ");
@@ -522,6 +522,7 @@ public class CreateLinkServlet extends HttpServlet {
         dbConn.commit();
     }
     
+    
     /**
      * This method fetches all triples with a subject matching parameter subjectRegex and a two triple chain with a predicate matching {@link Importer#HAS_GEOMETRY_REGEX} in the first triple and
      * {@link Importer#AS_WKT_REGEX} in the second triple.
@@ -531,6 +532,8 @@ public class CreateLinkServlet extends HttpServlet {
      * @param sourceDataset source dataset from which to extract triples
      * @return success
      */
+    
+    /*
     boolean insertGeometry(VirtGraph vSet, Connection dbConn, GraphConfig grConf, String node, String sourceGraph, String sourceEndpoint, int DS_ID) {
         boolean success = true;
         
@@ -672,7 +675,9 @@ public class CreateLinkServlet extends HttpServlet {
 
                 success = false;
             }
-        } else { //if geosparql geometry exists
+        } 
+        
+        if ( countWKT ) { //if geosparql geometry exists
             //System.out.println("geosparql");
             try {
                 PreparedStatement stmt = null;
@@ -727,6 +732,7 @@ public class CreateLinkServlet extends HttpServlet {
 
         return true;
     }
+    */
     
     private boolean checkForWGS(final String sourceEndpoint, final String sourceGraph, final String restriction, final String sub) {
         boolean result = false;
@@ -792,6 +798,8 @@ public class CreateLinkServlet extends HttpServlet {
     
     boolean insertGeometry(Connection dbConn, String node, String sourceGraph, String sourceEndpoint, int DS_ID) {
         boolean foundAtLeastOneTypeOfGeometry = false;
+        String prevType = "NONE";
+        final int pointPrec = Constants.GEOM_TYPE_PRECEDENCE_TABLE.get("POINT");
         final String restrictionForWgs = "<"+node+"> ?p1 ?o1 . <"+node+"> ?p2 ?o2 "
                 + "FILTER(regex(?p1, \"" + Constants.LAT_REGEX + "\", \"i\"))"
                 + "FILTER(regex(?p2, \"" + Constants.LONG_REGEX + "\", \"i\"))";
@@ -809,9 +817,21 @@ public class CreateLinkServlet extends HttpServlet {
         queryString = "SELECT ?g WHERE { GRAPH <"+sourceGraph+"> {" + restriction + " } }";
                 
         QueryExecution queryExecution = null;
-        if (countWgs){ //if geosparql geometry doesn' t exist        
+        PreparedStatement stmt = null;
+        try {
+            if (DS_ID == Constants.DATASET_A) {
+                stmt = initGeomStatementA(DS_ID, dbConn);
+            } else {
+                stmt = initGeomStatementB(DS_ID, dbConn);
+            }
+        } catch (SQLException ex) {
+            foundAtLeastOneTypeOfGeometry = false;
+            
+            return foundAtLeastOneTypeOfGeometry;
+        }
+        
+        if (countWgs){ //if geosparql geometry doesn' t exist    
             try {
-                PreparedStatement stmt = null;
                 if ( DS_ID == Constants.DATASET_A ) {
                     stmt = initGeomStatementA(DS_ID, dbConn);
                 } else {
@@ -825,33 +845,33 @@ public class CreateLinkServlet extends HttpServlet {
                 while(resultSet.hasNext()) {
                     final QuerySolution querySolution = resultSet.next();
                     
+                    System.out.println("THE OLD TYPE " + prevType + " " + Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType));
+                    
+                    if (Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType)
+                            < pointPrec) {
+                        continue;
+                    }
+
                     //System.out.println("Subject "+subject);
                     final RDFNode objectNode1 = querySolution.get("?o1"); //lat
                     final RDFNode objectNode2 = querySolution.get("?o2"); //long
-                    
-                    if(objectNode1.isLiteral() && objectNode2.isLiteral()) {
+
+                    if (objectNode1.isLiteral() && objectNode2.isLiteral()) {
                         final double latitude = objectNode1.asLiteral().getDouble();
                         final double longitude = objectNode2.asLiteral().getDouble();
-                        
+
                         //construct wkt serialization
-                        String geometry = "POINT ("+ longitude + " " + latitude +")";
+                        String geometry = "POINT (" + longitude + " " + latitude + ")";
                         //postGISImporter.loadGeometry(datasetIdent, subject, geometry);
                         addGeom(DS_ID, stmt, node, geometry);
-                    }
-                    else {
+                        prevType = "POINT";
+                    } else {
                         //LOG.warn("Resource found where geometry serialisation literal expected.");
                     }
-                    
                     //if (callback != null )
-                        //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));                                       
+                    //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWgs)));                                       
                 }
-                queryExecution.close();
-                finishGeomUpload(DS_ID, stmt, dbConn);
-                stmt.close();
-                //postGISImporter.finishUpdates();
-                //System.out.println("PostGISImporter finishedUpdates");
-                //long endTime =  System.nanoTime();
-                //setElapsedTime((endTime-startTime)/1000000000f);
+                                
             }
             catch (SQLException | RuntimeException ex) {
                 //LOG.error(ex.getMessage(), ex);
@@ -865,9 +885,7 @@ public class CreateLinkServlet extends HttpServlet {
         }   
         
         if ( countWKT ) { //if geosparql geometry exists
-            //System.out.println("geosparql");
             try {
-                PreparedStatement stmt = null;
                 if ( DS_ID == Constants.DATASET_A ) {
                     stmt = initGeomStatementA(DS_ID, dbConn);
                 } else {
@@ -882,25 +900,27 @@ public class CreateLinkServlet extends HttpServlet {
                 long startTime = System.nanoTime();
                 while (resultSet.hasNext()) {
                     final QuerySolution querySolution = resultSet.next();
-
-                    //final String subject = querySolution.getResource("?os").getURI();
-                    //System.out.println(subject);
+                    
                     final RDFNode objectNode = querySolution.get("?g");
                     if (objectNode.isLiteral()) {
                         final String geometry = objectNode.asLiteral().getLexicalForm();
-                        //System.out.println("Virtuoso geometry objectNode.asLiteral().getLexicalForm():   "+ geometry);
-
-                        //postGISImporter.loadGeometry(datasetIdent, subject, geometry);
+                        final String newType = geometry.substring(0, geometry.indexOf("("));
+                        
+                        if ( Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(prevType) 
+                            < Constants.GEOM_TYPE_PRECEDENCE_TABLE.get(newType) )
+                            continue;
+                        
                         addGeom(DS_ID, stmt, node, geometry);
+                        prevType = newType;
                     } else {
                         //LOG.warn("Resource found where geometry serialisation literal expected.");
                     }
                     //if (callback != null )
                     //callback.publishGeometryProgress((int) (0.5 + (100 * (double) currentCount++ / (double) countWKT)));
                 }
-                queryExecution.close();
-                finishGeomUpload(DS_ID, stmt, dbConn);
-                stmt.close();
+                
+                //finishGeomUpload(DS_ID, stmt, dbConn);
+                
                 //postGISImporter.finishUpdates();
                 //System.out.println("Count : "+currentCount);
                 //long endTime =  System.nanoTime();
@@ -922,6 +942,18 @@ public class CreateLinkServlet extends HttpServlet {
                 if (queryExecution != null) {
                     queryExecution.close();
                 }
+            }
+        }
+        
+        try {
+            finishGeomUpload(DS_ID, stmt, dbConn);
+        } catch (SQLException ex) {
+        }
+        
+        if ( stmt != null ) {
+            try {
+                stmt.close();
+            } catch (SQLException ex) {
             }
         }
         

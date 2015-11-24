@@ -251,7 +251,7 @@ public class SchemaMatchServlet extends HttpServlet {
                     stmt = virt_conn.prepareStatement(dropTempGraph);
                     stmt.execute();
 
-                    stmt = virt_conn.prepareStatement(dropTempGraph);
+                    stmt = virt_conn.prepareStatement(createTempGraph);
                     stmt.execute();
 
                     stmt.close();
