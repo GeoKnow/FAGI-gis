@@ -13,12 +13,12 @@ public class JSONDatasetConfigResult {
     boolean                 remoteLinks;
     JSONRequestResult       result;
 
-    public boolean HasRemoteLinks() {
+    public boolean isRemoteLinks() {
         return remoteLinks;
     }
 
-    public void setHasRemoteLinks(boolean hasRemoteLinks) {
-        this.remoteLinks = hasRemoteLinks;
+    public void setRemoteLinks(boolean remoteLinks) {
+        this.remoteLinks = remoteLinks;
     }
 
     public JSONRequestResult getResult() {

@@ -283,8 +283,10 @@ public class SPARQLUtilities {
        boolean isTargetEndpointLocal = Utilities.isURLToLocalInstance(grConf.getTargetGraph());
 
         if ( isTargetEndpointLocal ) {
+            System.out.println("\n\n\n\nSPARQL");
             LocalUpdateGraphs(grConf, vSet);
         } else {
+            System.out.println("\n\n\n\nSPARQL");
             SPARQLUpdateRemoteEndpoint(grConf, vSet);
         }
         
@@ -416,11 +418,14 @@ public class SPARQLUtilities {
                         System.out.println(ex.getMessage());
                         cSize = 0;
                     }
-
+                    System.out.println("ALLOU");
                 }
             } catch (VirtuosoException ex) {
+                System.out.println(ex.getMessage());
                 tries++;
             }
+            
+            break;
         }
         
         if ( tries == Constants.MAX_SPARQL_TRIES ) {
@@ -483,11 +488,16 @@ public class SPARQLUtilities {
                         System.out.println(ex.getMessage());
                         cSize = 0;
                     }
-
+                    System.out.println("ALLOU 2");
                 }
+                
+                break;
             } catch (VirtuosoException ex) {
+                System.out.println(ex.getMessage());
                 tries++;
             }
+            
+                break;
         }
         
         if ( tries == Constants.MAX_SPARQL_TRIES ) {
@@ -498,24 +508,22 @@ public class SPARQLUtilities {
         return success;
     }
     
-    public static int createLinksGraphBatch(List<Link> lst, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws SQLException, IOException {
+    public static int createLinksGraphBatch(List<Link> lst, int nextIndex, GraphConfig grConf, VirtGraph vSet) {
         final String dropGraph = "SPARQL DROP SILENT GRAPH <"+grConf.getLinksGraph()+ ">";
         final String createGraph = "SPARQL CREATE GRAPH <"+grConf.getLinksGraph()+ ">";
-        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
-
-        VirtuosoPreparedStatement dropStmt;
+        final VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
         long starttime, endtime;
-        dropStmt = (VirtuosoPreparedStatement) conn.prepareStatement(dropGraph);
-        dropStmt.execute();
-        
-        dropStmt.close();
-        
-        VirtuosoPreparedStatement createStmt;
-        createStmt = (VirtuosoPreparedStatement) conn.prepareStatement(createGraph);
-        createStmt.execute();
-        
-        createStmt.close();
-        
+
+        try (VirtuosoPreparedStatement dropStmt = (VirtuosoPreparedStatement) conn.prepareStatement(dropGraph); 
+             VirtuosoPreparedStatement createStmt = (VirtuosoPreparedStatement) conn.prepareStatement(createGraph)) {
+
+            dropStmt.execute();            
+            createStmt.execute();
+
+        } catch (VirtuosoException ex) {
+            LOG.trace("VirtuosoException during link graph creation");
+            LOG.debug("VirtuosoException during link graph creation : " + ex.getMessage());
+        }
         //BulkInsertLinksBatch(lst, nextIndex);
         return SPARQLInsertLinksBatch(lst, nextIndex, grConf, vSet);
     }
@@ -529,31 +537,38 @@ public class SPARQLUtilities {
      * @return 
      * @throws virtuoso.jdbc4.VirtuosoException 
      */
-    public static int SPARQLInsertLinksBatch(List<Link> l, int nextIndex, GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
+    public static int SPARQLInsertLinksBatch(List<Link> l, int nextIndex, GraphConfig grConf, VirtGraph vSet) {
+        final VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
         StringBuilder sb = new StringBuilder();
         sb.append("SPARQL WITH <"+grConf.getLinksGraph()+ "> INSERT {");
         sb.append("`iri(??)` <"+Constants.SAME_AS+"> `iri(??)` . } ");
         System.out.println("Statement " + sb.toString());
-        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
-        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
-                
+        
         int start = nextIndex;
         int end = nextIndex + Constants.BATCH_SIZE;
         if ( end > l.size() ) {
             end = l.size();
         }
         
-        for ( int i = start; i < end; ++i ) {
-            Link link = l.get(i);
-            vstmt.setString(1, link.getNodeA());
-            vstmt.setString(2, link.getNodeB());
-            
-            vstmt.addBatch();
+        try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString())) {
+
+            for (int i = start; i < end; ++i) {
+                Link link = l.get(i);
+                vstmt.setString(1, link.getNodeA());
+                vstmt.setString(2, link.getNodeB());
+
+                vstmt.addBatch();
+            }
+
+            vstmt.executeBatch();
+
+        } catch (VirtuosoException ex) {
+            LOG.trace("VirtuosoException during link graph creation");
+            LOG.debug("VirtuosoException during link graph creation : " + ex.getMessage());
+        } catch (BatchUpdateException ex) {
+            LOG.trace("BatchUpdateException during link graph creation");
+            LOG.debug("BatchUpdateException during link graph creation : " + ex.getMessage());
         }
-        
-        vstmt.executeBatch();
-        
-        vstmt.close();
         
         if ( end == l.size() )
             return 0;

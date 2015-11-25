@@ -45,8 +45,10 @@ public class Utilities {
         return s.hasNext() ? s.next() : "";
     }
     
+    // For debug purposes
+    static final boolean DEBUG_REMOTE = true;
     public static boolean isLocalInstance(InetAddress addr) {
-        
+        if ( ! DEBUG_REMOTE ) {
         // Check if the address is a valid special local or loop back
         if (addr.isAnyLocalAddress() || addr.isLoopbackAddress())
             return true;
@@ -57,7 +59,9 @@ public class Utilities {
         } catch (SocketException e) {
             return false;
         }
-        
+        } else {
+            return false;
+        }
     }
     
     public static boolean isURLToLocalInstance(String url) {
