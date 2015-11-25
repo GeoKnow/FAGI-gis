@@ -2979,7 +2979,7 @@ function performFusion() {
     var teach = $('#fuseButton').prop("recommendation");
     teach.fusionAction = geomFuse.action;
     //alert(JSON.stringify(teach));
-    
+    /*
     $.ajax({
         // request type
         type: "POST",
@@ -3006,7 +3006,7 @@ function performFusion() {
             //$('#connLabel').text("connected");
         }
     });
-    
+    */
     current_feature.attributes.la.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
     current_feature.attributes.lb.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
 

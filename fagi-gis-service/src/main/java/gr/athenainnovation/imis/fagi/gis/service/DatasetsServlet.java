@@ -156,13 +156,14 @@ public class DatasetsServlet extends HttpServlet {
 
             // Simply return 1 if links are to be fetched from an endpoint
             if ( graphConf.getGraphL().isEmpty() || graphConf.getEndpointL().isEmpty() )
-                ret.setHasRemoteLinks(false);
+                ret.setRemoteLinks(false);
             else 
-                ret.setHasRemoteLinks(true);
-            
+                ret.setRemoteLinks(true);
+            System.out.println("False or True " + ret.isRemoteLinks());
             res.setStatusCode(0);
             res.setMessage("done");
 
+            //System.out.print("\n\n\n\n\n"+mapper.writeValueAsString(ret)+"\n\n\n\n\n\n");
             out.print(mapper.writeValueAsString(ret));
             
         } catch ( IOException ioe ) {

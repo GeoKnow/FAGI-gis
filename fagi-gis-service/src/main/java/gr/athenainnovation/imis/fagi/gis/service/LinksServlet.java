@@ -162,12 +162,12 @@ public class LinksServlet extends HttpServlet {
         // This query remives the limitation of having only SAME_AS predicates
         // but we will need additional checks
         String q = "SELECT * WHERE { GRAPH <"+g+"> { ?s ?p ?o } }";
-        
+        System.out.println("\n\n\n\nSubject " + q);
         try {
             final Query query = QueryFactory.create(q);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
             QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(e, QueryFactory.create(query), authenticator);
-            qeh.setSelectContentType((String) sess.getAttribute("content-type"));
+            //qeh.setSelectContentType((String) sess.getAttribute("content-type"));
             final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
 
             while (resultSet.hasNext()) {
@@ -175,7 +175,7 @@ public class LinksServlet extends HttpServlet {
                 final RDFNode subject = querySolution.get("?s");
                 final RDFNode objectNode1 = querySolution.get("?p"); //lat
                 final RDFNode objectNode2 = querySolution.get("?o"); //long
-
+                System.out.println("Subject " + subject);
                 sb.append("<" + subject + ">");
                 sb.append(" ");
                 sb.append("<" + Constants.SAME_AS + ">");

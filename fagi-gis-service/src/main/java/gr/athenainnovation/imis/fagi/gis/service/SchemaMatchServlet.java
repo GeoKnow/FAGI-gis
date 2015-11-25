@@ -142,6 +142,7 @@ public class SchemaMatchServlet extends HttpServlet {
                 final Link l = new Link(subs[0], subs[1]);
                 lst.add(l);
             }
+            sess.setAttribute("links_list_chosen", lst);
             
             if (vSet == null) {
                 try {

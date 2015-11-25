@@ -535,7 +535,14 @@ public class BatchFusionServlet extends HttpServlet {
                 stmts.add(vstmt);
             }
             
-            List<Link> linkList = (List<Link>) sess.getAttribute("links_list");
+            List<Link> linkList = (List<Link>) sess.getAttribute("links_list_chosen");
+            for ( Link lnk : linkList) {
+                System.out.println("\n\n\n\n\n\nLinks");
+                System.out.println(lnk.getNodeA());
+                System.out.println(lnk.getNodeB());
+            }
+            System.out.println("Links End\n\n\n\n\n\n");
+
             int lastIndex = 0;
             do {
                 System.out.println("Running link creation loop " + linkList.size());
@@ -549,7 +556,8 @@ public class BatchFusionServlet extends HttpServlet {
                     if (Constants.LATE_FETCH) {
                         lateFetchData(i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
                     }
-                    handleMetadataFusion(selectedFusions[i].action, i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
+                    //handleMetadataFusion(selectedFusions[i].action, i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
+                    handleMetadataFusion(selectedFusions[i].action, i, grConf.getTargetTempGraph(), sess, grConf, vSet, selectedFusions, activeCluster);
                     if (Constants.LATE_FETCH) {
                         deleteSelectedProperties(restAction, selectedFusions[i].getAction(), i, activeCluster, tGraph, sess, grConf, vSet, selectedFusions);
                     }
@@ -929,6 +937,7 @@ public class BatchFusionServlet extends HttpServlet {
 
             for (String pattern : patterns) {
                 q.setLength(0);
+                getFromB.setLength(0);
 
                 String[] rightPreTokens = pattern.split(",");
 
@@ -938,9 +947,9 @@ public class BatchFusionServlet extends HttpServlet {
                 getFromB.append("SPARQL INSERT\n");
                 getFromB.append("  { GRAPH <").append(grConf.getMetadataGraphB()).append("> {\n");
                 if (grConf.isDominantA()) {
-                    getFromB.append(" ?s <" + rightPreTokens[0] + "> ?o0 . \n");
-                } else {
                     getFromB.append(" ?o <" + rightPreTokens[0] + "> ?o0 . \n");
+                } else {
+                    getFromB.append(" ?s <" + rightPreTokens[0] + "> ?o0 . \n");
                 }
                 prev_s = "?o0";
                 for (int i = 1; i < rightPreTokens.length; i++) {
@@ -955,7 +964,7 @@ public class BatchFusionServlet extends HttpServlet {
                 } else {
                     getFromB.append(" ?s ?same ?o } .\n");
                 }
-                if (isEndpointALocal) {
+                if (isEndpointBLocal) {
                     getFromB.append(" GRAPH <").append(grConf.getGraphB()).append("> {\n");
                     getFromB.append(" ?s <" + rightPreTokens[0] + "> ?o0 . \n");
                     prev_s = "?o0";
@@ -966,10 +975,10 @@ public class BatchFusionServlet extends HttpServlet {
                     getFromB.append(" }\n");
                 } else {
                     getFromB.append(" SERVICE <" + grConf.getEndpointB() + "> { GRAPH <").append(grConf.getGraphB()).append("> { \n");
-                    getFromB.append(" ?o <" + rightPreTokens[0] + "> ?o0 . \n");
+                    getFromB.append(" ?s <" + rightPreTokens[0] + "> ?o0 . \n");
                     prev_s = "?o0";
                     for (int i = 1; i < rightPreTokens.length; i++) {
-                        getFromA.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
+                        getFromB.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
                         prev_s = "?o" + i;
                     }
                     getFromB.append(" } }\n");
@@ -1016,6 +1025,7 @@ public class BatchFusionServlet extends HttpServlet {
 
             for (String pattern : patterns) {
                 q.setLength(0);
+                getFromA.setLength(0);
 
                 String[] leftPreTokens = pattern.split(",");
 
@@ -1053,7 +1063,7 @@ public class BatchFusionServlet extends HttpServlet {
                     getFromA.append(" }\n");
                 } else {
                     getFromA.append(" SERVICE <" + grConf.getEndpointA() + "> { GRAPH <").append(grConf.getGraphA()).append("> { \n");
-                    getFromA.append(" ?o <" + leftPreTokens[0] + "> ?o0 . \n");
+                    getFromA.append(" ?s <" + leftPreTokens[0] + "> ?o0 . \n");
                     prev_s = "?o0";
                     for (int i = 1; i < leftPreTokens.length; i++) {
                         getFromA.append(prev_s + " <" + leftPreTokens[i] + "> ?o" + i + " . ");

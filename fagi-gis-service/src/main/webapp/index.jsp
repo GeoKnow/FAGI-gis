@@ -28,7 +28,7 @@
         <%
             String str = request.getParameter("dataset-l");
             if ( str == null ) 
-                request.setAttribute("dataset-l", "");
+                request.setAttribute("dataset-l", "http://localhost:8890/DAV/test_links");
                 //request.setAttribute("dataset-l", "http://localhost:8890/DAV/links_postgis1");
                 //request.setAttribute("dataset-l", "http://generator.geoknow.eu/resource/RdfImport_1441965089653");
             else
@@ -36,7 +36,7 @@
             
             str = request.getParameter("endpoint-l");
             if ( str == null ) 
-                request.setAttribute("endpoint-l", "");
+                request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
                 //request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
                 //request.setAttribute("endpoint-l", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
                 //request.setAttribute("endpoint-l", "http://fagi.guests.ipsyp.dom:8891/sparql");

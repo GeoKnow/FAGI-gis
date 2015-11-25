@@ -87,7 +87,7 @@ public class ConnectionServlet extends HttpServlet {
             // Currrently when set to Debug, Jena really litters the output
             ARQ.setExecutionLogging(Explain.InfoLevel.ALL) ;
             Logger logger = Log.getFAGILogger();
-            logger.setLevel(Level.TRACE);
+            logger.setLevel(Level.OFF);
             /*Enumeration e = logger.getAllAppenders();
             System.out.println(e.toString());
             while (e.hasMoreElements()) {

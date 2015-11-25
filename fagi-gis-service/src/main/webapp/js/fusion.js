@@ -2430,8 +2430,12 @@ function setDatasets()
             $('#legendLinkSetB').html($('#fg-dataset-input-b').val());
             
             //Loaqd links through endpoint
-            if ( responseJson.remoteLinks )
+            //alert(JSON.stringify(responseJson.remoteLinks));
+            //alert(responseJson.remoteLinks)
+;            if ( responseJson.remoteLinks ) {
+                //alert("NAI");
                 loadLinkedEntities(null);
+            }
             
             //Scan target dataset for any already fused geometry
             if ( $('#fg-fetch-fused-check').prop('checked') )
