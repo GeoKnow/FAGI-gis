@@ -4,13 +4,16 @@ package gr.athenainnovation.imis.fagi.gis.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.hp.hpl.jena.query.ARQ;
 import com.hp.hpl.jena.shared.JenaException;
+import com.hp.hpl.jena.sparql.mgt.Explain;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -18,6 +21,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Enumeration;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -25,10 +31,15 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.jena.atlas.web.auth.HttpAuthenticator;
+import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import org.apache.log4j.Appender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.RollingFileAppender;
 import virtuoso.jena.driver.VirtGraph;
 
 /**
@@ -72,9 +83,51 @@ public class ConnectionServlet extends HttpServlet {
             // The only time we need a session if one does not exist
             sess = request.getSession(true);
 
+            // Set logging state
+            // Currrently when set to Debug, Jena really litters the output
+            ARQ.setExecutionLogging(Explain.InfoLevel.ALL) ;
             Logger logger = Log.getFAGILogger();
-            logger.setLevel(Level.DEBUG);
-            
+            logger.setLevel(Level.OFF);
+            /*Enumeration e = logger.getAllAppenders();
+            System.out.println(e.toString());
+            while (e.hasMoreElements()) {
+                Appender app = (Appender) e.nextElement();
+                if ( app instanceof FileAppender) {
+                    FileAppender fapp = (FileAppender)app;
+                    if (SystemUtils.IS_OS_MAC_OSX) {
+                        fapp.setFile("/Users/nickvitsas/Desktop/log.txt");
+                    }
+                    else if (SystemUtils.IS_OS_WINDOWS)  {
+                        fapp.setFile("/c/Users/nick/Desktop/log.txt");
+                    }
+                }
+                    
+            }
+            */
+            /*DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            Date date = new Date();
+
+            RollingFileAppender appender = new RollingFileAppender();
+            appender.setAppend(true);
+            appender.setMaxFileSize("1MB");
+            appender.setMaxBackupIndex(1);
+            if (SystemUtils.IS_OS_MAC_OSX) {
+                File yourFile = new File("/Users/nickvitsas/Desktop/log.txt");
+                yourFile.createNewFile();
+                appender.setFile("/Users/nickvitsas/Desktop/log.txt");
+            } else if (SystemUtils.IS_OS_WINDOWS) {
+                File yourFile = new File("C:\\Users\\nick\\Desktop\\log.txt");
+                yourFile.createNewFile();
+                appender.setFile("C:\\Users\\nick\\Desktop\\log.txt");
+            } else {
+                appender.setFile("/var/log/fagi-gis-service/log.txt");
+            }
+            PatternLayout layOut = new PatternLayout();
+            layOut.setConversionPattern("%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n");
+            appender.setLayout(layOut);
+
+            logger.addAppender(appender);
+            */
             /*
              Enumeration e = logger.getAllAppenders();
              System.out.println(e.toString());
@@ -98,9 +151,7 @@ public class ConnectionServlet extends HttpServlet {
             LOG.info("First Try");
             LOG.trace("First Try");
             response.setContentType("text/html;charset=UTF-8");
-        //System.out.println(Paths.get("").toAbsolutePath().toString());
-
-            //System.out.println(System.getProperty("user.dir"));   
+            
             st.setDbConf(dbConf);
             String relativeWebPath = "/FAGI-gis-WebInterface/lib/stopWords.ser";
             String absoluteDiskPath = getServletContext().getRealPath(relativeWebPath);
@@ -113,6 +164,8 @@ public class ConnectionServlet extends HttpServlet {
             dbConf.setPassword(request.getParameter("v_pass"));
             dbConf.setDbURL(request.getParameter("v_url"));
 
+            HttpAuthenticator authenticator = new SimpleAuthenticator(dbConf.getUsername(), dbConf.getPassword().toCharArray());
+            sess.setAttribute("fg-sparql-auth", authenticator);
             dbConf.setDbName(request.getParameter("p_data"));
             dbConf.setDbUsername(request.getParameter("p_name"));
             dbConf.setDbPassword(request.getParameter("p_pass"));

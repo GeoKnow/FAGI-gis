@@ -16,16 +16,21 @@ import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.ImporterWorker;
 import gr.athenainnovation.imis.fusion.gis.json.JSONLoadLinksResult;
 import gr.athenainnovation.imis.fusion.gis.json.JSONMatches;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.SchemaMatchState;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.ScoredMatch;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,6 +45,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
@@ -88,7 +94,8 @@ public class SchemaMatchServlet extends HttpServlet {
         VirtGraph               vSet = null;
         HttpSession             sess;
         ObjectMapper            mapper = new ObjectMapper();
-
+        boolean                 success = true;
+        
         try {
             
             try {
@@ -135,6 +142,7 @@ public class SchemaMatchServlet extends HttpServlet {
                 final Link l = new Link(subs[0], subs[1]);
                 lst.add(l);
             }
+            sess.setAttribute("links_list_chosen", lst);
             
             if (vSet == null) {
                 try {
@@ -157,12 +165,130 @@ public class SchemaMatchServlet extends HttpServlet {
             }
             
             virt_conn = vSet.getConnection();
-            SPARQLUtilities.createLinksGraph(lst, virt_conn, grConf, "");
+            success = SPARQLUtilities.createLinksGraph(lst, grConf.getLinksGraph(), virt_conn, grConf, "");
             
+            if ( !success ) {
+                LOG.trace("Failed to create Links Graph for matching");
+                LOG.trace("Failed to create Links Graph for matching");
+
+                matches.getResult().setMessage("Failed to perform property matching!");
+                matches.getResult().setStatusCode(-1);
+
+                out.println(mapper.writeValueAsString(matches));
+
+                out.close();
+
+                return;
+            }
+            //2105779425
             VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
-            SchemaMatchState sms = virtImp.scanProperties(3, null);
+            if (Constants.LATE_FETCH) {
+
+                Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
+                final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, null);
+                datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
+                    @Override
+                    public void propertyChange(PropertyChangeEvent evt) {
+                        if ("progress".equals(evt.getPropertyName())) {
+                            //System.out.println("Tom");
+                        }
+                    }
+                });
+
+                Dataset sourceBDataset = new Dataset(grConf.getEndpointB(), grConf.getGraphB(), "");
+                final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_B, sourceBDataset, null, null);
+                datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
+                    @Override
+                    public void propertyChange(PropertyChangeEvent evt) {
+                        if ("progress".equals(evt.getPropertyName())) {
+                            //System.out.println("Tom2");
+                        }
+                    }
+                });
+
+                // Fire threads for uploading
+                datasetAImportWorker.execute();
+                datasetBImportWorker.execute();
+
+                // Get thread run results
+                HashMap<String, String> retA, retB;
+                try {
+                    retB = datasetAImportWorker.get();
+                    retA = datasetBImportWorker.get();
+                } catch (InterruptedException | ExecutionException ex) {
+                    LOG.trace("Thread execution failed");
+                    LOG.debug("Thread execution failed");
+                    matches.getResult().setStatusCode(-1);
+                    matches.getResult().setMessage("Upload thread execution failed");
+
+                    out.println(mapper.writeValueAsString(matches));
+
+                    out.close();
+
+                    return;
+                }
+
+                if ((retA == null) || (retB == null)) {
+                    LOG.trace("Thread execution failed");
+                    LOG.debug("Thread execution failed");
+                    matches.getResult().setStatusCode(-1);
+                    matches.getResult().setMessage("Problem with link upload cleanup");
+
+                    out.println(mapper.writeValueAsString(matches));
+
+                    out.close();
+
+                    return;
+                }
+                LOG.trace("SQLException after");
+
+                LOG.trace("SQLException before");
+                // Recreate target temp graph
+                final String dropTempGraph = "SPARQL DROP SILENT GRAPH <" + grConf.getTargetTempGraph() + ">";
+                final String createTempGraph = "SPARQL CREATE GRAPH <" + grConf.getTargetTempGraph() + ">";
+
+                PreparedStatement stmt = null;
+                try {
+                    stmt = virt_conn.prepareStatement(dropTempGraph);
+                    stmt.execute();
+
+                    stmt = virt_conn.prepareStatement(createTempGraph);
+                    stmt.execute();
+
+                    stmt.close();
+
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown");
+                    LOG.debug("SQLException thrown : " + ex.getMessage());
+                    LOG.debug("SQLException thrown : " + ex.getSQLState());
+                    matches.getResult().setStatusCode(-1);
+                    matches.getResult().setMessage("Problem with destroying Target Temporary graph");
+
+                    out.println(mapper.writeValueAsString(matches));
+
+                    out.close();
+
+                    return;
+                } finally {
+                    try {
+                        if (stmt != null) {
+                            stmt.close();
+                        }
+                    } catch (SQLException ex) {
+                        LOG.trace("SQLException thrown during statement close");
+                        LOG.debug("SQLException thrown during statement close : " + ex.getMessage());
+                        LOG.debug("SQLException thrown during statement close : " + ex.getSQLState());
+                    }
+                }
+                
+            }
+            
+            SchemaMatchState sms = virtImp.scanProperties(3, null, null, (Boolean)sess.getAttribute("make-swap"));
             
             if ( sms == null ) {
+                LOG.trace("Failed to create SchemaMatchState");
+                LOG.trace("Failed to create SchemaMatchState");
+                
                 matches.getResult().setMessage("Failed to perform property matching!");
                 matches.getResult().setStatusCode(-1);
                 
@@ -184,6 +310,16 @@ public class SchemaMatchServlet extends HttpServlet {
             matches.setGeomTransforms(sms.geomTransforms);
             matches.setMetaTransforms(sms.metaTransforms);
             
+            List<String> lstProp = sms.getPropertyList("A");
+            System.out.println("\n\n\n\n\nPROPERTIES A\n\n\n\n\n\n\n");
+            for ( String prope : lstProp ) {
+                System.out.println(prope);
+            }
+            lstProp = sms.getPropertyList("B");
+            System.out.println("\n\n\n\n\nPROPERTIES B\n\n\n\n\n\n\n");
+            for ( String prope : lstProp ) {
+                System.out.println(prope);
+            }
             sess.setAttribute("property_patternsA", sms.getPropertyList("A"));
             sess.setAttribute("property_patternsB", sms.getPropertyList("B"));
             sess.setAttribute("predicates_matches", sms);
@@ -192,6 +328,8 @@ public class SchemaMatchServlet extends HttpServlet {
         } catch (JsonProcessingException ex) {
             LOG.trace("JsonProcessingException thrown");
             LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
+            
+            throw new ServletException("JsonProcessingException thrown by Tomcat");
         } catch ( java.lang.OutOfMemoryError oome) {
             LOG.trace("OutOfMemoryError thrown");
             LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
@@ -207,98 +345,6 @@ public class SchemaMatchServlet extends HttpServlet {
         }
     }
 
-    /*
-    public void createLinksGraph(List<Link> lst, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) throws SQLException, IOException {
-        final String dropGraph = "sparql DROP SILENT GRAPH <"+ grConf.getLinksGraph()+  ">";
-        final String createGraph = "sparql CREATE GRAPH <"+ grConf.getLinksGraph()+ ">";
-        //final String endDesc = "sparql LOAD SERVICE <"+endpointA+"> DATA";
-
-        PreparedStatement dropStmt;
-        long starttime, endtime;
-        dropStmt = virt_conn.prepareStatement(dropGraph);
-        dropStmt.execute();
-
-        dropStmt.close();
-        
-        PreparedStatement createStmt;
-        createStmt = virt_conn.prepareStatement(createGraph);
-        createStmt.execute();
-        
-        createStmt.close();
-        
-        //bulkInsertLinks(lst, virt_conn, bulkInsertDir);
-        SPARQLInsertLink(lst, grConf);
-    }
-
-    private void SPARQLInsertLink(List<Link> l, GraphConfig grConf) {
-        boolean updating = true;
-        int addIdx = 0;
-        int cSize = 1;
-        int sizeUp = 1;
-        while (updating) {
-            try {
-                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
-                //queryStr.append("WITH <"+fusedGraph+"> ");
-                queryStr.append("INSERT DATA { ");
-                queryStr.append("GRAPH <"+ grConf.getLinksGraph()+ "> { ");
-                int top = 0;
-                if (cSize >= l.size()) {
-                    top = l.size();
-                } else {
-                    top = cSize;
-                }
-                for (int i = addIdx; i < top; i++) {
-                    final String subject = l.get(i).getNodeA();
-                    final String subjectB = l.get(i).getNodeB();
-                    queryStr.appendIri(subject);
-                    queryStr.append(" ");
-                    queryStr.appendIri(Constants.SAME_AS);
-                    queryStr.append(" ");
-                    queryStr.appendIri(subjectB);
-                    queryStr.append(" ");
-                    queryStr.append(".");
-                    queryStr.append(" ");
-                }
-                queryStr.append("} }");
-                //System.out.println("Print "+queryStr.toString());
-
-                UpdateRequest q = queryStr.asUpdate();
-                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, grConf.getEndpointT(), authenticator);
-                insertRemoteB.execute();
-                //System.out.println("Add at "+addIdx+" Size "+cSize);
-                addIdx += (cSize - addIdx);
-                sizeUp *= 2;
-                cSize += sizeUp;
-                if (cSize >= l.size()) {
-                    cSize = l.size();
-                }
-                if (cSize == addIdx) {
-                    updating = false;
-                }
-            } catch (org.apache.jena.atlas.web.HttpException ex) {
-                System.out.println("Failed at " + addIdx + " Size " + cSize);
-                System.out.println("Crazy Stuff");
-                System.out.println(ex.getLocalizedMessage());
-                ex.printStackTrace();
-                ex.printStackTrace(System.out);
-                sizeUp = 1;
-                cSize = addIdx;
-                cSize += sizeUp;
-                if (cSize >= l.size()) {
-                    cSize = l.size();
-                }
-                //System.out.println("Going back at "+addIdx+" Size "+cSize);
-
-                break;
-                //System.out.println("Going back at "+addIdx+" Size "+cSize);
-            } catch (Exception ex) {
-                System.out.println(ex.getLocalizedMessage());
-                break;
-            }
-        }
-    }
-    */
     
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**

@@ -83,7 +83,7 @@ public class FuseWorker extends SwingWorker<Void, Void> {
             try{
                 starttime = System.nanoTime();
                 virtImp.importGeometriesToVirtuoso(fusedGraph); 
-                virtImp.insertLinksMetadataChains(links, fusedGraph, false);
+                virtImp.insertLinksMetadataChains(links, fusedGraph, false, false);
                 //virtImp.insertLinksMetadata(links, fusedGraph);    //this method is used here to insert metadata the polygons graph to the new graph
                 //virtImp.insertMetadataToFusedGraph(links, fusedGraph); //insert from graphA (unister) to the new graph
                 

@@ -9,16 +9,16 @@ package gr.athenainnovation.imis.fusion.gis.json;
  *
  * @author Nick Vitsas
  */
-public class JSONDatasetConfigResult {
-    boolean                 remoteLinks;
+public class JSONFilteredLinks {
+    String                  linksHTML;
     JSONRequestResult       result;
 
-    public boolean isRemoteLinks() {
-        return remoteLinks;
+    public String getLinksHTML() {
+        return linksHTML;
     }
 
-    public void setRemoteLinks(boolean remoteLinks) {
-        this.remoteLinks = remoteLinks;
+    public void setLinksHTML(String linksHTML) {
+        this.linksHTML = linksHTML;
     }
 
     public JSONRequestResult getResult() {
@@ -28,6 +28,5 @@ public class JSONDatasetConfigResult {
     public void setResult(JSONRequestResult result) {
         this.result = result;
     }
-    
     
 }

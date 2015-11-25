@@ -5,20 +5,22 @@
  */
 package gr.athenainnovation.imis.fusion.gis.json;
 
+import java.util.List;
+
 /**
  *
- * @author Nick Vitsas
+ * @author nick
  */
-public class JSONDatasetConfigResult {
-    boolean                 remoteLinks;
-    JSONRequestResult       result;
+public class JSONPreviewList {
+    List<JSONPreviewLink>       links;
+    JSONRequestResult           result;
 
-    public boolean isRemoteLinks() {
-        return remoteLinks;
+    public List<JSONPreviewLink> getLinks() {
+        return links;
     }
 
-    public void setRemoteLinks(boolean remoteLinks) {
-        this.remoteLinks = remoteLinks;
+    public void setLinks(List<JSONPreviewLink> links) {
+        this.links = links;
     }
 
     public JSONRequestResult getResult() {
@@ -28,6 +30,5 @@ public class JSONDatasetConfigResult {
     public void setResult(JSONRequestResult result) {
         this.result = result;
     }
-    
     
 }

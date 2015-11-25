@@ -8,9 +8,11 @@ package gr.athenainnovation.imis.fagi.gis.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONPreviewLink;
 import gr.athenainnovation.imis.fusion.gis.json.JSONPreviewResult;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
@@ -199,6 +201,7 @@ public class PreviewServlet extends HttpServlet {
                                         "		FROM dataset_a_geometries, dataset_b_geometries) AS geoms \n" +
                                         "		ON(links.nodea = geoms.a_s AND links.nodeb = geoms.b_s)";
             
+            HashMap<String, JSONPreviewLink> previews = Maps.newHashMap();
             try (PreparedStatement stmt = dbConn.prepareStatement(selectLinkedGeoms);
                     ResultSet rs = stmt.executeQuery()) {
                 
@@ -207,6 +210,13 @@ public class PreviewServlet extends HttpServlet {
                     final String lb = rs.getString("lb");
                     final String ga = rs.getString("ga");
                     final String la = rs.getString("la");
+                    
+                    if ( !previews.containsKey(la) ) {
+                        JSONPreviewLink plink = new JSONPreviewLink(ga,la,gb,lb);
+                        previews.put(la, plink);
+                    } else {
+                        JSONPreviewLink plink = previews.get(la);
+                    }
                     
                     geomColl.append(lb);
                     geomColl.append(";");

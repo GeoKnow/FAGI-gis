@@ -5,12 +5,15 @@
  */
 package gr.athenainnovation.imis.fusion.gis.utils;
 
+import static gr.athenainnovation.imis.fusion.gis.utils.Constants.NANOS_PER_SECOND;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import org.apache.commons.lang3.StringUtils;
 
@@ -42,8 +45,10 @@ public class Utilities {
         return s.hasNext() ? s.next() : "";
     }
     
+    // For debug purposes
+    static final boolean DEBUG_REMOTE = true;
     public static boolean isLocalInstance(InetAddress addr) {
-        
+        if ( ! DEBUG_REMOTE ) {
         // Check if the address is a valid special local or loop back
         if (addr.isAnyLocalAddress() || addr.isLoopbackAddress())
             return true;
@@ -54,7 +59,9 @@ public class Utilities {
         } catch (SocketException e) {
             return false;
         }
-        
+        } else {
+            return false;
+        }
     }
     
     public static boolean isURLToLocalInstance(String url) {
@@ -71,5 +78,20 @@ public class Utilities {
         }
         
         return isLocal;
+    }
+    
+    public static float nanoToSeconds(long nano) {
+        return nano / NANOS_PER_SECOND;
+    }
+    
+    public static List<String> findCommonPrefixedPropertyChains(String pattern, List<String> patterns) {
+        List<String> ret = new ArrayList<>();
+        
+        for ( String s : patterns) {
+            if ( s.startsWith(pattern) ) 
+                ret.add(s);
+        }
+        
+        return ret;
     }
 }

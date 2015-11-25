@@ -11,6 +11,11 @@
     src: local("News Cycle"), url('fonts/NewsCycle-Regular.ttf'); 
 } 
 
+@font-face { 
+  font-family: Menlo; 
+    src: local("Menlo"), url('fonts/Menlo-Regular.ttf'); 
+} 
+
 #close-transform-menu-btn,
 #close-bbox-menu-btn,
 #close-validate-menu-btn,
@@ -61,12 +66,12 @@ label input[type="checkbox"] {
 */
 html { 
   height: 100%;
-  font-family:'Yanone Kaffeesatz' !important;
+  font-family:'Menlo' !important;
 }
 
 * {
 //font-family: 'Indie Flower', cursive;
-font-family: 'Bree Serif', serif;
+font-family: 'Menlo', Menlo;
 }
     
 * { 
@@ -93,6 +98,15 @@ body {
   float: right;
   margin: 0;
 }
+
+#fg-auth-dropdown-a .ui-icon { display: none; }
+#fg-auth-dropdown-a .ui-accordion-header a { padding-left: 0; }
+#fg-auth-dropdown-b .ui-icon { display: none; }
+#fg-auth-dropdown-b .ui-accordion-header a { padding-left: 0; }
+#fg-auth-dropdown-t .ui-icon { display: none; }
+#fg-auth-dropdown-t .ui-accordion-header a { padding-left: 0; }
+#fg-auth-dropdown-l .ui-icon { display: none; }
+#fg-auth-dropdown-l .ui-accordion-header a { padding-left: 0; }
 
 img { 
   border: 0;
@@ -561,6 +575,31 @@ footer {
     top:50px;
     left:50px;
 }*/
+
+#fg-batch-fuse-rest-fieldset {
+    border: 0;
+    color: black;
+}
+#fg-batch-fuse-rest-label {
+    display: block;
+    margin: 30px 0 0 0;
+}
+#fg-batch-fuse-rest-selector {
+    width: 200px;
+}
+#fg-batch-fuse-rest-selector option {
+    color: black;
+}
+#fg-fuse-rest-fieldset {
+    border: 0;
+}
+#fg-fuse-rest-label {
+    display: block;
+    margin: 30px 0 0 0;
+}
+#fg-fuse-rest-selector {
+    width: 200px;
+}
 
 .geoinfo {
     text-align: center;

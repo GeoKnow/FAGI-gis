@@ -82,6 +82,12 @@ CREATE TABLE links (
 	nodeB text NOT NULL
 );
 
+SELECT AddGeometryColumn('links', 'geom_a', 4326, 'GEOMETRY', 2);
+SELECT AddGeometryColumn('links', 'geom_b', 4326, 'GEOMETRY', 2);
+
+CREATE INDEX idx_links_geom ON links USING gist (geom_a);
+CLUSTER links USING idx_links_geom;
+
 -- Create a table to hold clustered links
 CREATE TABLE cluster (
 	nodeA text NOT NULL,

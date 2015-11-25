@@ -41,6 +41,8 @@ public class GeometryFuser {
      * @return boolean whether load of links succeeded
      */
     public boolean loadLinks(final List<Link> links) {
+        final String deleteLinksTable = "DELETE FROM links";
+        final String insertLinkQuery = "INSERT INTO links (nodea, nodeb) VALUES (?,?)";
         boolean success = false;
         
         if ( connection == null )
@@ -48,16 +50,12 @@ public class GeometryFuser {
         
         // Delete old entries in links table
         // and insert new ones
-        try{
+        try(PreparedStatement statement = connection.prepareStatement(deleteLinksTable);
+            PreparedStatement insertLinkStmt = connection.prepareStatement(insertLinkQuery)) {
             
-            final String deleteLinksTable = "DELETE FROM links";
-            final PreparedStatement statement = connection.prepareStatement(deleteLinksTable); 
             statement.executeUpdate(); //jan 
            
             connection.commit();
-            
-            final String insertLinkQuery = "INSERT INTO links (nodea, nodeb) VALUES (?,?)";
-            final PreparedStatement insertLinkStmt = connection.prepareStatement(insertLinkQuery);
 
             for (Link link : links) {
                 insertLinkStmt.setString(1, link.getNodeA());

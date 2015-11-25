@@ -20,7 +20,7 @@ public class JSONFusion {
     List<String>                classesA;
     List<String>                classesB;
     
-    
+    // List of JSON properties that where matched
     List<JSONPropertyMatch>     properties;
     
     // List of available FAGI-gis trandformation for Geometries and Metadata
@@ -93,6 +93,14 @@ public class JSONFusion {
 
     public void setClassesB(List<String> classesB) {
         this.classesB = classesB;
+    }
+
+    public JSONRequestResult getResult() {
+        return result;
+    }
+
+    public void setResult(JSONRequestResult result) {
+        this.result = result;
     }
 
 }

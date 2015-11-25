@@ -7,11 +7,13 @@ package gr.athenainnovation.imis.fagi.gis.service;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
@@ -19,6 +21,11 @@ import com.vividsolutions.jts.io.WKTReader;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.json.JSONEntity;
+import gr.athenainnovation.imis.fusion.gis.json.JSONGeomLink;
+import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -38,6 +45,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.atlas.web.HttpException;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 
@@ -48,6 +56,8 @@ import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 @WebServlet(name = "FindLinkServlet", urlPatterns = {"/FindLinkServlet"})
 public class FindLinkServlet extends HttpServlet {
     
+    private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(FindLinkServlet.class);    
+    
     // Well Known Text Reader for JTS
     private static final WKTReader wkt = new WKTReader();
     
@@ -55,40 +65,6 @@ public class FindLinkServlet extends HttpServlet {
     private static final String strPatternText = "[a-zA-Z]+(\\b[a-zA-Z]+\\b)*([a-zA-Z])";
     private static Pattern patternText = Pattern.compile( strPatternText );
     private static Pattern patternInt = Pattern.compile( "^(\\d+)$" );
-    
-    private static class JSONEntity {
-        String sub;
-        String ds;
-        String geom;
-
-        public JSONEntity() {
-        }
-
-        public String getSub() {
-            return sub;
-        }
-
-        public void setSub(String sub) {
-            this.sub = sub;
-        }
-
-        public String getDs() {
-            return ds;
-        }
-
-        public void setDs(String ds) {
-            this.ds = ds;
-        }
-
-        public String getGeom() {
-            return geom;
-        }
-
-        public void setGeom(String geom) {
-            this.geom = geom;
-        }
-
-    }
     
     private class IntWrapper {
         public int i;
@@ -133,80 +109,6 @@ public class FindLinkServlet extends HttpServlet {
         
     }
     
-    private class JSONGeomLink {
-        String subA, geomA;
-        String subB, geomB;
-        double dist, jIndex;
-        
-        public JSONGeomLink() {
-        }
-
-        public JSONGeomLink(String subA, String geomA, String subB, String geomB) {
-            this.subA = subA;
-            this.geomA = geomA;
-            this.subB = subB;
-            this.geomB = geomB;
-        }
-
-        public JSONGeomLink(String subA, String geomA, String subB, String geomB, double dist, double jIndex) {
-            this.subA = subA;
-            this.geomA = geomA;
-            this.subB = subB;
-            this.geomB = geomB;
-            this.dist = dist;
-            this.jIndex = jIndex;
-        }
-        
-        public String getSubA() {
-            return subA;
-        }
-
-        public void setSubA(String subA) {
-            this.subA = subA;
-        }
-
-        public String getGeomA() {
-            return geomA;
-        }
-
-        public void setGeomA(String geomA) {
-            this.geomA = geomA;
-        }
-
-        public String getSubB() {
-            return subB;
-        }
-
-        public void setSubB(String subB) {
-            this.subB = subB;
-        }
-
-        public String getGeomB() {
-            return geomB;
-        }
-
-        public void setGeomB(String geomB) {
-            this.geomB = geomB;
-        }
-
-        public double getDist() {
-            return dist;
-        }
-
-        public void setDist(double dist) {
-            this.dist = dist;
-        }
-
-        public double getjIndex() {
-            return jIndex;
-        }
-
-        public void setjIndex(double jIndex) {
-            this.jIndex = jIndex;
-        }
-
-    }
-    
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -217,17 +119,20 @@ public class FindLinkServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, ParseException {
+            throws ServletException {
         response.setContentType("text/html;charset=UTF-8");
         
         // Per request state
         JSONEntity              ent;
+        JSONRequestResult       res;
         GraphConfig             grConf;
         DBConfig                dbConf;
         HttpSession             sess;
-    
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
+        PrintWriter             out = null;
+        
+        try {
+            out = response.getWriter();
+            
             sess = request.getSession(false);
             
             if ( sess == null ) {
@@ -235,6 +140,10 @@ public class FindLinkServlet extends HttpServlet {
                 
                 return;
             }
+            
+            if ( request.getParameter("entity") == null 
+              || request.getParameter("radius") == null )
+                return;
             
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
             dbConf = (DBConfig)sess.getAttribute("db_conf");
@@ -251,12 +160,33 @@ public class FindLinkServlet extends HttpServlet {
 
             grConf.scanGeoProperties();
             
+            // Fetch geometry types
             List<String> geoPropsA = grConf.getGeoPropertiesA();
             List<String> geoPropsB = grConf.getGeoPropertiesB();
             List<String> geoTypesA = grConf.getGeoTypesA();
             List<String> geoTypesB = grConf.getGeoTypesB();
-                        
+            
+            // Helper variables
+            double maxDist = -1;
+            int newGeom = 0;
+            
+            // Build Geo Query
             StringBuilder geoQuery = new StringBuilder();
+            
+            // Fetch neighboring entities Predicate.Object pairs
+            Map<String, List<SubObjPair>> mappings = new HashMap<>();
+            Map<String, IntWrapper> freqs = new HashMap<>();
+            Map<String, String> geoms = new HashMap<>();
+            Set<String> uniqueSubs = new HashSet<>();
+            
+            // Entity Center
+            Geometry centerGeom = wkt.read(ent.getGeom()).getCentroid();
+
+            QueryEngineHTTP qeh = null; 
+            String service;
+            String graph;
+            
+            geoQuery.setLength(0);
             geoQuery.append("SELECT ?s ?p ?o ?geo\nWHERE { ?s ?p ?o {\n");
             geoQuery.append("SELECT ?s ?geo\nWHERE {\n");
             if (ent.getDs().equals("B")) {
@@ -264,25 +194,17 @@ public class FindLinkServlet extends HttpServlet {
             } else {
                 geoQuery.append("?s <" + geoPropsB.get(0) + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n");
             }
-            geoQuery.append("FILTER (bif:st_contains (?geo, bif:st_geomfromtext(\"" + ent.getGeom() + "\"), "+((float)radius / 111195) + "))\n"
+            geoQuery.append("FILTER (bif:st_contains (?geo, bif:st_geomfromtext(\"" + ent.getGeom() + "\"), " + ((float) radius / 111195) + "))\n"
                     + "} } }");
 
             System.out.println(geoQuery.toString());
-            
-            String service = grConf.getEndpointB();
-            String graph = grConf.getGraphB();
-            if ( ent.getDs().equals("B") ) {
+
+            service = grConf.getEndpointB();
+            graph = grConf.getGraphB();
+            if (ent.getDs().equals("B")) {
                 service = grConf.getEndpointA();
                 graph = grConf.getGraphA();
             }
-            
-            
-            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-            //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-            QueryEngineHTTP qeh = new QueryEngineHTTP(service, geoQuery.toString(), authenticator);
-            qeh.addDefaultGraph(graph);
-            QueryExecution queryExecution = qeh;
-            final ResultSet resultSet = queryExecution.execSelect();
 
             HashSet<String> fetchedGeomsA = (HashSet<String>) sess.getAttribute("fetchedGeomsA");
             HashSet<String> fetchedGeomsB = (HashSet<String>) sess.getAttribute("fetchedGeomsB");
@@ -300,69 +222,91 @@ public class FindLinkServlet extends HttpServlet {
             System.out.println("Fetched from A : " + fetchedGeomsA.size());
             System.out.println("Fetched from B : " + fetchedGeomsB.size());
 
-            // Fetch neighboring entities Predicate.Object pairs
-            Map<String, List<SubObjPair>> mappings = new HashMap<>();
-            Map<String, IntWrapper> freqs = new HashMap<>();
-            Map<String, String> geoms = new HashMap<>();
-            Set<String> uniqueSubs = new HashSet<>();
+            int tries = 0;
             
-            Geometry centerGeom = wkt.read(ent.getGeom()).getCentroid();
-            double maxDist = -1;
-            int newGeom = 0;
-            while (resultSet.hasNext()) {
-                final QuerySolution querySolution = resultSet.next();
+            while (tries < Constants.MAX_SPARQL_TRIES) {
+                try {
+                    HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                    qeh = new QueryEngineHTTP(service, geoQuery.toString(), authenticator);
+                    qeh.setSelectContentType((String) sess.getAttribute("content-type"));
+                    qeh.addDefaultGraph(graph);
+                    
+                    final ResultSet resultSet = qeh.execSelect();
 
-                final String geo = querySolution.getLiteral("?geo").getString();
-                final String pre = querySolution.getResource("?p").getURI();
-                String obj = "";
-                RDFNode n = querySolution.get("?o");
-                if ( n.isResource() )
-                    continue;
-                else
-                    obj = n.asLiteral().getString();
-                
-                System.out.println(obj + " : " + patternText.matcher(obj).find());
-                System.out.println(obj + " : " + patternInt.matcher(obj).find());
-                System.out.println(obj + " : " + obj.matches(strPatternText));
-                
-                if ( patternInt.matcher(obj).find() )
-                    continue;
-                
-                if ( !patternText.matcher(obj).find() )
-                    continue;
-                
-                if ( obj.contains("http") )
-                    continue;
-                
-                final String sub = querySolution.getResource("?s").getURI();
-                geoms.put(sub, geo);
-                
-                uniqueSubs.add(sub);
-                
-                IntWrapper freq = freqs.get(obj);
-                if ( freq == null ) {
-                    IntWrapper newFreq = new IntWrapper(0);
-                    freq = newFreq;
-                    freqs.put(obj, newFreq);
+                    while (resultSet.hasNext()) {
+                        final QuerySolution querySolution = resultSet.next();
+
+                        final String geo = querySolution.getLiteral("?geo").getString();
+                        final String pre = querySolution.getResource("?p").getURI();
+                        String obj = "";
+                        RDFNode n = querySolution.get("?o");
+                        if (n.isResource()) {
+                            continue;
+                        } else {
+                            obj = n.asLiteral().getString();
+                        }
+
+                        System.out.println(obj + " : " + patternText.matcher(obj).find());
+                        System.out.println(obj + " : " + patternInt.matcher(obj).find());
+                        System.out.println(obj + " : " + obj.matches(strPatternText));
+
+                        if (patternInt.matcher(obj).find()) {
+                            continue;
+                        }
+
+                        if (!patternText.matcher(obj).find()) {
+                            continue;
+                        }
+
+                        if (obj.contains("http")) {
+                            continue;
+                        }
+
+                        final String sub = querySolution.getResource("?s").getURI();
+                        geoms.put(sub, geo);
+
+                        uniqueSubs.add(sub);
+
+                        IntWrapper freq = freqs.get(obj);
+                        if (freq == null) {
+                            IntWrapper newFreq = new IntWrapper(0);
+                            freq = newFreq;
+                            freqs.put(obj, newFreq);
+                        }
+                        freq.inc();
+
+                        if (!fetchedGeomsA.contains(sub)) {
+                            fetchedGeomsA.add(sub);
+                            newGeom++;
+                        }
+
+                        SubObjPair pair = new SubObjPair(sub, obj);
+                        List<SubObjPair> pairList = mappings.get(pre);
+                        if (pairList == null) {
+                            pairList = new ArrayList<>();
+                            mappings.put(pre, pairList);
+                        }
+                        pairList.add(pair);
+
+                        //System.out.println("Fetched "+geo);
+                    }
+                    
+                    break;
+                } catch (JenaException jex) {
+                    LOG.trace("HttpException during geometry fetch");
+                    LOG.debug("HttpException during geometry fetch : " + jex.getMessage());
+
+                    tries++;
+                } catch (HttpException jex) {
+                    LOG.trace("HttpException during geometry fetch");
+                    LOG.debug("HttpException during geometry fetch : " + jex.getMessage());
+
+                    tries++;
+                } finally {
+                    if ( qeh != null )
+                        qeh.close();
                 }
-                freq.inc();
-                
-                if ( !fetchedGeomsA.contains(sub) ) {
-                    fetchedGeomsA.add(sub);
-                    newGeom++;
-                }
-                
-                SubObjPair pair = new SubObjPair(sub, obj);
-                List<SubObjPair> pairList = mappings.get(pre);
-                if ( pairList == null ) {
-                    pairList = new ArrayList<>();
-                    mappings.put(pre, pairList);
-                }
-                pairList.add(pair);
-                
-                //System.out.println("Fetched "+geo);
             }
-            
             System.out.println("Hash Set Size : " + uniqueSubs.size());
             for ( Map.Entry<String, List<SubObjPair>> entry : mappings.entrySet() ) {
                 String sub = entry.getKey();
@@ -393,82 +337,140 @@ public class FindLinkServlet extends HttpServlet {
                 graph = grConf.getGraphB();
             }
             
-            authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-            //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-            qeh = new QueryEngineHTTP(service, query, authenticator);
-            qeh.addDefaultGraph(graph);
-            queryExecution = qeh;
-            final ResultSet resultSetEnt = queryExecution.execSelect();
+            maxDist = -1;
+            newGeom = 0;
             
+            tries = 0;
             List<JSONGeomLink> newLinks = new ArrayList<>();
-            while (resultSetEnt.hasNext()) {
-                final QuerySolution querySolution = resultSetEnt.next();
+            while (tries < Constants.MAX_SPARQL_TRIES) {
+                try {
+                    HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                    //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
+                    qeh = new QueryEngineHTTP(service, query, authenticator);
+                    qeh.setSelectContentType((String) sess.getAttribute("content-type"));
+                    qeh.addDefaultGraph(graph);
+                    final ResultSet resultSetEnt = qeh.execSelect();
 
-                final String pre = querySolution.getResource("?p").getURI();
-                String obj = "";
-                RDFNode n = querySolution.get("?o");
-                if ( n.isResource() ) {
-                    continue;
-                } else {
-                    obj = n.asLiteral().getString();
-                } 
-                
-                if ( patternInt.matcher(obj).find() )
-                    continue;
-                
-                if ( !patternText.matcher(obj).find() )
-                    continue;
-                
-                if ( obj.contains("http") )
-                    continue;
-                
+                    while (resultSetEnt.hasNext()) {
+                        final QuerySolution querySolution = resultSetEnt.next();
 
-                System.out.println(ent.getSub()+ " " + pre + " " + obj);
-                
-                boolean foundLink = false;
-                String subA = "";
-                String subB = "";
-                for (Map.Entry<String, List<SubObjPair>> entry : mappings.entrySet()) {
-                    String sub = entry.getKey();
-                    List<SubObjPair> pairs = entry.getValue();
-
-                    for (SubObjPair p : pairs) {
-                        float tf = (float) freqs.get(p.getObj()).i / uniqueSubs.size();
-                        if ( freqs.get(p.getObj()).i > 1 ) {
+                        final String pre = querySolution.getResource("?p").getURI();
+                        String obj = "";
+                        RDFNode n = querySolution.get("?o");
+                        if (n.isResource()) {
                             continue;
                         } else {
-                            System.out.println("Comparing "+obj + " with "+ p.getObj() );
-                            Geometry tmpGeom = wkt.read(geoms.get(p.getSub()));
-                            System.out.println("Distance " + tmpGeom.getCentroid().distance(centerGeom) * 111195);
-                            double dist = tmpGeom.getCentroid().distance(centerGeom) * 111195;
-                            if (dist > maxDist) {
-                                maxDist = dist;
-                            }
-                            float JaccardIndex = getJaccardIndex(obj, p.getObj());
-                            if ( JaccardIndex > 0.8 ) {
-                                JSONGeomLink l = new JSONGeomLink(
-                                    ent.getSub(), "",
-                                        p.getSub(), geoms.get(p.getSub()),
-                                        dist,
-                                        JaccardIndex
-                                );
-                                
-                                newLinks.add(l);
+                            obj = n.asLiteral().getString();
+                        }
+
+                        if (patternInt.matcher(obj).find()) {
+                            continue;
+                        }
+
+                        if (!patternText.matcher(obj).find()) {
+                            continue;
+                        }
+
+                        if (obj.contains("http")) {
+                            continue;
+                        }
+
+                        System.out.println(ent.getSub() + " " + pre + " " + obj);
+
+                        boolean foundLink = false;
+                        String subA = "";
+                        String subB = "";
+                        for (Map.Entry<String, List<SubObjPair>> entry : mappings.entrySet()) {
+                            String sub = entry.getKey();
+                            List<SubObjPair> pairs = entry.getValue();
+
+                            for (SubObjPair p : pairs) {
+                                float tf = (float) freqs.get(p.getObj()).i / uniqueSubs.size();
+                                if (freqs.get(p.getObj()).i > 1) {
+                                    continue;
+                                } else {
+                                    System.out.println("Comparing " + obj + " with " + p.getObj());
+                                    Geometry tmpGeom = wkt.read(geoms.get(p.getSub()));
+                                    System.out.println("Distance " + tmpGeom.getCentroid().distance(centerGeom) * Constants.MAGIC_MERC_TO_METERS_NUMBER);
+                                    double dist = tmpGeom.getCentroid().distance(centerGeom) * Constants.MAGIC_MERC_TO_METERS_NUMBER;
+                                    if (dist > maxDist) {
+                                        maxDist = dist;
+                                    }
+                                    float JaccardIndex = getJaccardIndex(obj, p.getObj());
+                                    if (JaccardIndex > 0.8) {
+                                        JSONGeomLink l = new JSONGeomLink(
+                                                ent.getSub(), "",
+                                                p.getSub(), geoms.get(p.getSub()),
+                                                dist,
+                                                JaccardIndex
+                                        );
+
+                                        newLinks.add(l);
+                                    }
+                                }
                             }
                         }
                     }
+                    
+                    break;
+                } catch (JenaException jex) {
+                    LOG.trace("HttpException during geometry fetch");
+                    LOG.debug("HttpException during geometry fetch : " + jex.getMessage());
+
+                    tries++;
+                } catch (HttpException jex) {
+                    LOG.trace("HttpException during geometry fetch");
+                    LOG.debug("HttpException during geometry fetch : " + jex.getMessage());
+
+                    tries++;
+                } finally {
+                    if (qeh != null) {
+                        qeh.close();
+                    }
                 }
-                
-                
             }
+            
             for (JSONGeomLink l : newLinks) {
-                System.out.println("Sub A"+l.subA);
-                System.out.println("Geo A"+l.geomA);
-                System.out.println("Sub B"+l.subB);
-                System.out.println("Geo B"+l.geomB);
+                System.out.println("Sub A"+l.getSubA());
+                System.out.println("Geo A"+l.getGeomA());
+                System.out.println("Sub B"+l.getSubB());
+                System.out.println("Geo B"+l.getGeomB());
             }
+            
             System.out.println(mapper.writeValueAsString(newLinks));
             out.print(mapper.writeValueAsString(newLinks));
+        } catch (java.lang.OutOfMemoryError oome) {
+            LOG.trace("OutOfMemoryError thrown");
+            LOG.debug("OutOfMemoryError thrown : " + oome.getMessage());
+            
+            if ( out != null ) 
+                out.print("{\"error\":\"error\"}");
+            
+            throw new ServletException("OutOfMemoryError thrown by Tomcat");
+        } catch (JsonProcessingException ex) {
+            LOG.trace("JsonProcessingException thrown");
+            LOG.debug("JsonProcessingException thrown : " + ex.getMessage());
+            
+            if ( out != null ) 
+                out.print("{\"error\":\"error\"}");
+            
+            throw new ServletException("JsonProcessingException thrown by Tomcat");
+        } catch (IOException ex) {
+            LOG.trace("IOException thrown");
+            LOG.debug("IOException thrown : " + ex.getMessage());
+            
+            throw new ServletException("IOException opening the servlet writer");
+        } catch (ParseException ex) {
+            LOG.trace("ParseException thrown");
+            LOG.debug("ParseException thrown : " + ex.getMessage());
+            
+            if ( out != null ) 
+                out.print("{\"error\":\"error\"}");
+            
+            throw new ServletException("ParseException thrown by Tomcat");
+        } finally {
+            if (out != null )
+                out.close();
         }
     }
 
@@ -516,12 +518,9 @@ public class FindLinkServlet extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (ParseException ex) {
-            Logger.getLogger(FindLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            throws ServletException {
+        processRequest(request, response);
+       
     }
 
     /**
@@ -534,12 +533,9 @@ public class FindLinkServlet extends HttpServlet {
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
-            processRequest(request, response);
-        } catch (ParseException ex) {
-            Logger.getLogger(FindLinkServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            throws ServletException {
+        processRequest(request, response);
+      
     }
 
     /**

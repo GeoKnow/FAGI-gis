@@ -46,6 +46,7 @@ import gr.athenainnovation.imis.fusion.gis.postgis.PostGISImporter;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
+import gr.athenainnovation.imis.fusion.gis.utils.Utilities;
 import gr.athenainnovation.imis.fusion.gis.virtuoso.VirtuosoImporter;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -161,12 +162,12 @@ public class LinksServlet extends HttpServlet {
         // This query remives the limitation of having only SAME_AS predicates
         // but we will need additional checks
         String q = "SELECT * WHERE { GRAPH <"+g+"> { ?s ?p ?o } }";
-        
+        System.out.println("\n\n\n\nSubject " + q);
         try {
             final Query query = QueryFactory.create(q);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
             QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(e, QueryFactory.create(query), authenticator);
-            qeh.setSelectContentType((String) sess.getAttribute("content-type"));
+            //qeh.setSelectContentType((String) sess.getAttribute("content-type"));
             final com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
 
             while (resultSet.hasNext()) {
@@ -174,7 +175,7 @@ public class LinksServlet extends HttpServlet {
                 final RDFNode subject = querySolution.get("?s");
                 final RDFNode objectNode1 = querySolution.get("?p"); //lat
                 final RDFNode objectNode2 = querySolution.get("?o"); //long
-
+                System.out.println("Subject " + subject);
                 sb.append("<" + subject + ">");
                 sb.append(" ");
                 sb.append("<" + Constants.SAME_AS + ">");
@@ -217,16 +218,11 @@ public class LinksServlet extends HttpServlet {
         JSONLoadLinksResult     ret;
         JSONRequestResult       res;
         boolean                 succeeded = false;
+        long                    startTime, endTime;
         
         try {
-            try {
-                out = response.getWriter();
-            } catch (IOException ex) {
-                LOG.trace("IOException thrown in servlet Writer");
-                LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage() );
-                
-                return;
-            }
+            out = response.getWriter();
+            
             sess = request.getSession(false);
             
             StringBuilder htmlCode = new StringBuilder();
@@ -270,6 +266,9 @@ public class LinksServlet extends HttpServlet {
                 return;
             }
             
+            SPARQLUtilities.clearGraph(grConf.getTargetTempGraph(), vSet);
+            
+            Connection virt_conn = vSet.getConnection();
             // Checking Content Type allows to know if there is a file provided
             InputStream filecontent = null;
             if (request.getContentType() != null) {
@@ -332,6 +331,8 @@ public class LinksServlet extends HttpServlet {
             }
             iter.close();
 
+            sess.setAttribute("make-swap", makeSwap);
+            
             iter = model.listStatements();
             while (iter.hasNext()) {
                 final Statement statement = iter.nextStatement();
@@ -390,8 +391,8 @@ public class LinksServlet extends HttpServlet {
             // [TODO] Could be inproved ( Too much work on the server )
             int i = 0;
             for (Link l : output) {
-                fetchedGeomsA.add(l.getNodeA());
-                fetchedGeomsA.add(l.getNodeB());
+                //fetchedGeomsA.add(l.getNodeA());
+                //fetchedGeomsA.add(l.getNodeB());
                 String check = "chk" + i;
                 htmlCode.append("<li><div>");
                 htmlCode.append("<label for=\"" + check + "\"><input type=\"checkbox\" value=\"\"name=\"" + check + "\" id=\"" + check + "\" />" + l.getNodeA() + "<-->" + l.getNodeB() + "</label>");
@@ -450,7 +451,7 @@ public class LinksServlet extends HttpServlet {
             }
 
             // Upload links to Virtusoso graph
-            succeeded = SPARQLUtilities.createLinksGraph(output, vSet.getConnection(), grConf, dbConf.getBulkDir());
+            succeeded = SPARQLUtilities.createLinksGraph(output, grConf.getAllLinksGraph(), vSet.getConnection(), grConf, dbConf.getBulkDir());
             if ( !succeeded ) {
                 LOG.trace("Link graph creation failed");
                 LOG.debug("Link graph creation failed");
@@ -463,124 +464,151 @@ public class LinksServlet extends HttpServlet {
                 
                 return;
             }
-            //final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConfig, PostGISImporter.DATASET_A, sourceDatasetA, datasetAStatusField, errorListener);
-            Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
-            final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, null);
-            datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent evt) {
-                    if ("progress".equals(evt.getPropertyName())) {
-                        //System.out.println("Tom");
-                    }
-                }
-            });
-
-            Dataset sourceBDataset = new Dataset(grConf.getEndpointB(), grConf.getGraphB(), "");
-            final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_B, sourceBDataset, null, null);
-            datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent evt) {
-                    if ("progress".equals(evt.getPropertyName())) {
-                        //System.out.println("Tom2");
-                    }
-                }
-            });
-
-            //startTime = System.nanoTime();
-            //System.out.println("Execute");
-            datasetAImportWorker.execute();
-            datasetBImportWorker.execute();
-            //System.out.println("Print");
-            Boolean retA, retB;
-            try {
-                retB = datasetAImportWorker.get();
-                retA = datasetBImportWorker.get();
-            } catch (InterruptedException | ExecutionException ex) {
-                LOG.trace("Thread execution failed");
-                LOG.debug("Thread execution failed");
-                ret.getResult().setStatusCode(-1);
-                ret.getResult().setMessage("Upload thread execution failed");
-                
-                out.println(mapper.writeValueAsString(ret));
             
-                out.close();
-                
-                return;
-            }
-            System.out.println("The bool " + retA);
-            System.out.println(retB);
-            if ( ( retA == false ) || ( retB == false ) ) {
-                LOG.trace("Thread execution failed");
-                LOG.debug("Thread execution failed");
-                ret.getResult().setStatusCode(-1);
-                ret.getResult().setMessage("Problem with link upload cleanup");
-                
-                out.println(mapper.writeValueAsString(ret));
-            
-                out.close();
-                
-                return;
-            }
-                LOG.trace("SQLException after");
-            
+            // If we are using late fetching, geometry upload
+            // is done in a later stage
             VirtuosoImporter virtImp = new VirtuosoImporter(dbConf, null, (String) sess.getAttribute("t_graph"), true, grConf);
-            Connection virt_conn = vSet.getConnection();
-                LOG.trace("SQLException before");
-            // Recreate target temp graph
-            final String dropTempGraph = "SPARQL DROP SILENT GRAPH <"+ grConf.getTargetTempGraph()+  ">";
-            final String createTempGraph = "SPARQL CREATE GRAPH <"+ grConf.getTargetTempGraph()+ ">";
+            if (!Constants.LATE_FETCH) {
 
-            PreparedStatement stmt = null;
-            try {
-                stmt = virt_conn.prepareStatement(dropTempGraph);
-                stmt.execute();
+                Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
+                final ImporterWorker datasetAImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_A, sourceADataset, null, null);
+                datasetAImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
+                    @Override
+                    public void propertyChange(PropertyChangeEvent evt) {
+                        if ("progress".equals(evt.getPropertyName())) {
+                            //System.out.println("Tom");
+                        }
+                    }
+                });
 
-                stmt = virt_conn.prepareStatement(dropTempGraph);
-                stmt.execute();
+                Dataset sourceBDataset = new Dataset(grConf.getEndpointB(), grConf.getGraphB(), "");
+                final ImporterWorker datasetBImportWorker = new ImporterWorker(dbConf, grConf, PostGISImporter.DATASET_B, sourceBDataset, null, null);
+                datasetBImportWorker.addPropertyChangeListener(new PropertyChangeListener() {
+                    @Override
+                    public void propertyChange(PropertyChangeEvent evt) {
+                        if ("progress".equals(evt.getPropertyName())) {
+                            //System.out.println("Tom2");
+                        }
+                    }
+                });
 
-                stmt.close();
+                // Fire threads for uploading
+                datasetAImportWorker.execute();
+                datasetBImportWorker.execute();
 
-            } catch (SQLException ex) {
-                LOG.trace("SQLException thrown");
-                LOG.debug("SQLException thrown : "+ex.getMessage());
-                LOG.debug("SQLException thrown : "+ex.getSQLState());
-                ret.getResult().setStatusCode(-1);
-                ret.getResult().setMessage("Problem with destroying Target Temporary graph");
-                
-                out.println(mapper.writeValueAsString(ret));
-            
-                out.close();
-                
-                return;
-            } finally {
+                // Get thread run results
+                HashMap<String, String> retA;
+                HashMap<String, String> retB;
                 try {
-                    if ( stmt != null )
-                        stmt.close();
-                } catch (SQLException ex) {
-                    LOG.trace("SQLException thrown during statement close");
-                    LOG.debug("SQLException thrown during statement close : "+ex.getMessage());
-                    LOG.debug("SQLException thrown during statement close : "+ex.getSQLState());
+                    retB = datasetAImportWorker.get();
+                    retA = datasetBImportWorker.get();
+                } catch (InterruptedException | ExecutionException ex) {
+                    LOG.trace("Thread execution failed");
+                    LOG.debug("Thread execution failed");
+                    ret.getResult().setStatusCode(-1);
+                    ret.getResult().setMessage("Upload thread execution failed");
+
+                    out.println(mapper.writeValueAsString(ret));
+
+                    out.close();
+
+                    return;
                 }
+
+                if ((retA == null) || (retB == null)) {
+                    LOG.trace("Thread execution failed");
+                    LOG.debug("Thread execution failed");
+                    ret.getResult().setStatusCode(-1);
+                    ret.getResult().setMessage("Problem with link upload cleanup");
+
+                    out.println(mapper.writeValueAsString(ret));
+
+                    out.close();
+
+                    return;
+                }
+                LOG.trace("SQLException after");
+
+                virt_conn = vSet.getConnection();
+                LOG.trace("SQLException before");
+                // Recreate target temp graph
+                final String dropTempGraph = "SPARQL DROP SILENT GRAPH <" + grConf.getTargetTempGraph() + ">";
+                final String createTempGraph = "SPARQL CREATE GRAPH <" + grConf.getTargetTempGraph() + ">";
+
+                PreparedStatement stmt = null;
+                try {
+                    
+                    stmt = virt_conn.prepareStatement(dropTempGraph);
+                    stmt.execute();
+
+                    stmt = virt_conn.prepareStatement(createTempGraph);
+                    stmt.execute();
+
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown");
+                    LOG.debug("SQLException thrown : " + ex.getMessage());
+                    LOG.debug("SQLException thrown : " + ex.getSQLState());
+                    ret.getResult().setStatusCode(-1);
+                    ret.getResult().setMessage("Problem with destroying Target Temporary graph");
+
+                    out.println(mapper.writeValueAsString(ret));
+
+                    out.close();
+
+                    return;
+                } finally {
+                    try {
+                        if (stmt != null) {
+                            stmt.close();
+                        }
+                    } catch (SQLException ex) {
+                        LOG.trace("SQLException thrown during statement close");
+                        LOG.debug("SQLException thrown during statement close : " + ex.getMessage());
+                        LOG.debug("SQLException thrown during statement close : " + ex.getSQLState());
+                    }
+                }
+                
             }
-            
             sess.setAttribute("virt_imp", virtImp);
             //virtImp.createLinksGraph(output);
 
-            System.out.println(mapper.writeValueAsString(ret));
+            //System.out.println(mapper.writeValueAsString(ret));
             //virtImp.importGeometriesToVirtuoso((String) sess.getAttribute("t_graph"));
-            virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true);
-            final String createGraph = "sparql CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
+            if ( Constants.LATE_FETCH ) {
+                
+            } else {
+                virtImp.insertLinksMetadataChains(output, (String) sess.getAttribute("t_graph"), true, (Boolean)sess.getAttribute("make-swap"));
+            }
+            final String createGraph = "SPARQL CREATE GRAPH <"+ grConf.getAllLinksGraph()+  ">";
 
+            boolean isEndpointALocal = Utilities.isURLToLocalInstance(grConf.getEndpointA());
+            boolean isEndpointBLocal = Utilities.isURLToLocalInstance(grConf.getEndpointB());
             String fetchFiltersA;
             String fetchFiltersB;
-            if (grConf.isDominantA()) {
-                fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() +"> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+            if (Constants.LATE_FETCH) {
+                if (grConf.isDominantA()) {
+                    if ( isEndpointALocal )
+                        fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                    else 
+                        fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . SERVICE <"+grConf.getEndpointA()+"> { GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    if ( isEndpointBLocal )
+                        fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                    else
+                        fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . SERVICE <"+grConf.getEndpointB()+"> { GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                } else {
+                    fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . SERVICE <"+grConf.getEndpointA()+"> { GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . SERVICE <"+grConf.getEndpointB()+"> { GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                }
             } else {
-                fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <"+ grConf.getAllLinksGraph()+ "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                if (grConf.isDominantA()) {
+                    fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                    fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                } else {
+                    fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                    fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                }
             }
-
+            
             System.out.println("Fetch from graph A : "+fetchFiltersA);
             System.out.println("Fetch from graph B : " + fetchFiltersB);
             System.out.println("Graph A : " + grConf.getGraphA());
@@ -588,9 +616,16 @@ public class LinksServlet extends HttpServlet {
 
             PreparedStatement filtersStmt = null;
             ResultSet rs = null;
+            
             try {
                 filtersStmt = virt_conn.prepareStatement(fetchFiltersA);
+                startTime = System.nanoTime();
+                
                 rs = filtersStmt.executeQuery();
+                
+                endTime = System.nanoTime();
+                    
+                LOG.info("Filtering A lasted "+Utilities.nanoToSeconds(endTime-startTime));
 
                 if (rs.isBeforeFirst()) {
                     if (rs.next()) {
@@ -608,8 +643,14 @@ public class LinksServlet extends HttpServlet {
                 ret.setFiltersListAHTML(htmlCode.toString());
                 htmlCode.setLength(0);
 
+                startTime = System.nanoTime();
+                                
                 filtersStmt = virt_conn.prepareStatement(fetchFiltersB);
                 rs = filtersStmt.executeQuery();
+
+                endTime = System.nanoTime();
+                    
+                LOG.info("Filtering B lasted "+Utilities.nanoToSeconds(endTime-startTime));
 
                 if (rs.isBeforeFirst()) {
                     if (rs.next()) {
@@ -642,8 +683,8 @@ public class LinksServlet extends HttpServlet {
                 try {
                     if ( rs != null ) 
                         rs.close();
-                    if (stmt != null) {
-                        stmt.close();
+                    if (filtersStmt != null) {
+                        filtersStmt.close();
                     }
                 } catch (SQLException ex) {
                     LOG.trace("SQLException thrown during statement and result set close");
@@ -674,13 +715,19 @@ public class LinksServlet extends HttpServlet {
 
                 out.close();
             }
+        } catch (IOException ex) {
+            LOG.trace("IOException thrown in servlet Writer");
+            LOG.debug("IOException thrown in servlet Writer : \n" + ex.getMessage());
+
+            return;
         } finally {
-            if ( vSet != null ) {
+            if (vSet != null) {
                 vSet.close();
             }
-            
-            if ( out != null )
+
+            if (out != null) {
                 out.close();
+            }
         }
     }
 

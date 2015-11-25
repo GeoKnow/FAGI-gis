@@ -17,6 +17,7 @@ import gr.athenainnovation.imis.fusion.gis.json.JSONDatasetConfigResult;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
+import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import java.io.IOException;
 import java.io.PrintWriter;
 import javax.servlet.ServletException;
@@ -101,6 +102,8 @@ public class DatasetsServlet extends HttpServlet {
             final String targetGraph = request.getParameter("t_graph") ;
             final String metadataGraphA = targetGraph + "_" + dbConf.getDBName() + "A_fagi" ;
             final String metadataGraphB = targetGraph + "_" + dbConf.getDBName() + "B_fagi" ;
+            final String typeGraphA = targetGraph + "_" + dbConf.getDBName() + "A_types_fagi" ;
+            final String typeGraphB = targetGraph + "_" + dbConf.getDBName() + "B_types_fagi" ;
             final String targetTempGraph = targetGraph+"_"+dbConf.getDBName()+"_fagi" ;
             
             // Set graph configuration
@@ -108,10 +111,17 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setEndpointB(request.getParameter("db_end"));
             graphConf.setGraphA(request.getParameter("da_name"));
             graphConf.setGraphB(request.getParameter("db_name"));
+            graphConf.setTypeGraphA(request.getParameter("db_name"));
+            graphConf.setTypeGraphB(request.getParameter("db_name"));
             graphConf.setEndpointT(request.getParameter("t_end"));
             graphConf.setGraphL(request.getParameter("l_graph"));
             graphConf.setEndpointL(request.getParameter("l_end"));
 
+            System.out.println(graphConf.getEndpointA());
+            System.out.println(graphConf.getEndpointB());
+            System.out.println(graphConf.getGraphA());
+            System.out.println(graphConf.getGraphB());
+            
             // [FAGI_TODOs] add checks 
             graphConf.setTargetGraph(targetGraph);
             graphConf.setTargetTempGraph(targetTempGraph);
@@ -122,10 +132,22 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setClusterGraph(clusterGraph);
             graphConf.setMetadataGraphA(metadataGraphA);
             graphConf.setMetadataGraphB(metadataGraphB);
+            graphConf.setTypeGraphA(typeGraphA);
+            graphConf.setTypeGraphB(typeGraphB);
             
+            /*
+            int depthA = SPARQLUtilities.getGraphDepth(graphConf.getGraphA(), graphConf.getEndpointA());
+            int depthB = SPARQLUtilities.getGraphDepth(graphConf.getGraphB(), graphConf.getEndpointB());
+            
+            graphConf.setDepthA(depthA);
+            graphConf.setDepthB(depthB);
+            
+            LOG.info("DepthA " + depthA);
+            LOG.info("DepthB " + depthB);
             LOG.info("Endpoint " + graphConf.getEndpointL());
             LOG.info("Graph " + graphConf.getGraphL());
-
+            */
+            
             sess.setAttribute("gr_conf", graphConf);
             sess.setAttribute("t_graph", targetGraph);
             sess.setAttribute("t_end", request.getParameter("t_end"));
@@ -134,13 +156,14 @@ public class DatasetsServlet extends HttpServlet {
 
             // Simply return 1 if links are to be fetched from an endpoint
             if ( graphConf.getGraphL().isEmpty() || graphConf.getEndpointL().isEmpty() )
-                ret.setHasRemoteLinks(false);
+                ret.setRemoteLinks(false);
             else 
-                ret.setHasRemoteLinks(true);
-            
+                ret.setRemoteLinks(true);
+            System.out.println("False or True " + ret.isRemoteLinks());
             res.setStatusCode(0);
             res.setMessage("done");
 
+            //System.out.print("\n\n\n\n\n"+mapper.writeValueAsString(ret)+"\n\n\n\n\n\n");
             out.print(mapper.writeValueAsString(ret));
             
         } catch ( IOException ioe ) {
