@@ -136,6 +136,12 @@ public class LinkSchemasServlet extends HttpServlet {
             sess.setAttribute("link_property_patternsB", sms.getPropertyList("B"));
             sess.setAttribute("link_predicates_matches", sms);
 
+            
+            if ( grConf.isDominantA() ) 
+                s = lp.getNodeA();
+            else
+                s = lp.getNodeB();
+            
             for (int i = 0; i < 4; i++) {
                 StringBuilder query = new StringBuilder();
                 query.append("SPARQL SELECT ?pa1 ?oa1 ");

@@ -81,6 +81,7 @@ public class DatasetsServlet extends HttpServlet {
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             
             LOG.trace("Is A the dominant dataset? : " + request.getParameter("d_dom"));
+            System.out.println("Is A the dominant dataset? : " + request.getParameter("d_dom"));
             if (request.getParameter("d_dom") != null) {
                 String param = request.getParameter("d_dom").toString().trim();
                 if (param.equalsIgnoreCase("true")) {
@@ -90,7 +91,7 @@ public class DatasetsServlet extends HttpServlet {
                     LOG.info("Dominant dataset is B");
                 }
             } else {
-                graphConf.setDominantA(true);
+                graphConf.setDominantA(false);
             }
             
             // Construct the names of all TEMP Graphs that FAGI uses

@@ -2404,6 +2404,7 @@ function setDatasets()
 {
     var values = $('#dataDiv').serialize();
     //alert( values );
+    //alert($('#fg-fetch-fused-check').prop('checked'));
     FAGI.Utilities.enableSpinner();
     $.ajax({
         // request type

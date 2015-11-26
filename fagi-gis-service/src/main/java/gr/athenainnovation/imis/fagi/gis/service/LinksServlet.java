@@ -587,17 +587,27 @@ public class LinksServlet extends HttpServlet {
             String fetchFiltersB;
             if (Constants.LATE_FETCH) {
                 if (grConf.isDominantA()) {
-                    if ( isEndpointALocal )
+                    if (isEndpointALocal) {
                         fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                    else 
-                        fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . SERVICE <"+grConf.getEndpointA()+"> { GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
-                    if ( isEndpointBLocal )
+                    } else {
+                        fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . SERVICE <" + grConf.getEndpointA() + "> { GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    }
+                    if (isEndpointBLocal) {
                         fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
-                    else
-                        fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . SERVICE <"+grConf.getEndpointB()+"> { GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    } else {
+                        fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . SERVICE <" + grConf.getEndpointB() + "> { GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    }
                 } else {
-                    fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . SERVICE <"+grConf.getEndpointA()+"> { GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
-                    fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . SERVICE <"+grConf.getEndpointB()+"> { GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    if (isEndpointALocal) {
+                        fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                    } else {
+                        fetchFiltersA = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . SERVICE <" + grConf.getEndpointA() + "> { GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    }
+                    if (isEndpointBLocal) {
+                        fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } }";
+                    } else {
+                        fetchFiltersB = "SPARQL SELECT distinct(?o1) WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . SERVICE <" + grConf.getEndpointB() + "> { GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o1 } } }";
+                    }
                 }
             } else {
                 if (grConf.isDominantA()) {
