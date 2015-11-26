@@ -501,7 +501,11 @@ public final class VirtuosoImporter {
                 int p = 0;
                 //System.out.println("Happens");
                 while (rs.next()) {
-                    subject = rs.getString("subject_a");
+                    if ( gr_c.isDominantA())
+                        subject = rs.getString("subject_a");
+                    else
+                        subject = rs.getString("subject_b");
+                    
                     fusedGeometry = rs.getString("ST_AsText");
                     //System.out.println("Inserting "+subject + " " + fusedGeometry);
                     if (!(transformationID.equals("Keep both"))) {
