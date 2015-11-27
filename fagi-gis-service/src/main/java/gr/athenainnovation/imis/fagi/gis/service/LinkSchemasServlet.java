@@ -122,11 +122,13 @@ public class LinkSchemasServlet extends HttpServlet {
                 return;
             }
             
-            //System.out.println("Links Hash Map : " + links);
+            System.out.println("Links Hash Map : " + links);
+            
             Connection virt_conn = vSet.getConnection();
             lp.setNodeA( s );
             lp.setNodeB( links.get(s) );
-
+            System.out.println("Link : " + lp.getNodeA() + "    " + lp.getNodeB() );
+            
             VirtuosoImporter virtImp = (VirtuosoImporter) sess.getAttribute("virt_imp");
             SchemaMatchState sms = virtImp.scanProperties(3, lp.getNodeA(), lp.getNodeB(), (Boolean)sess.getAttribute("make-swap"));
             matches.setFoundA( sms.foundA );

@@ -410,11 +410,11 @@ public class FusionServlet extends HttpServlet {
             System.out.println("OUT SUCCESS : "+success);
             // Where to look for the name of the other entity
             String getLink = "";
-            if (grConf.isDominantA()) {
-                getLink = "SPARQL SELECT ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> {<" + subject + "> ?p ?o} }";
-            } else {
-                getLink = "SPARQL SELECT ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> {?o ?p <" + subject + ">} }";
-            }
+            //if (grConf.isDominantA()) {
+            getLink = "SPARQL SELECT ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> {<" + subject + "> ?p ?o} }";
+            //} else {
+            //    getLink = "SPARQL SELECT ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> {?o ?p <" + subject + ">} }";
+            //}
             System.out.println("OUT SUCCESS : "+getLink);
             String linked = "";
             try (PreparedStatement stmt = conn.prepareStatement(getLink);

@@ -205,6 +205,7 @@ public class FuseLinkServlet extends HttpServlet {
                 dom = domA;
             }
             System.out.println("Dom A "+domA+" Dom B "+domB);
+            System.out.println("Dom Sub A "+nodeA+" Dom B "+nodeB);
             
             JsonFactory factory = mapper.getJsonFactory(); // since 2.1 use mapper.getFactory() instead
             JsonParser jp = factory.createJsonParser(propsJSON);
@@ -319,6 +320,10 @@ public class FuseLinkServlet extends HttpServlet {
                 
                 if ( trans instanceof Concatenation) {
                     String qA = SPARQLUtilities.formInsertConcatGeomQuery(tGraph, domSub, selectedFusions[0].getValA(), selectedFusions[0].getValB());
+                    System.out.println("Concatenation");
+                    System.out.println(qA);
+                    System.out.println(selectedFusions[0].getValA());
+                    System.out.println(selectedFusions[0].getValB());
                     VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(qA, vSet);
                     vur.exec();
                     
