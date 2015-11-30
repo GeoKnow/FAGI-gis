@@ -552,8 +552,14 @@ public class BatchFusionServlet extends HttpServlet {
                     lastIndex = SPARQLUtilities.createLinksGraphBatch(linkList, lastIndex, grConf, vSet);
                                 
                 // Perform Metadata Fusion
+                if ( selectedFusions.length == 1 && !restAction.equalsIgnoreCase("None") ) {
+                    fetchRemaining(restAction, grConf, vSet);
+                }
+                
                 for (int i = 1; i < selectedFusions.length; i++) {
+                    System.out.println("Rest Action ===== " + restAction);
                     if (Constants.LATE_FETCH) {
+                        fetchRemaining(restAction, grConf, vSet);
                         lateFetchData(i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
                     }
                     //handleMetadataFusion(selectedFusions[i].action, i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
@@ -563,10 +569,10 @@ public class BatchFusionServlet extends HttpServlet {
                     }
                 }
             } while ( lastIndex != 0);
-            
-            insertRemaining(restAction, grConf, vSet);
 
-            //SPARQLUtilities.clearFusedLinks(grConf, activeCluster, vSet.getConnection());
+            insertRemaining(restAction, grConf, vSet);
+                        
+            SPARQLUtilities.clearFusedLinks(grConf, activeCluster, vSet.getConnection());
             
             System.out.println(mapper.writeValueAsString(ret));
             
@@ -585,84 +591,176 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
-    private void insertRemaining(String restAction, GraphConfig grConf, VirtGraph vSet) {
+    private boolean insertRemaining(String restAction, GraphConfig grConf, VirtGraph vSet) {
+        boolean success = true;
+
+        if ( restAction.equalsIgnoreCase("None") ) {
+            return success;
+        }
+        
+        final String addNewTriplesA = "SPARQL ADD GRAPH <" + grConf.getMetadataGraphA()+ "> TO GRAPH <" + grConf.getTargetTempGraph()+ ">";
+        final String addNewTriplesB = "SPARQL ADD GRAPH <" + grConf.getMetadataGraphB()+ "> TO GRAPH <" + grConf.getTargetTempGraph()+ ">";
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        
+        if (restAction.equalsIgnoreCase("Keep Both")
+                || restAction.equalsIgnoreCase("Keep A")) {
+            try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(addNewTriplesA)) {
+                vstmt.executeUpdate();
+                System.out.println("\n\n\n\n\n\nKeeping A\n\n\n\n\n");
+            } catch (VirtuosoException ex) {
+                LOG.trace("VirtuosoException on remote failed");
+                LOG.debug("VirtuosoException on remote failed : " + ex.getMessage());
+                LOG.debug("VirtuosoException on remote failed : " + ex.getSQLState());
+
+                success = false;
+            }
+        }
+        
+        if (restAction.equalsIgnoreCase("Keep Both")
+                || restAction.equalsIgnoreCase("Keep Β")) {
+            try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(addNewTriplesB )) {
+                vstmt.executeUpdate();
+                System.out.println("\n\n\n\n\n\nKeeping B\n\n\n\n\n");
+            } catch (VirtuosoException ex) {
+                LOG.trace("VirtuosoException on remote failed");
+                LOG.debug("VirtuosoException on remote failed : " + ex.getMessage());
+                LOG.debug("VirtuosoException on remote failed : " + ex.getSQLState());
+
+                success = false;
+            }
+        }
+        
+        return success;
+    }
+    
+    private void fetchRemaining(String restAction, GraphConfig grConf, VirtGraph vSet) {
         if ( restAction.equalsIgnoreCase("None") ) {
             return;
         }
-        
-        long startTime, endTime;
-        Connection virt_conn = vSet.getConnection();
+        final Connection virt_conn = vSet.getConnection();
         StringBuilder getFromB = new StringBuilder();
-        StringBuilder getFromA = new StringBuilder();
+        StringBuilder getFromA = new StringBuilder();        
+        long startTime, endTime;
+        
+        // Check locality of endpoints
+        boolean isEndpointALocal;
+        boolean isEndpointBLocal;
 
+        isEndpointALocal = isURLToLocalInstance(grConf.getEndpointA()); //"localhost" for localhost
+
+        isEndpointBLocal = isURLToLocalInstance(grConf.getEndpointB()); //"localhost" for localhost
+        
+        startTime = System.nanoTime();
         getFromA.append("SPARQL INSERT\n");
-        getFromA.append("  { GRAPH <").append(grConf.getTargetTempGraph()).append("> {\n");
-        getFromA.append(" ?s ?p ?o1 . \n");
+        getFromA.append("  { GRAPH <").append(grConf.getMetadataGraphA()).append("> {\n");
+        if (grConf.isDominantA()) {
+            getFromA.append(" ?s ?p ?o1 . \n");
+        } else {
+            getFromA.append(" ?o ?p ?o1 . \n");
+        }
         getFromA.append(" ?o1 ?p4 ?o3 .\n");
         getFromA.append(" ?o3 ?p5 ?o4 .\n");
         getFromA.append(" ?o4 ?p6 ?o5\n");
         getFromA.append("} }\nWHERE\n");
         getFromA.append("{\n");
-        getFromA.append(" GRAPH <").append(grConf.getMetadataGraphA()).append("> { ?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+        getFromA.append(" GRAPH <" + grConf.getLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
+        if (isEndpointALocal) {
+            getFromA.append(" GRAPH <").append(grConf.getGraphA()).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+        } else {
+            getFromA.append(" SERVICE <" + grConf.getEndpointA() + "> { GRAPH <").append(grConf.getGraphA()).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
+        }
         getFromA.append("\n");
+        getFromA.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+        getFromA.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+        getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+        getFromA.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+        getFromA.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+        getFromA.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+        getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+        getFromA.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
         getFromA.append("}");
 
         getFromB.append("SPARQL INSERT\n");
-        getFromB.append("  { GRAPH <").append(grConf.getTargetTempGraph()).append("> {\n");
-        getFromB.append(" ?s ?p ?o1 . \n");
+        getFromB.append("  { GRAPH <").append(grConf.getMetadataGraphB()).append("> {\n");
+        if (grConf.isDominantA()) {
+            getFromB.append(" ?s ?p ?o1 . \n");
+        } else {
+            getFromB.append(" ?o ?p ?o1 . \n");
+        }
         getFromB.append(" ?o1 ?p4 ?o3 .\n");
         getFromB.append(" ?o3 ?p5 ?o4 .\n");
-        getFromB.append(" ?o4 ?p6 ?o5 \n");
+        getFromB.append(" ?o4 ?p6 ?o5\n");
         getFromB.append("} }\nWHERE\n");
         getFromB.append("{\n");
-        getFromB.append(" GRAPH <").append(grConf.getMetadataGraphB()).append("> { ?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+        getFromB.append(" GRAPH <" + grConf.getLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
+        if (isEndpointBLocal) {
+            getFromB.append(" GRAPH <").append(grConf.getGraphB()).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+        } else {
+            getFromB.append(" SERVICE <" + grConf.getEndpointB() + "> { GRAPH <").append(grConf.getGraphB()).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
+        }
         getFromB.append("\n");
+        getFromB.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+        getFromB.append("  FILTER(!regex(?p, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+        getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+        getFromB.append("  FILTER(!regex(?p, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
+        getFromB.append("  FILTER(!regex(?p4,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
+        getFromB.append("  FILTER(!regex(?p4, \"http://www.opengis.net/ont/geosparql#asWKT\", \"i\"))\n");
+        getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#lat\", \"i\")) \n");
+        getFromB.append("  FILTER(!regex(?p4, \"http://www.w3.org/2003/01/geo/wgs84_pos#long\", \"i\"))\n");
         getFromB.append("}");
 
-        System.out.println("GET FROM REMAINING B \n" + getFromB);
-        System.out.println("GET FROM REMAINING A \n" + getFromA);
+        System.out.println("GET FROM B \n" + getFromB);
+        System.out.println("GET FROM B \n" + getFromA);
         
         int tries = 0;
-        startTime = System.nanoTime();
-        while (tries < Constants.MAX_SPARQL_TRIES) {
+        if (restAction.equalsIgnoreCase("Keep Both")
+                || restAction.equalsIgnoreCase("Keep A")) {
+            startTime = System.nanoTime();
+            while (tries < Constants.MAX_SPARQL_TRIES) {
 
-            // Populate with data from the Sample Liink set
-            try (PreparedStatement populateDataA = virt_conn.prepareStatement(getFromA.toString())) {
-                populateDataA.executeUpdate();
+                // Populate with data from the Sample Liink set
+                try (PreparedStatement populateDataA = virt_conn.prepareStatement(getFromA.toString())) {
+                    populateDataA.executeUpdate();
 
-                break;
-            } catch (SQLException ex) {
+                    break;
+                } catch (SQLException ex) {
 
-                LOG.trace("SQLException thrown during temp target graph populating");
-                LOG.debug("SQLException thrown during temp target graph populating : " + ex.getMessage());
-                LOG.debug("SQLException thrown during temp target graph populating : " + ex.getSQLState());
+                    LOG.trace("SQLException thrown during temp target graph populating");
+                    LOG.debug("SQLException thrown during temp target graph populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp target graph populating : " + ex.getSQLState());
 
+                    tries++;
+                }
             }
+            endTime = System.nanoTime();
+
+            LOG.info("Insert remaining A lasted" + (endTime - startTime) / Constants.NANOS_PER_SECOND);
         }
-        endTime = System.nanoTime();
         
-        LOG.info("Insert remaining A lasted" + (endTime - startTime ) / Constants.NANOS_PER_SECOND);
-                
         tries = 0;
-        startTime = System.nanoTime();
-        while (tries < Constants.MAX_SPARQL_TRIES) {
-            try (PreparedStatement populateDataB = virt_conn.prepareStatement(getFromB.toString())) {
-                //starttime = System.nanoTime();
+        if (restAction.equalsIgnoreCase("Keep Both")
+                || restAction.equalsIgnoreCase("Keep B")) {
+            startTime = System.nanoTime();
+            while (tries < Constants.MAX_SPARQL_TRIES) {
+                try (PreparedStatement populateDataB = virt_conn.prepareStatement(getFromB.toString())) {
+                    //starttime = System.nanoTime();
 
-                populateDataB.executeUpdate();
+                    populateDataB.executeUpdate();
 
-                break;
-            } catch (SQLException ex) {
+                    break;
+                } catch (SQLException ex) {
 
-                LOG.trace("SQLException thrown during temp target graph populating");
-                LOG.debug("SQLException thrown during temp target graph populating : " + ex.getMessage());
-                LOG.debug("SQLException thrown during temp target graph populating : " + ex.getSQLState());
-                tries++;
+                    LOG.trace("SQLException thrown during temp target graph populating");
+                    LOG.debug("SQLException thrown during temp target graph populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp target graph populating : " + ex.getSQLState());
+
+                    tries++;
+                }
             }
+            endTime = System.nanoTime();
+
+            LOG.info("Insert remaining B lasted" + (endTime - startTime) / Constants.NANOS_PER_SECOND);
         }
-        endTime = System.nanoTime();
-        
-        LOG.info("Insert remaining B lasted" + (endTime - startTime ) / Constants.NANOS_PER_SECOND);
     }
     
     private void deleteSelectedProperties(String action, String activeAction, int idx, int activeCluster, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions) {
@@ -695,15 +793,15 @@ public class BatchFusionServlet extends HttpServlet {
         clearSelectedPropsBStart.append("\n");
         if (activeCluster > -1) {
             if (grConf.isDominantA()) {
-                clearSelectedPropsAStart.append("GRAPH <" + grConf.getClusterGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                clearSelectedPropsBStart.append("GRAPH <" + grConf.getClusterGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
             } else {
-                clearSelectedPropsAStart.append("GRAPH <" + grConf.getClusterGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                clearSelectedPropsBStart.append("GRAPH <" + grConf.getClusterGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
             }
         } else {
             if (grConf.isDominantA()) {
-                clearSelectedPropsAStart.append("GRAPH <" + grConf.getLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+                clearSelectedPropsBStart.append("GRAPH <" + grConf.getLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
             } else {
-                clearSelectedPropsAStart.append("GRAPH <" + grConf.getLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
+                clearSelectedPropsBStart.append("GRAPH <" + grConf.getLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . ");
             }
         }
         clearSelectedPropsBStart.append("    GRAPH <" + grConf.getMetadataGraphB() + "> {\n");
@@ -904,8 +1002,8 @@ public class BatchFusionServlet extends HttpServlet {
         try (PreparedStatement clearMetaAGraphStmt = virt_conn.prepareStatement(clearMetaAGraph);
                 PreparedStatement clearMetaBGraphStmt = virt_conn.prepareStatement(clearMetaBGraph)) {
 
-            clearMetaAGraphStmt.execute();
-            clearMetaBGraphStmt.execute();
+            //clearMetaAGraphStmt.execute();
+            //clearMetaBGraphStmt.execute();
 
         } catch (SQLException ex) {
 
@@ -947,9 +1045,9 @@ public class BatchFusionServlet extends HttpServlet {
                 getFromB.append("SPARQL INSERT\n");
                 getFromB.append("  { GRAPH <").append(grConf.getMetadataGraphB()).append("> {\n");
                 if (grConf.isDominantA()) {
-                    getFromB.append(" ?o <" + rightPreTokens[0] + "> ?o0 . \n");
-                } else {
                     getFromB.append(" ?s <" + rightPreTokens[0] + "> ?o0 . \n");
+                } else {
+                    getFromB.append(" ?o <" + rightPreTokens[0] + "> ?o0 . \n");
                 }
                 prev_s = "?o0";
                 for (int i = 1; i < rightPreTokens.length; i++) {
@@ -960,13 +1058,13 @@ public class BatchFusionServlet extends HttpServlet {
                 getFromB.append("{\n");
                 getFromB.append(" GRAPH <" + grConf.getLinksGraph()+ "> { ");
                 if (grConf.isDominantA()) {
-                    getFromB.append(" ?o ?same ?s } .\n");
+                    getFromB.append(" ?s ?same ?o } .\n");
                 } else {
                     getFromB.append(" ?s ?same ?o } .\n");
                 }
                 if (isEndpointBLocal) {
                     getFromB.append(" GRAPH <").append(grConf.getGraphB()).append("> {\n");
-                    getFromB.append(" ?s <" + rightPreTokens[0] + "> ?o0 . \n");
+                    getFromB.append(" ?o <" + rightPreTokens[0] + "> ?o0 . \n");
                     prev_s = "?o0";
                     for (int i = 1; i < rightPreTokens.length; i++) {
                         getFromB.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
@@ -975,7 +1073,7 @@ public class BatchFusionServlet extends HttpServlet {
                     getFromB.append(" }\n");
                 } else {
                     getFromB.append(" SERVICE <" + grConf.getEndpointB() + "> { GRAPH <").append(grConf.getGraphB()).append("> { \n");
-                    getFromB.append(" ?s <" + rightPreTokens[0] + "> ?o0 . \n");
+                    getFromB.append(" ?o <" + rightPreTokens[0] + "> ?o0 . \n");
                     prev_s = "?o0";
                     for (int i = 1; i < rightPreTokens.length; i++) {
                         getFromB.append(prev_s + " <" + rightPreTokens[i] + "> ?o" + i + " . ");
@@ -1050,7 +1148,7 @@ public class BatchFusionServlet extends HttpServlet {
                 if (grConf.isDominantA()) {
                     getFromA.append(" ?s ?same ?o } .\n");
                 } else {
-                    getFromA.append(" ?o ?same ?s } .\n");
+                    getFromA.append(" ?s ?same ?o } .\n");
                 }
                 if (isEndpointALocal) {
                     getFromA.append(" GRAPH <").append(grConf.getGraphA()).append("> {\n");

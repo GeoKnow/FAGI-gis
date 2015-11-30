@@ -306,6 +306,7 @@ public class CreateLinkServlet extends HttpServlet {
             } else {
                 System.out.println("Creating link : " + subject + "    " + subjectB);
                 links.put(subject, subjectB);
+                sess.setAttribute("links", links);
             }
 
             queryStr.appendIri(subject);

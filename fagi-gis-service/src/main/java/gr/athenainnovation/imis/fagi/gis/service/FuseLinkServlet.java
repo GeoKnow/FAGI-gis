@@ -205,6 +205,7 @@ public class FuseLinkServlet extends HttpServlet {
                 dom = domA;
             }
             System.out.println("Dom A "+domA+" Dom B "+domB);
+            System.out.println("Dom Sub A "+nodeA+" Dom B "+nodeB);
             
             JsonFactory factory = mapper.getJsonFactory(); // since 2.1 use mapper.getFactory() instead
             JsonParser jp = factory.createJsonParser(propsJSON);
@@ -319,6 +320,10 @@ public class FuseLinkServlet extends HttpServlet {
                 
                 if ( trans instanceof Concatenation) {
                     String qA = SPARQLUtilities.formInsertConcatGeomQuery(tGraph, domSub, selectedFusions[0].getValA(), selectedFusions[0].getValB());
+                    System.out.println("Concatenation");
+                    System.out.println(qA);
+                    System.out.println(selectedFusions[0].getValA());
+                    System.out.println(selectedFusions[0].getValB());
                     VirtuosoUpdateRequest vur = VirtuosoUpdateFactory.create(qA, vSet);
                     vur.exec();
                     
@@ -378,7 +383,7 @@ public class FuseLinkServlet extends HttpServlet {
                     deleteSelectedProperties(restAction, selectedFusions[i].getAction(), i, nodeA, tGraph, sess, grConf, vSet, selectedFusions );
                 }
             }
-            //insertRemaining(nodeA, grConf, vSet);
+            insertRemaining(nodeA, grConf, vSet);
             SPARQLUtilities.clearFusedLink(nodeA, grConf, vSet.getConnection());
             
             System.out.println(mapper.writeValueAsString(ret));
@@ -488,8 +493,8 @@ public class FuseLinkServlet extends HttpServlet {
         long startTime, endTime;
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
-        List<String> lstA = (List<String>) sess.getAttribute("property_patternsA");
-        List<String> lstB = (List<String>) sess.getAttribute("property_patternsB");
+        List<String> lstA = (List<String>) sess.getAttribute("link_property_patternsA");
+        List<String> lstB = (List<String>) sess.getAttribute("link_property_patternsB");
 
         if (grConf.isDominantA()) {
             domOnto = (String) sess.getAttribute("domA");
@@ -630,8 +635,8 @@ public class FuseLinkServlet extends HttpServlet {
         long startTime, endTime;
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
-        List<String> lstA = (List<String>) sess.getAttribute("property_patternsA");
-        List<String> lstB = (List<String>) sess.getAttribute("property_patternsB");
+        List<String> lstA = (List<String>) sess.getAttribute("link_property_patternsA");
+        List<String> lstB = (List<String>) sess.getAttribute("link_property_patternsB");
 
         if (grConf.isDominantA()) {
             domOnto = (String) sess.getAttribute("domA");

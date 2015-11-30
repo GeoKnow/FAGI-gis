@@ -12,6 +12,7 @@ import com.google.common.collect.Maps;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.json.JSONPreviewLink;
 import gr.athenainnovation.imis.fusion.gis.json.JSONPreviewResult;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
@@ -64,6 +65,7 @@ public class PreviewServlet extends HttpServlet {
         String[]                    selectedLinks;
         HttpSession                 sess;            
         DBConfig                    dbConf;
+        GraphConfig                 grConf;
         HashMap<String, String>     hashLinks;
         JSONRequestResult           res;
         JSONPreviewResult           ret;
@@ -97,6 +99,7 @@ public class PreviewServlet extends HttpServlet {
             }
             
             selectedLinks = request.getParameterValues("links[]");
+            grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             hashLinks = (HashMap<String, String>)sess.getAttribute("links");
             

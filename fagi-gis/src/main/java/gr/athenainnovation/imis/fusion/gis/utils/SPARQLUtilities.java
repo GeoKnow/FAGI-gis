@@ -333,7 +333,7 @@ public class SPARQLUtilities {
 
         long starttime, endtime;
         try (VirtuosoPreparedStatement dropStmt = (VirtuosoPreparedStatement) conn.prepareStatement(dropGraph);
-                VirtuosoPreparedStatement createStmt = (VirtuosoPreparedStatement) conn.prepareStatement(createGraph)) {
+             VirtuosoPreparedStatement createStmt = (VirtuosoPreparedStatement) conn.prepareStatement(createGraph)) {
 
             dropStmt.execute();
             createStmt.execute();
@@ -371,7 +371,7 @@ public class SPARQLUtilities {
         
         while (tries < Constants.MAX_SPARQL_TRIES) {
             try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectURITriples);
-                    VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery()) {
+                 VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery()) {
                 // Different loop for URIs to ease creation of query
                 while (updating) {
                     try {
@@ -441,7 +441,7 @@ public class SPARQLUtilities {
         
         while (tries < Constants.MAX_SPARQL_TRIES) {
             try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectLiteralTriples);
-                    VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery()) {
+                 VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery()) {
                 // Different loop for Literal to ease creation of query
                 while (updating) {
                     try {

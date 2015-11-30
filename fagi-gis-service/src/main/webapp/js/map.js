@@ -154,9 +154,6 @@ FAGI.MapUI = {
         document.getElementById("popupBBoxMenu").style.opacity = 0;
         document.getElementById("popupBBoxMenu").style.display = 'none';
 
-        // Also destroy anything on the BBox layer
-        FAGI.MapUI.Layers.bboxLayer.destroyFeatures();
-
         document.getElementById("fg-popup-batch-find-link-menu").style.opacity = 0;
         document.getElementById("fg-popup-batch-find-link-menu").style.display = 'none';
         
@@ -643,6 +640,8 @@ FAGI.ActiveState = {
     // Clusters created during multiple selection
     activeFeatureClusterA               :       {},
     activeFeatureClusterB               :       {},
+    
+    activeFeaturePreview                :       null,
 
     // Constantly updated with the mouse position
     mouse                               :       {x: 0, y: 0},
@@ -1350,7 +1349,7 @@ function endDragBox(bbox) {
 }
 
 function boxResize(event) {
-    alert(event.feature.geometry.bounds);
+    //alert(event.feature.geometry.bounds);
     transform.deactivate();
 }
 
@@ -1364,7 +1363,8 @@ function onBBoxSelect(e) {
 }
 
 function onBBoxUnselect(event) {
-    alert('bbox unselect');
+    //alert('bbox unselect');
+    FAGI.MapUI.Layers.bboxLayer.destroyFeatures();
 }
 
 function transDone() {
@@ -1849,6 +1849,19 @@ function expandLinksPanel() {
 function beforeClosePanel() {
     animatePanel(0, true);
     FAGI.PanelsUI.lastClickedMenu.data("opened", false);
+    
+    if (FAGI.ActiveState.activeFeaturePreview != null) {
+        FAGI.MapUI.Controls.selectControl.deactivate();
+        FAGI.MapUI.Controls.dragControlB.activate();
+        FAGI.MapUI.Controls.dragControlA.activate();
+        FAGI.MapUI.Controls.selectControl.activate();
+
+        FAGI.ActiveState.activeFeaturePreview.attributes.la.style = {display: 'none'};
+        FAGI.ActiveState.activeFeaturePreview.attributes.lb.style = {display: 'none'};
+
+        FAGI.MapUI.Layers.vectorsA.drawFeature(FAGI.ActiveState.activeFeaturePreview.attributes.la);
+        FAGI.MapUI.Layers.vectorsA.drawFeature(FAGI.ActiveState.activeFeaturePreview.attributes.lb);
+    }
     
     return false;
 }
@@ -2391,12 +2404,16 @@ function onFusedSelect(event) {
     FAGI.MapUI.Layers.vectorsA.redraw();
     FAGI.MapUI.Layers.vectorsB.redraw();
         
+    FAGI.ActiveState.activeFeaturePreview = event.feature;
+        
     expandPreviewPanel();
 }
 
 function onFusedUnselect(event) {
     expandPreviewPanel();
     
+    FAGI.ActiveState.activeFeaturePreview = null;
+
     FAGI.MapUI.Controls.selectControl.deactivate();
     FAGI.MapUI.Controls.dragControlB.activate();
     FAGI.MapUI.Controls.dragControlA.activate();

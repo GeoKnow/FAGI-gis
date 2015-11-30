@@ -210,7 +210,7 @@ function init() {
                 FAGI.MapUI.Layers.vectorsLinks.destroyFeatures(toDel);
                 feat.validated = true;
                 FAGI.MapUI.Layers.vectorsLinks.drawFeature(feat);
-                console.log("All good " + responseText);
+                //console.log("All good " + responseText);
                 
                 FAGI.Utilities.disableSpinner();
             },
@@ -488,17 +488,17 @@ function createNewLink(nodeA, nodeB) {
         // We want nodeA to refer to Layer A
         if (nodeA.layer == FAGI.MapUI.Layers.vectorsA) {
             // Unless if the dominant set is B
-            if (!$('#domA').is(":checked")) {
+            /*if (!$('#domA').is(":checked")) {
                 var temp = nodeA;
                 nodeA = nodeB;
                 nodeB = temp;
-            }
+            }*/
         } else {
-            if ($('#domA').is(":checked")) {
+            //if ($('#domA').is(":checked")) {
                 var temp = nodeA;
                 nodeA = nodeB;
                 nodeB = temp;
-            }
+            //}
         }
         
         var line2 = new OpenLayers.Geometry.LineString([FAGI.ActiveState.lastPo, FAGI.ActiveState.nowPo]);
@@ -2404,6 +2404,7 @@ function setDatasets()
 {
     var values = $('#dataDiv').serialize();
     //alert( values );
+    //alert($('#fg-fetch-fused-check').prop('checked'));
     FAGI.Utilities.enableSpinner();
     $.ajax({
         // request type
