@@ -77,22 +77,22 @@
             str = request.getParameter("postgis-username");
             if ( str == null ) 
                 //request.setAttribute("postgis-username", "nickvitsas");
-                request.setAttribute("postgis-username", "postgres");
-                //request.setAttribute("postgis-username", "fagi");
+                //request.setAttribute("postgis-username", "postgres");
+                request.setAttribute("postgis-username", "fagi");
             else
                 request.setAttribute("postgis-username", request.getParameter("postgis-username"));
             
             str = request.getParameter("postgis-password");
             if ( str == null ) 
-                request.setAttribute("postgis-password", "1111");
-                //request.setAttribute("postgis-password", "fagi");
+                //request.setAttribute("postgis-password", "1111");
+                request.setAttribute("postgis-password", "fagi");
             else
                 request.setAttribute("postgis-password", request.getParameter("postgis-password"));
             
             str = request.getParameter("postgis-database");
             if ( str == null ) 
-                request.setAttribute("postgis-database", "postgis1");
-                //request.setAttribute("postgis-database", "fagi");
+                //request.setAttribute("postgis-database", "postgis1");
+                request.setAttribute("postgis-database", "fagi");
             else
                 request.setAttribute("postgis-database", request.getParameter("postgis-database"));
             
@@ -471,11 +471,11 @@
                         </div>
                         <div class="form-group">
                             <label for="fg-virt-name">Virtuoso Username:</label>
-                            <input id="fg-virt-name" type="text" name="v_name" value="dba" class="form-control">
+                            <input id="fg-virt-name" type="text" name="v_name" value="generator" class="form-control">
                         </div>
                         <div class="form-group">
                             <label for="fg-virt-pass">Virtuoso Password:</label>
-                            <input id="fg-virt-pass" type="password" name="v_pass" value="dba" class="form-control">
+                            <input id="fg-virt-pass" type="password" name="v_pass" value="generator" class="form-control">
                         </div>
                          <div class="form-group">
                             <label for="fg-post-name">PostGIS Username:</label>

@@ -86,9 +86,10 @@ public class Utilities {
     
     public static List<String> findCommonPrefixedPropertyChains(String pattern, List<String> patterns) {
         List<String> ret = new ArrayList<>();
-        
+        final String truePattern = pattern+",";
+                
         for ( String s : patterns) {
-            if ( s.startsWith(pattern) ) 
+            if ( s.startsWith(truePattern) ) 
                 ret.add(s);
         }
         
