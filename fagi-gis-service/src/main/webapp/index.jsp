@@ -77,15 +77,15 @@
             str = request.getParameter("postgis-username");
             if ( str == null ) 
                 //request.setAttribute("postgis-username", "nickvitsas");
-                //request.setAttribute("postgis-username", "postgres");
-                request.setAttribute("postgis-username", "fagi");
+                request.setAttribute("postgis-username", "postgres");
+                //request.setAttribute("postgis-username", "fagi");
             else
                 request.setAttribute("postgis-username", request.getParameter("postgis-username"));
             
             str = request.getParameter("postgis-password");
             if ( str == null ) 
-                //request.setAttribute("postgis-password", "1111");
-                request.setAttribute("postgis-password", "fagi");
+                request.setAttribute("postgis-password", "1111");
+                //request.setAttribute("postgis-password", "fagi");
             else
                 request.setAttribute("postgis-password", request.getParameter("postgis-password"));
             
