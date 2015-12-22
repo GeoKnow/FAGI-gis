@@ -713,6 +713,7 @@ $(document).ready(function () {
         },
         //autoOpen: false,
         beforeClose: beforeClosePanel,
+        resize: function(event, ui) { alert("ole"); },
         draggable: false
     });
 
