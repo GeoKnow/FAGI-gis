@@ -577,46 +577,46 @@ public class SPARQLUtilities {
             
     }
 
-    public static int createClusterGraph(JSONClusterLink[] cluster, int startIndex, GraphConfig grConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
+    public static int createClusterGraph(JSONClusterLink[] cluster, int startIndex, GraphConfig grConf, VirtGraph vSet) {
         StringBuilder sb = new StringBuilder();
         final String dropGraph = "SPARQL DROP SILENT GRAPH <"+ grConf.getClusterGraph()+  ">";
         final String createGraph = "SPARQL CREATE GRAPH <"+ grConf.getClusterGraph()+ ">";
-        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
-
-        VirtuosoPreparedStatement dropStmt;
-        dropStmt = (VirtuosoPreparedStatement)conn.prepareStatement(dropGraph);
-        dropStmt.execute();
-
-        dropStmt.close();
         
-        VirtuosoPreparedStatement createStmt;
-        createStmt = (VirtuosoPreparedStatement)conn.prepareStatement(createGraph);
-        createStmt.execute();
-        
-        createStmt.close();
-        
-        sb.append("SPARQL WITH <"+ grConf.getClusterGraph()+"> INSERT {");
-        sb.append("`iri(??)` <"+Constants.SAME_AS+"> `iri(??)` . } ");
+        sb.append("SPARQL WITH <" + grConf.getClusterGraph() + "> INSERT {");
+        sb.append("`iri(??)` <" + Constants.SAME_AS + "> `iri(??)` . } ");
         System.out.println("Statement " + sb.toString());
-        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
-                
+            
+        VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
         int start = startIndex;
         int end = startIndex + Constants.BATCH_SIZE;
         if ( end > cluster.length ) {
             end = cluster.length;
         }
         
-        for ( int i = start; i < end; ++i ) {
-            JSONClusterLink link = cluster[i];
-            vstmt.setString(1, link.getNodeA());
-            vstmt.setString(2, link.getNodeB());
-            
-            vstmt.addBatch();
+        try (VirtuosoPreparedStatement dropStmt = (VirtuosoPreparedStatement) conn.prepareStatement(dropGraph);
+                VirtuosoPreparedStatement createStmt = (VirtuosoPreparedStatement) conn.prepareStatement(createGraph);
+                VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());) {
+
+            dropStmt.execute();
+            createStmt.execute();
+
+            for (int i = start; i < end; ++i) {
+                JSONClusterLink link = cluster[i];
+                vstmt.setString(1, link.getNodeA());
+                vstmt.setString(2, link.getNodeB());
+
+                vstmt.addBatch();
+            }
+
+            vstmt.executeBatch();
+
+        } catch (VirtuosoException ex) {
+            LOG.trace("VirtuosoException during link graph creation");
+            LOG.debug("VirtuosoException during link graph creation : " + ex.getMessage());
+        } catch (BatchUpdateException ex) {
+            LOG.trace("BatchUpdateException during link graph creation");
+            LOG.debug("BatchUpdateException during link graph creation : " + ex.getMessage());
         }
-        
-        vstmt.executeBatch();
-        
-        vstmt.close();
         
         if ( end == cluster.length )
             return 0;
@@ -625,28 +625,34 @@ public class SPARQLUtilities {
 
     }
     
-    public static void createClusterGraph(JSONClusterLink[] cluster, DBConfig dbConf, VirtGraph vSet) throws VirtuosoException, BatchUpdateException {
+    public static void createClusterGraph(JSONClusterLink[] cluster, DBConfig dbConf, VirtGraph vSet) {
         StringBuilder sb = new StringBuilder();
         sb.append("SPARQL WITH <http://localhost:8890/DAV/all_cluster_" + dbConf.getDBName()+"> INSERT {");
         sb.append("`iri(??)` <"+Constants.SAME_AS+"> `iri(??)` . } ");
         System.out.println("Statement " + sb.toString());
         VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
-        VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());
-                
-        int start = 0;
-        int end = cluster.length;
         
-        for ( int i = start; i < end; ++i ) {
-            JSONClusterLink link = cluster[i];
-            vstmt.setString(1, link.getNodeA());
-            vstmt.setString(2, link.getNodeB());
-            
-            vstmt.addBatch();
+        try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());) {
+
+            int start = 0;
+            int end = cluster.length;
+
+            for (int i = start; i < end; ++i) {
+                JSONClusterLink link = cluster[i];
+                vstmt.setString(1, link.getNodeA());
+                vstmt.setString(2, link.getNodeB());
+
+                vstmt.addBatch();
+            }
+
+            vstmt.executeBatch();
+        } catch (VirtuosoException ex) {
+            LOG.trace("VirtuosoException during link graph creation");
+            LOG.debug("VirtuosoException during link graph creation : " + ex.getMessage());
+        } catch (BatchUpdateException ex) {
+            LOG.trace("BatchUpdateException during link graph creation");
+            LOG.debug("BatchUpdateException during link graph creation : " + ex.getMessage());
         }
-        
-        vstmt.executeBatch();
-        
-        vstmt.close();
     }
     
     public static int getGraphDepth(String g, String e) {

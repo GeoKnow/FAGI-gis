@@ -89,8 +89,19 @@ public class Utilities {
         final String truePattern = pattern+",";
                 
         for ( String s : patterns) {
-            if ( s.startsWith(truePattern) ) 
+            // Handle comma separated cases
+            if ( s.startsWith(truePattern) ) {
                 ret.add(s);
+                
+                continue;
+            }
+            
+            // Handle single depth cases
+            if ( s.startsWith(pattern) ) {
+                
+                ret.add(s);
+            }
+            
         }
         
         return ret;

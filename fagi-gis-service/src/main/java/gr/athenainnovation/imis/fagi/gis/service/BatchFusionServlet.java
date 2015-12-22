@@ -292,7 +292,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException {
+            throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
 
         // Per equest state
@@ -337,7 +337,7 @@ public class BatchFusionServlet extends HttpServlet {
             tGraph = (String)sess.getAttribute("t_graph");
             
             try {    
-            vSet = new VirtGraph ("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
+                vSet = new VirtGraph ("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
                                          dbConf.getUsername(), 
                                          dbConf.getPassword());
             } catch (JenaException connEx) {
@@ -401,7 +401,10 @@ public class BatchFusionServlet extends HttpServlet {
                 activeLinkTable = "cluster";
                 loadClusterLinks(clusterLinks, dbConn);
                 
-                dbConn.commit();
+                try {
+                    dbConn.commit();
+                } catch (SQLException ex) {
+                }
             }
             
             System.out.println(selectedFusions[0].preL);
@@ -470,18 +473,27 @@ public class BatchFusionServlet extends HttpServlet {
                 
                 if (!skipFusion) {
                     if (activeCluster > -1) {
-                        trans.fuseCluster(dbConn);
+                        try {
+                            trans.fuseCluster(dbConn);
+                        } catch (SQLException ex) {
+                            LOG.trace("SQLException thrown during fusion");
+                            LOG.debug("SQLException thrown during fusion : " + ex.getMessage());
+                            LOG.debug("SQLException thrown during fusion : " + ex.getSQLState());
+                        }
                     } else {
-                        //System.out.println("Fusing links");
-                        trans.fuseAll(dbConn);
+                        try {
+                            //System.out.println("Fusing links");
+                            trans.fuseAll(dbConn);
+                        } catch (SQLException ex) {
+                            LOG.trace("SQLException thrown during fusion");
+                            LOG.debug("SQLException thrown during fusion : " + ex.getMessage());
+                            LOG.debug("SQLException thrown during fusion : " + ex.getSQLState());
+                        }
                     }
                 }
-                
+
                 String queryGeoms = "SELECT b.subject_a, b.subject_b as lb, ST_asText(b.geom) as g\n" +
                                  "FROM fused_geometries AS b\n";
-            
-                PreparedStatement stmt = dbConn.prepareStatement(queryGeoms);
-                ResultSet rs = stmt.executeQuery();
             
                 //System.out.println(request.getParameter("cluster"));
                 ret.setCluster(activeCluster);
@@ -489,13 +501,17 @@ public class BatchFusionServlet extends HttpServlet {
                 String subjectB;
                 StringBuilder geom = new StringBuilder();
                 
-                while (rs.next()) {
-                    JSONFusionResult res = new JSONFusionResult(rs.getString(3), rs.getString(2));
-                    ret.getFusedGeoms().put(rs.getString(1), res);
+                try (PreparedStatement stmt = dbConn.prepareStatement(queryGeoms);
+                        ResultSet rs = stmt.executeQuery();) {
+                    while (rs.next()) {
+                        JSONFusionResult res = new JSONFusionResult(rs.getString(3), rs.getString(2));
+                        ret.getFusedGeoms().put(rs.getString(1), res);
+                    }
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown during temp graph populating");
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
                 }
-                
-                rs.close();
-                stmt.close();
                 
                 VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
                 virtImp.setTransformationID(trans.getID());
@@ -520,6 +536,7 @@ public class BatchFusionServlet extends HttpServlet {
             }
             
             // Create insertion statements
+            /*
             List<VirtuosoPreparedStatement> stmts = new ArrayList<>();
             for ( int i = 0; i < 4; i++ ) {
                 StringBuilder sb = new StringBuilder();
@@ -534,6 +551,7 @@ public class BatchFusionServlet extends HttpServlet {
                 
                 stmts.add(vstmt);
             }
+            */
             
             List<Link> linkList = (List<Link>) sess.getAttribute("links_list_chosen");
             for ( Link lnk : linkList) {
@@ -586,8 +604,12 @@ public class BatchFusionServlet extends HttpServlet {
             if ( vSet != null ) 
                 vSet.close();
             
-            if ( dbConn != null ) 
-                dbConn.close();
+            if (dbConn != null) {
+                try {
+                    dbConn.close();
+                } catch (SQLException ex) {
+                }
+            }
         }
     }
     
@@ -948,7 +970,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
     
-    private void lateFetchData(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
+    private void lateFetchData(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) {
         //System.out.println("\n\n\n\n\nLATE FETCHING\n\n\n");
         long startTime, endTime;
         Connection virt_conn = vSet.getConnection();
@@ -961,7 +983,12 @@ public class BatchFusionServlet extends HttpServlet {
         } else {
             domOnto = (String) sess.getAttribute("domB");
         }
-        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String name;
+        try {
+            name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            name = selectedFusions[idx].pre;
+        }
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
 
@@ -1199,7 +1226,7 @@ public class BatchFusionServlet extends HttpServlet {
         }
     }
      
-    private void loadClusterLinks(final JSONClusterLink[] links, Connection dbConn) throws SQLException {
+    private void loadClusterLinks(final JSONClusterLink[] links, Connection dbConn) {
         
         //delete old geometries from fused_geometries table. 
         try{
@@ -1215,47 +1242,58 @@ public class BatchFusionServlet extends HttpServlet {
         }
         catch (SQLException ex)
         {
-          dbConn.rollback();  
-          ex.printStackTrace();
-          ex.getNextException().printStackTrace();
-          //LOG.warn(ex.getMessage(), ex);
+            try {  
+                dbConn.rollback();
+            } catch (SQLException ex1) {
+            }
         }
         String insertLinkQuery = "INSERT INTO cluster (nodea, nodeb) VALUES (?,?)"; 
-        final PreparedStatement insertLinkStmt = dbConn.prepareStatement(insertLinkQuery);
-        
-        for(JSONClusterLink link : links) {         
-            insertLinkStmt.setString(1, link.getNodeA());
-            insertLinkStmt.setString(2, link.getNodeB());
-            
-            insertLinkStmt.addBatch();
-        }    
-        insertLinkStmt.executeBatch();
-        
-        insertLinkStmt.close();
-        
-        dbConn.commit();
+        try (PreparedStatement insertLinkStmt = dbConn.prepareStatement(insertLinkQuery);) {
+
+            for (JSONClusterLink link : links) {
+                insertLinkStmt.setString(1, link.getNodeA());
+                insertLinkStmt.setString(2, link.getNodeB());
+
+                insertLinkStmt.addBatch();
+            }
+            insertLinkStmt.executeBatch();
+
+            insertLinkStmt.close();
+
+            dbConn.commit();
+        } catch (SQLException ex) {
+        }
     }
     
     private void sendEntities(GraphConfig gc) {
         
     }
     
-    private void eraseOldMetadata(String action, int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions) throws SQLException, UnsupportedEncodingException {
+    private void eraseOldMetadata(String action, int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions) {
         //String s2 = "SPARQL WITH <http://localhost:8890/DAV/osm_demo_asasas> DELETE { `iri(??)` `iri(??)` ?? }";
         //String s = "SPARQL SELECT * WHERE { ?? ?p ?o  FILTER ( isLiTERAL ( ?o ) ) } LIMIT 10";
         VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
+        try {
+            conn.setAutoCommit(false);
+        } catch (VirtuosoException ex) {
+            
+        }
         VirtuosoPreparedStatement stmt = null;
-        conn.setAutoCommit(false);
+        
         String domOnto = "";
         List<String> lstA = (List<String>)sess.getAttribute("property_patternsA");
         List<String> lstB = (List<String>)sess.getAttribute("property_patternsB");
 
-                
         if ( grConf.isDominantA() ) 
             domOnto = (String)sess.getAttribute("domA");
         else 
             domOnto = (String)sess.getAttribute("domB");
-        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String name;
+        try {
+            name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            name = selectedFusions[idx].pre;
+        }
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
         
@@ -1501,14 +1539,22 @@ public class BatchFusionServlet extends HttpServlet {
             }
         }
            
-        //Commit changes
-        conn.commit();
-        // Return to auto commit for next actions
-        conn.setAutoCommit(true);
+        try {
+            //Commit changes
+            conn.commit();
+        } catch (VirtuosoException ex) {
+        }
+        
+        try {
+            // Return to auto commit for next actions
+            conn.setAutoCommit(true);
+        } catch (VirtuosoException ex) {
+            Logger.getLogger(BatchFusionServlet.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
     }
     
-    private void handleMetadataFusion(String action, int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
+    private void handleMetadataFusion(String action, int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) {
         if (action.equals("Keep A")) {
             metadataKeepLeft(idx, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
         }
@@ -1664,7 +1710,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if a servlet-specific error occurs
      * @throws UnsupportedEncodingException if an I/O error occurs
      */
-    private void metadataKeepFlatLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepFlatLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsA");
@@ -1673,7 +1719,12 @@ public class BatchFusionServlet extends HttpServlet {
             domOnto = (String)sess.getAttribute("domA");
         else 
             domOnto = (String)sess.getAttribute("domB");
-        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String name;
+        try {
+            name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            name = selectedFusions[idx].pre;
+        }
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
         
@@ -1687,6 +1738,8 @@ public class BatchFusionServlet extends HttpServlet {
             newPred = newPredTokes[0];
         }
         newPred = newPred.replaceAll(",","_");
+        newPred = newPred.replaceAll(" ", "_");
+        
         System.out.println("Long name : "+longName);
         String[] predicates = longName.split(Constants.PROPERTY_SEPARATOR);
         String leftPre = predicates[0];
@@ -1821,7 +1874,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if a servlet-specific error occurs
      * @throws UnsupportedEncodingException if an I/O error occurs
      */
-    private void metadataKeepFlatRight(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {        
+    private void metadataKeepFlatRight(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) {        
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsB");
@@ -1830,7 +1883,12 @@ public class BatchFusionServlet extends HttpServlet {
             domOnto = (String)sess.getAttribute("domA");
         else 
             domOnto = (String)sess.getAttribute("domB");
-        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String name;
+        try {
+            name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            name = selectedFusions[idx].pre;
+        }
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
         
@@ -1844,6 +1902,8 @@ public class BatchFusionServlet extends HttpServlet {
             newPred = newPredTokes[0];
         }
         newPred = newPred.replaceAll(",","_");
+        newPred = newPred.replaceAll(" ", "_");
+        
         System.out.println("Long name : "+longName);
         String[] predicates = longName.split(Constants.PROPERTY_SEPARATOR);
         String leftPre = predicates[0];
@@ -1979,7 +2039,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if a servlet-specific error occurs
      * @throws UnsupportedEncodingException if an I/O error occurs
      */
-    private void metadataConcatenation(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
+    private void metadataConcatenation(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lstA = (List<String>)sess.getAttribute("property_patternsA");
@@ -1990,7 +2050,13 @@ public class BatchFusionServlet extends HttpServlet {
         else 
             domOnto = (String)sess.getAttribute("domB");
         
-        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String name;
+        try {
+            name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            name = selectedFusions[idx].pre;
+        }
+        
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
         
@@ -2004,6 +2070,8 @@ public class BatchFusionServlet extends HttpServlet {
             newPred = newPredTokes[0];
         }
         newPred = newPred.replaceAll(",","_");
+        newPred = newPred.replaceAll(" ", "_");
+        
         System.out.println("Long name : "+longName);
         String[] predicates = longName.split(Constants.PROPERTY_SEPARATOR);
         String leftPre = predicates[0];
@@ -2151,27 +2219,34 @@ public class BatchFusionServlet extends HttpServlet {
                 q.append("FILTER isLiteral("+prev_s+")} }");
                 
                 System.out.println(q.toString());
-                PreparedStatement stmt;
-                stmt = virt_conn.prepareStatement(q.toString());
-                ResultSet rs = stmt.executeQuery();
+                //PreparedStatement stmt;
+                //stmt = virt_conn.prepareStatement(q.toString());
+                //ResultSet rs = stmt.executeQuery();
 
-                while (rs.next()) {
-                    //for (int i = 0; i < pres.length; i++) {
-                    String o = rs.getString(2);
-                    String s = rs.getString(1);
+                try (PreparedStatement stmt = virt_conn.prepareStatement(q.toString());
+                     ResultSet rs = stmt.executeQuery();) {
 
-                    StringBuilder concat_str;
-                    
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
+                    while (rs.next()) {
+                        //for (int i = 0; i < pres.length; i++) {
+                        String o = rs.getString(2);
+                        String s = rs.getString(1);
+
+                        StringBuilder concat_str;
+
+                        concat_str = newObjs.get(s);
+                        if (concat_str == null) {
+                            concat_str = new StringBuilder();
+                            newObjs.put(s, concat_str);
+                        }
+                        concat_str.append(o + " ");
+
+                        //System.out.println("Subject " + s);
+                        //System.out.println("Object " + o);
                     }
-                    concat_str.append(o + " ");
-                    
-                    System.out.println("Subject " + s);
-                    System.out.println("Object " + o);
-
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown during temp graph populating");
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
                 }
                 System.out.println("Size " + newObjs.size());
             }
@@ -2219,33 +2294,38 @@ public class BatchFusionServlet extends HttpServlet {
                 q.append("FILTER isLiteral("+prev_s+")} }");
                 
                 System.out.println(q.toString());
-                PreparedStatement stmt;
-                stmt = virt_conn.prepareStatement(q.toString());
-                ResultSet rs = stmt.executeQuery();
+                //PreparedStatement stmt;
+                //stmt = virt_conn.prepareStatement(q.toString());
+                //ResultSet rs = stmt.executeQuery();
 
-                while (rs.next()) {
-                    //for (int i = 0; i < pres.length; i++) {
-                    String o = rs.getString("o" + (leftPreTokens.length - 1));
-                    String s = rs.getString(1);
-                    
-                    //System.out.println("The object is " + o);
-                    StringBuilder concat_str;
-                    
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
-                    }
-                    concat_str.append(o + " ");
+                try (PreparedStatement stmt = virt_conn.prepareStatement(q.toString());
+                     ResultSet rs = stmt.executeQuery(); ) {
+                    while (rs.next()) {
+                        //for (int i = 0; i < pres.length; i++) {
+                        String o = rs.getString("o" + (leftPreTokens.length - 1));
+                        String s = rs.getString(1);
+
+                        //System.out.println("The object is " + o);
+                        StringBuilder concat_str;
+
+                        concat_str = newObjs.get(s);
+                        if (concat_str == null) {
+                            concat_str = new StringBuilder();
+                            newObjs.put(s, concat_str);
+                        }
+                        concat_str.append(o + " ");
 
                     //System.out.println("Subject " + s);
-                    //System.out.println("Object " + o);
-
-                    String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
-                    if (simplified.equals("")) {
-                        simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length - 1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
+                        //System.out.println("Object " + o);
+                        String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
+                        if (simplified.equals("")) {
+                            simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length - 1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
+                        }
                     }
-
+                }  catch (SQLException ex) {
+                    LOG.trace("SQLException thrown during temp graph populating");
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
                 }
             }
         }
@@ -2303,7 +2383,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if a servlet-specific error occurs
      * @throws UnsupportedEncodingException if an I/O error occurs
      */
-    private void metadataKeepConcatRight(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepConcatRight(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsB");
@@ -2312,7 +2392,13 @@ public class BatchFusionServlet extends HttpServlet {
             domOnto = (String)sess.getAttribute("domA");
         else 
             domOnto = (String)sess.getAttribute("domB");
-        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String name;
+        try {
+            name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            name = selectedFusions[idx].pre;
+        }
+        
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
         
@@ -2326,6 +2412,8 @@ public class BatchFusionServlet extends HttpServlet {
             newPred = newPredTokes[0];
         }
         newPred = newPred.replaceAll(",","_");
+        newPred = newPred.replaceAll(" ", "_");
+        
         System.out.println("Long name : "+longName);
         System.out.println("Short name : " + name + newPred );
         String[] predicates = longName.split(Constants.PROPERTY_SEPARATOR);
@@ -2429,29 +2517,36 @@ public class BatchFusionServlet extends HttpServlet {
                 q.append("FILTER isLiteral("+prev_s+")} }");
                 
                 System.out.println(q.toString());
-                PreparedStatement stmt;
-                stmt = virt_conn.prepareStatement(q.toString());
-                ResultSet rs = stmt.executeQuery();
+                //PreparedStatement stmt;
+                //stmt = virt_conn.prepareStatement(q.toString());
+                //ResultSet rs = stmt.executeQuery();
 
-                while (rs.next()) {
-                    //for (int i = 0; i < pres.length; i++) {
-                    String o = rs.getString(2);
-                    String s = rs.getString(1);
+                try (PreparedStatement stmt = virt_conn.prepareStatement(q.toString());
+                        ResultSet rs = stmt.executeQuery();) {
+                    while (rs.next()) {
+                        //for (int i = 0; i < pres.length; i++) {
+                        String o = rs.getString(2);
+                        String s = rs.getString(1);
 
-                    StringBuilder concat_str;
-                    
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
+                        StringBuilder concat_str;
+
+                        concat_str = newObjs.get(s);
+                        if (concat_str == null) {
+                            concat_str = new StringBuilder();
+                            newObjs.put(s, concat_str);
+                        }
+                        concat_str.append(o + " ");
+
+                        System.out.println("Subject " + s);
+                        System.out.println("Object " + o);
+
                     }
-                    concat_str.append(o + " ");
-                    
-                    System.out.println("Subject " + s);
-                    System.out.println("Object " + o);
-
+                    System.out.println("Size " + newObjs.size());
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown during temp graph populating");
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
                 }
-                System.out.println("Size " + newObjs.size());
             }
         }
         
@@ -2506,7 +2601,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if a servlet-specific error occurs
      * @throws UnsupportedEncodingException if an I/O error occurs
      */
-    private void metadataKeepConcatLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws SQLException, UnsupportedEncodingException {
+    private void metadataKeepConcatLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsA");
@@ -2515,7 +2610,12 @@ public class BatchFusionServlet extends HttpServlet {
             domOnto = (String)sess.getAttribute("domA");
         else 
             domOnto = (String)sess.getAttribute("domB");
-        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String name;
+        try {
+            name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            name = selectedFusions[idx].pre;
+        }
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
         
@@ -2529,6 +2629,8 @@ public class BatchFusionServlet extends HttpServlet {
             newPred = newPredTokes[0];
         }
         newPred = newPred.replaceAll(",","_");
+        newPred = newPred.replaceAll(" ", "_");
+        
         System.out.println("Long name : "+longName);
         String[] predicates = longName.split(Constants.PROPERTY_SEPARATOR);
         String leftPre = predicates[0];
@@ -2630,33 +2732,39 @@ public class BatchFusionServlet extends HttpServlet {
                 
                 q.append("} }");
                 System.out.println(q.toString());
-                PreparedStatement stmt;
-                stmt = virt_conn.prepareStatement(q.toString());
-                ResultSet rs = stmt.executeQuery();
+                //PreparedStatement stmt;
+                //stmt = virt_conn.prepareStatement(q.toString());
+                //ResultSet rs = stmt.executeQuery();
 
-                while (rs.next()) {
-                    //for (int i = 0; i < pres.length; i++) {
-                    String o = rs.getString("o" + (leftPreTokens.length - 1));
-                    String s = rs.getString(1);
-                    
-                    System.out.println("The object is " + o);
-                    StringBuilder concat_str;
-                    
-                    concat_str = newObjs.get(s);
-                    if (concat_str == null) {
-                        concat_str = new StringBuilder();
-                        newObjs.put(s, concat_str);
+                try (PreparedStatement stmt = virt_conn.prepareStatement(q.toString());
+                        ResultSet rs = stmt.executeQuery();) {
+                    while (rs.next()) {
+                        //for (int i = 0; i < pres.length; i++) {
+                        String o = rs.getString("o" + (leftPreTokens.length - 1));
+                        String s = rs.getString(1);
+
+                        System.out.println("The object is " + o);
+                        StringBuilder concat_str;
+
+                        concat_str = newObjs.get(s);
+                        if (concat_str == null) {
+                            concat_str = new StringBuilder();
+                            newObjs.put(s, concat_str);
+                        }
+                        concat_str.append(o + " ");
+
+                        System.out.println("Subject " + s);
+                        System.out.println("Object " + o);
+
+                        String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
+                        if (simplified.equals("")) {
+                            simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length - 1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
+                        }
                     }
-                    concat_str.append(o + " ");
-
-                    System.out.println("Subject " + s);
-                    System.out.println("Object " + o);
-
-                    String simplified = StringUtils.substringAfter(leftPreTokens[leftPreTokens.length - 1], "#");
-                    if (simplified.equals("")) {
-                        simplified = StringUtils.substring(leftPreTokens[leftPreTokens.length - 1], StringUtils.lastIndexOf(leftPreTokens[leftPreTokens.length - 1], "/") + 1);
-                    }
-
+                } catch (SQLException ex) {
+                    LOG.trace("SQLException thrown during temp graph populating");
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
                 }
             }
         }
@@ -2713,7 +2821,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if a servlet-specific error occurs
      * @throws UnsupportedEncodingException if an I/O error occurs
      */
-    private void metadataKeepLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws UnsupportedEncodingException {
+    private void metadataKeepLeft(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsA");
@@ -2722,7 +2830,12 @@ public class BatchFusionServlet extends HttpServlet {
             domOnto = (String)sess.getAttribute("domA");
         else 
             domOnto = (String)sess.getAttribute("domB");
-        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String name;
+        try {
+            name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            name = selectedFusions[idx].pre;
+        }
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
         
@@ -2736,6 +2849,8 @@ public class BatchFusionServlet extends HttpServlet {
             newPred = newPredTokes[0];
         }
         newPred = newPred.replaceAll(",","_");
+        newPred = newPred.replaceAll(" ", "_");
+        
         System.out.println("Long name : "+longName);
         String[] predicates = longName.split(Constants.PROPERTY_SEPARATOR);
         String leftPre = predicates[0];
@@ -2814,7 +2929,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if a servlet-specific error occurs
      * @throws UnsupportedEncodingException if an I/O error occurs
      */
-    private void metadataKeepRight(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) throws UnsupportedEncodingException {
+    private void metadataKeepRight(int idx, String tGraph, HttpSession sess, GraphConfig grConf, VirtGraph vSet, JSONBatchPropertyFusion[] selectedFusions, int activeCluster) {
         Connection virt_conn = vSet.getConnection();
         String domOnto = "";
         List<String> lst = (List<String>)sess.getAttribute("property_patternsB");
@@ -2823,7 +2938,12 @@ public class BatchFusionServlet extends HttpServlet {
             domOnto = (String)sess.getAttribute("domA");
         else 
             domOnto = (String)sess.getAttribute("domB");
-        String name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        String name;
+        try {
+            name = URLDecoder.decode(selectedFusions[idx].pre, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            name = selectedFusions[idx].pre;
+        }
         //String longName = URLDecoder.decode(selectedFusions[idx].preL, "UTF-8");
         String longName = selectedFusions[idx].preL;
         name = StringUtils.replace(name, "&gt;", ">");
@@ -2836,6 +2956,8 @@ public class BatchFusionServlet extends HttpServlet {
             newPred = newPredTokes[0];
         }
         newPred = newPred.replaceAll(",","_");
+        newPred = newPred.replaceAll(" ", "_");
+        
         System.out.println("Long name : "+longName);
         String[] predicates = longName.split(Constants.PROPERTY_SEPARATOR);
         String leftPre = predicates[0];
@@ -2920,7 +3042,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if a servlet-specific error occurs
      * @throws UnsupportedEncodingException if an I/O error occurs
      */
-    private void offsetGeometriesA(String table, String linkTable, Float offx, Float offy, Connection dbConn) throws SQLException {
+    private void offsetGeometriesA(String table, String linkTable, Float offx, Float offy, Connection dbConn) {
         // PGSQL Query
         // Join LINKS with GEOM table and offset the geometry
         // Result is stored inside FUSED GEOMETRIES table
@@ -2930,14 +3052,19 @@ public class BatchFusionServlet extends HttpServlet {
                 + "ON ("+linkTable+".nodea = "+table+".subject)";
         
         System.out.println(queryString);
-        PreparedStatement stmt = dbConn.prepareStatement(queryString);
-        stmt.setFloat(1, offx);
-        stmt.setFloat(2, offy);
-        stmt.executeUpdate();
         
-        stmt.close();
+        try ( PreparedStatement stmt = dbConn.prepareStatement(queryString); ) {
+            stmt.setFloat(1, offx);
+            stmt.setFloat(2, offy);
+            stmt.executeUpdate();
+            
+            dbConn.commit();
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during geometry offseting");
+            LOG.debug("SQLException thrown during geometry offseting : " + ex.getMessage());
+            LOG.debug("SQLException thrown during geometry offseting : " + ex.getSQLState());
+        }
         
-        dbConn.commit();
     }
 
     /**
@@ -2952,7 +3079,7 @@ public class BatchFusionServlet extends HttpServlet {
      * @throws SQLException if a servlet-specific error occurs
      * @throws UnsupportedEncodingException if an I/O error occurs
      */
-    private void offsetGeometriesB(String table, String linkTable, Float offx, Float offy, Connection dbConn) throws SQLException {
+    private void offsetGeometriesB(String table, String linkTable, Float offx, Float offy, Connection dbConn) {
         // PGSQL Query
         // Join LINKS with GEOM table and offset the geometry
         // Result is stored inside FUSED GEOMETRIES table
@@ -2961,15 +3088,19 @@ public class BatchFusionServlet extends HttpServlet {
                 + "FROM "+linkTable+" INNER JOIN "+table+" "
                 + "ON ("+linkTable+".nodeb = "+table+".subject)";
         
-        PreparedStatement stmt = dbConn.prepareStatement(queryString);
-        stmt.setFloat(1, offx);
-        stmt.setFloat(2, offy);
-        stmt.executeUpdate();
-        
-        stmt.close();
-        
-        dbConn.commit();
-        
+        try (PreparedStatement stmt = dbConn.prepareStatement(queryString);) {
+            stmt.setFloat(1, offx);
+            stmt.setFloat(2, offy);
+            stmt.executeUpdate();
+
+            stmt.close();
+
+            dbConn.commit();
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown during geometry offseting");
+            LOG.debug("SQLException thrown during geometry offseting : " + ex.getMessage());
+            LOG.debug("SQLException thrown during geometry offseting : " + ex.getSQLState());
+        }
     }
     
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
@@ -2986,8 +3117,6 @@ public class BatchFusionServlet extends HttpServlet {
             throws ServletException, IOException {
         try {
             processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(BatchFusionServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             
         }
@@ -3006,8 +3135,6 @@ public class BatchFusionServlet extends HttpServlet {
             throws ServletException, IOException {
         try {
             processRequest(request, response);
-        } catch (SQLException ex) {
-            Logger.getLogger(BatchFusionServlet.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             
         }
