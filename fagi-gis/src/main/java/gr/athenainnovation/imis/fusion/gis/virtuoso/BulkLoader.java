@@ -161,6 +161,8 @@ public class BulkLoader implements TripleHandler {
             System.out.println("Testing batch insert");
             //stmt.setString(1, "http://localhost:8890/DAV/osm_demo_asasas");
             for (GeomTriple geom : geoms) {
+                System.out.println("Geometry Printing " + geom.s);
+                System.out.println("Geometry Printing " + geom.g);
                 final String link = geom.s + "_geom";
                 stmt.setString(1, geom.s);
                 stmt.setString(2, link);
@@ -326,18 +328,18 @@ public class BulkLoader implements TripleHandler {
                         queryStr.append(" . ");
                     }
                     queryStr.append("}");
-                    System.out.println("Print "+queryStr.toString());
+                    System.out.println("Print DELETE QUERY      "+queryStr.toString());
 
                     UpdateRequest q = queryStr.asUpdate();
                     HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
                     UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, endpointT, authenticator);
                     insertRemoteB.execute();
                     
-                    //System.out.println("Add at "+addIdx+" Size "+cSize);
+                    System.out.println("Add at "+addIdx+" Size "+cSize);
                     addIdx += (cSize-addIdx);
                     sizeUp *= 2;
-                    //cSize += sizeUp;
-                    cSize += 4;
+                    cSize += sizeUp;
+                    //cSize += 4;
                     if (cSize >= geoms.size()) {
                         cSize = geoms.size();
                     }
@@ -345,7 +347,7 @@ public class BulkLoader implements TripleHandler {
                         updating = false;
                 } catch (org.apache.jena.atlas.web.HttpException ex) {
                     System.out.println("Failed at "+addIdx+" Size "+cSize);
-                    //System.out.println("Crazy Stuff");
+                    System.out.println("Crazy Stuff");
                     System.out.println(ex.getLocalizedMessage());
                     ex.printStackTrace();
                     ex.printStackTrace(System.out);

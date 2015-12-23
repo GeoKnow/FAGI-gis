@@ -369,6 +369,23 @@ public class SPARQLUtilities {
         // Iy uses the SPARQL HTTP protocol for issuing SPARQL commands
         // on relies on HTTP Exceptions to reissue the inserts
         
+        try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectURITriples);
+                 VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery()) {
+            System.out.println("PUMPA\n\n\n\n\n\n");
+            while (vrs.next()) {
+                
+                final String sub = vrs.getString(1);
+                final String pre = vrs.getString(2);
+                final String obj = vrs.getString(3);
+                
+                System.out.println(sub+" "+pre+" "+obj+" ");
+                
+            }
+            System.out.println("PUMPA\n\n\n\n\n\n");
+                        
+        } catch (VirtuosoException ex) {
+        }
+        
         while (tries < Constants.MAX_SPARQL_TRIES) {
             try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(selectURITriples);
                  VirtuosoResultSet vrs = (VirtuosoResultSet) vstmt.executeQuery()) {
@@ -384,10 +401,28 @@ public class SPARQLUtilities {
                             break;
                         }
 
+                        String sub = vrs.getString(1);
+                        String pre = vrs.getString(2);
+                        String obj = vrs.getString(3);
+
+                        queryStr.appendIri(sub);
+                        queryStr.append(" ");
+                        queryStr.appendIri(pre);
+                        queryStr.append(" ");
+                        queryStr.appendIri(obj); // !!!!! URI
+                        queryStr.append(" ");
+                        queryStr.append(".");
+                        queryStr.append(" ");
+                            
                         for (int i = 0; i < cSize; i++) {
-                            final String sub = vrs.getString(1);
-                            final String pre = vrs.getString(2);
-                            final String obj = vrs.getString(3);
+                            if (!vrs.next()) {
+                                updating = false;
+                                break;
+                            }
+                            
+                            sub = vrs.getString(1);
+                            pre = vrs.getString(2);
+                            obj = vrs.getString(3);
 
                             queryStr.appendIri(sub);
                             queryStr.append(" ");
@@ -397,11 +432,6 @@ public class SPARQLUtilities {
                             queryStr.append(" ");
                             queryStr.append(".");
                             queryStr.append(" ");
-
-                            if (!vrs.next()) {
-                                updating = false;
-                                break;
-                            }
                         }
 
                         queryStr.append("} }");
@@ -454,10 +484,28 @@ public class SPARQLUtilities {
                             break;
                         }
 
+                        String sub = vrs.getString(1);
+                        String pre = vrs.getString(2);
+                        String obj = vrs.getString(3);
+
+                        queryStr.appendIri(sub);
+                        queryStr.append(" ");
+                        queryStr.appendIri(pre);
+                        queryStr.append(" ");
+                        queryStr.appendLiteral(obj); // !!!!!! Literal
+                        queryStr.append(" ");
+                        queryStr.append(".");
+                        queryStr.append(" ");
+
                         for (int i = 0; i < cSize; i++) {
-                            final String sub = vrs.getString(1);
-                            final String pre = vrs.getString(2);
-                            final String obj = vrs.getString(3);
+                            if (!vrs.next()) {
+                                updating = false;
+                                break;
+                            }
+
+                            sub = vrs.getString(1);
+                            pre = vrs.getString(2);
+                            obj = vrs.getString(3);
 
                             queryStr.appendIri(sub);
                             queryStr.append(" ");
@@ -467,11 +515,6 @@ public class SPARQLUtilities {
                             queryStr.append(" ");
                             queryStr.append(".");
                             queryStr.append(" ");
-
-                            if (!vrs.next()) {
-                                updating = false;
-                                break;
-                            }
                         }
 
                         queryStr.append("} }");

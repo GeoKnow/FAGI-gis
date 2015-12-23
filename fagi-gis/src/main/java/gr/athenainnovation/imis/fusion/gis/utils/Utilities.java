@@ -48,17 +48,18 @@ public class Utilities {
     // For debug purposes
     static final boolean DEBUG_REMOTE = true;
     public static boolean isLocalInstance(InetAddress addr) {
-        if ( ! DEBUG_REMOTE ) {
-        // Check if the address is a valid special local or loop back
-        if (addr.isAnyLocalAddress() || addr.isLoopbackAddress())
-            return true;
+        if (!DEBUG_REMOTE) {
+            // Check if the address is a valid special local or loop back
+            if (addr.isAnyLocalAddress() || addr.isLoopbackAddress()) {
+                return true;
+            }
 
-        // Check if the address is defined on any interface
-        try {
-            return NetworkInterface.getByInetAddress(addr) != null;
-        } catch (SocketException e) {
-            return false;
-        }
+            // Check if the address is defined on any interface
+            try {
+                return NetworkInterface.getByInetAddress(addr) != null;
+            } catch (SocketException e) {
+                return false;
+            }
         } else {
             return false;
         }
