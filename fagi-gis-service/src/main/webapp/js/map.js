@@ -199,7 +199,9 @@ FAGI.PanelsUI = {
         $(activePanel).currentlyOpened = false;
     },
     
-    lastClickedMenu       :       null
+    lastClickedMenu      :       null,
+    
+    panelWidth           :       0
 
 };
 
@@ -700,6 +702,15 @@ FAGI.ActiveState = {
 $(window).load( function() {
 });
 
+function resizedw(){
+    // Haven't resized in 100ms!
+    //alert("done");
+    firstRe = true;
+}
+
+var doit;
+var firstRe = true;
+
 // On page load
 $(document).ready(function () {
     /* NEW INTERFACE */
@@ -713,10 +724,45 @@ $(document).ready(function () {
         },
         //autoOpen: false,
         beforeClose: beforeClosePanel,
-        resize: function(event, ui) { alert("ole"); },
+        resize: function(event, ui) { 
+            //clearTimeout(doit);
+            //doit = setTimeout(resizedw, 300);
+  
+            $this = $(this);
+            $map = $("#map");
+            $dialog = $("#dialog");
+            $fagi = $("#fagi");
+            var offsetm = $map.offset();
+            var offsetd = $this.offset();
+            var offsetf = $fagi.offset();
+            
+            if ( firstRe ) {
+               //$map.width($map.width() - 50);
+               //firstRe = false;
+            }
+            //alert($this.height());
+            //alert(offsetm.left + "  " + (offsetm.left-offsetd.left) );
+            //alert($fagi.width() + "   " + offsetm.left + "  " + (offsetd.left + $this.width()) );
+            //alert($fagi.width() + "   " + ($map.width() + $dialog.width() )  );
+            //alert(offsetd.left + $this.width() + "  ");
+            //alert(FAGI.PanelsUI.dialogWidth);
+            //alert($this.width() + "  " + $dialog.width());
+            //alert(FAGI.PanelsUI.dialogWidth);
+            //alert($map.height());
+            //alert($map.width());
+            //var diff = ( offsetm.left - (offsetd.left + $this.width() ) ) - 200;
+            var diff = offsetm.left - (offsetm.left-offsetd.left);
+            console.log(diff);
+            //alert(diff);
+            $map.width($map.width() + diff);
+            //FAGI.MapUI.map.updateSize();
+            
+        },
         draggable: false
     });
 
+    FAGI.PanelsUI.dialogWidth = $("#dialog").width();
+    
     //$("#slider").slider();
     $("#slider").slider({
         value: 0,
@@ -1627,7 +1673,10 @@ function activateMultipleSelect() {
 function animatePanel(strech, opened) {
     var int = self.setInterval(FAGI.MapUI.periodicMapUpdate, 1);
     //alert(strech);
+    //FAGI.PanelsUI.lastClickedMenu.width($("#dialog").width());
+
     if (!opened) {
+        $(".ui-dialog-content").css("width", "100%");
         $("#map").animate({
             width: (100 - strech) + '%'
         }, {duration: FAGI.Constants.DURATION, queue: false, complete: function () {
