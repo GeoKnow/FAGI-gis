@@ -551,6 +551,16 @@ public class SPARQLUtilities {
         return success;
     }
     
+    public static boolean isInputTarget(GraphConfig grConf) {
+        if ( grConf.getEndpointT().equalsIgnoreCase(grConf.getEndpointA()) && grConf.getGraphA().equalsIgnoreCase(grConf.getTargetGraph()) )
+            return true;
+        
+        if ( grConf.getEndpointT().equalsIgnoreCase(grConf.getEndpointB()) && grConf.getGraphB().equalsIgnoreCase(grConf.getTargetGraph()) )
+            return true;
+        
+        return false;
+    }
+    
     public static boolean clearMetadataGraphs(VirtGraph vSet, GraphConfig gr_c) {
         final VirtuosoConnection virt_conn = (VirtuosoConnection) vSet.getConnection();
         final String dropMetaAGraph = "SPARQL DROP SILENT GRAPH <" + gr_c.getMetadataGraphA() + ">";

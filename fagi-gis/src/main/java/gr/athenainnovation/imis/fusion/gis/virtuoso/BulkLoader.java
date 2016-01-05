@@ -14,6 +14,7 @@ import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
+import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -256,116 +257,123 @@ public class BulkLoader implements TripleHandler {
     }*/
     //GraphUtil.delete(set, toDel);
         //GraphUtil.add(set, toAdd);
-        UpdateRequest request = UpdateFactory.create() ;
-        request.add("CLEAR GRAPH <"+fusedGraph+">");
+      
+        if ( !SPARQLUtilities.isInputTarget( grConf ) )
+            return;
+        
+        UpdateRequest request = UpdateFactory.create();
+        request.add("CLEAR GRAPH <" + fusedGraph + ">");
         UpdateProcessor up = UpdateExecutionFactory.createRemoteForm(request, endpointT);
             //up.execute();
-            
-            boolean updating = true;
-            int addIdx = 0;
-            int cSize = 1;
-            int sizeUp = 1;
-            //System.out.println("Sise "+geoms.size());
-            while (updating) {
-                try {
-                    ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
-                    queryStr.append("WITH <"+fusedGraph+"> ");
-                    queryStr.append("DELETE {");
-                    int top = 0;
-                    if (cSize >= geoms.size())
-                        top = geoms.size();
-                    else
-                        top = cSize;
-                    for (int i = addIdx; i < top; i++) {
-                        final String subject = geoms.get(i).s;
-                        queryStr.appendIri(subject);
-                        queryStr.append(" ");
-                        queryStr.appendIri(HAS_GEOMETRY);
-                        queryStr.append(" ");
-                        queryStr.appendIri(subject+"_geom");
-                        queryStr.append(" . ");
-                        queryStr.appendIri( subject+"_geom" );
-                        queryStr.append(" ");
-                        queryStr.appendIri( WKT );
-                        queryStr.append(" ");
-                        queryStr.append("?g");
-                        queryStr.append(i);
-                        queryStr.append(" . ");
-                    }
-                    queryStr.append(" } ");
-                    /*queryStr.append("INSERT {");
-                    for (int i = addIdx; i < top; i++) {
-                        final String subject = geoms.get(i).s;
-                        queryStr.appendIri(subject);
-                        queryStr.append(" ");
-                        queryStr.appendIri(HAS_GEOMETRY);
-                        queryStr.append(" ");
-                        queryStr.appendIri(subject+"_geom");
-                        queryStr.append(" . ");
-                        queryStr.appendIri( subject+"_geom" );
-                        queryStr.append(" ");
-                        queryStr.appendIri( WKT );
-                        queryStr.append(" ");
-                        queryStr.appendLiteral(geoms.get(i).g + "^^<http://www.opengis.net/ont/geosparql#wktLiteral>");
-                        queryStr.append(" . ");
-                    }
-                    queryStr.append(" } ");*/
-                    queryStr.append("WHERE {");
-                    for (int i = addIdx; i < top; i++) {
-                        final String subject = geoms.get(i).s;
-                        queryStr.appendIri(subject);
-                        queryStr.append(" ");
-                        queryStr.appendIri(HAS_GEOMETRY);
-                        queryStr.append(" ");
-                        queryStr.appendIri(subject+"_geom");
-                        queryStr.append(" . ");
-                        queryStr.appendIri( subject+"_geom" );
-                        queryStr.append(" ");
-                        queryStr.appendIri( WKT );
-                        queryStr.append(" ");
-                        queryStr.append("?g");
-                        queryStr.append(i);
-                        queryStr.append(" . ");
-                    }
-                    queryStr.append("}");
-                    System.out.println("Print DELETE QUERY      "+queryStr.toString());
 
-                    UpdateRequest q = queryStr.asUpdate();
-                    HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
-                    UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, endpointT, authenticator);
-                    insertRemoteB.execute();
-                    
-                    System.out.println("Add at "+addIdx+" Size "+cSize);
-                    addIdx += (cSize-addIdx);
-                    sizeUp *= 2;
-                    cSize += sizeUp;
-                    //cSize += 4;
-                    if (cSize >= geoms.size()) {
-                        cSize = geoms.size();
-                    }
-                    if (cSize == addIdx)
-                        updating = false;
-                } catch (org.apache.jena.atlas.web.HttpException ex) {
-                    System.out.println("Failed at "+addIdx+" Size "+cSize);
-                    System.out.println("Crazy Stuff");
-                    System.out.println(ex.getLocalizedMessage());
-                    ex.printStackTrace();
-                    ex.printStackTrace(System.out);
-                    sizeUp = 1;
-                    cSize = addIdx;
-                    cSize += sizeUp;
-                    if (cSize >= geoms.size())
-                        cSize = geoms.size();
-                    
-                    //break;
-                    //System.out.println("Going back at "+addIdx+" Size "+cSize);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    System.out.println(ex.getLocalizedMessage());
-                    break;
+        boolean updating = true;
+        int addIdx = 0;
+        int cSize = 1;
+        int sizeUp = 1;
+        //System.out.println("Sise "+geoms.size());
+        while (updating) {
+            try {
+                ParameterizedSparqlString queryStr = new ParameterizedSparqlString();
+                queryStr.append("WITH <" + fusedGraph + "> ");
+                queryStr.append("DELETE {");
+                int top = 0;
+                if (cSize >= geoms.size()) {
+                    top = geoms.size();
+                } else {
+                    top = cSize;
                 }
+                for (int i = addIdx; i < top; i++) {
+                    final String subject = geoms.get(i).s;
+                    queryStr.appendIri(subject);
+                    queryStr.append(" ");
+                    queryStr.appendIri(HAS_GEOMETRY);
+                    queryStr.append(" ");
+                    queryStr.appendIri(subject + "_geom");
+                    queryStr.append(" . ");
+                    queryStr.appendIri(subject + "_geom");
+                    queryStr.append(" ");
+                    queryStr.appendIri(WKT);
+                    queryStr.append(" ");
+                    queryStr.append("?g");
+                    queryStr.append(i);
+                    queryStr.append(" . ");
+                }
+                queryStr.append(" } ");
+                /*queryStr.append("INSERT {");
+                 for (int i = addIdx; i < top; i++) {
+                 final String subject = geoms.get(i).s;
+                 queryStr.appendIri(subject);
+                 queryStr.append(" ");
+                 queryStr.appendIri(HAS_GEOMETRY);
+                 queryStr.append(" ");
+                 queryStr.appendIri(subject+"_geom");
+                 queryStr.append(" . ");
+                 queryStr.appendIri( subject+"_geom" );
+                 queryStr.append(" ");
+                 queryStr.appendIri( WKT );
+                 queryStr.append(" ");
+                 queryStr.appendLiteral(geoms.get(i).g + "^^<http://www.opengis.net/ont/geosparql#wktLiteral>");
+                 queryStr.append(" . ");
+                 }
+                 queryStr.append(" } ");*/
+                queryStr.append("WHERE {");
+                for (int i = addIdx; i < top; i++) {
+                    final String subject = geoms.get(i).s;
+                    queryStr.appendIri(subject);
+                    queryStr.append(" ");
+                    queryStr.appendIri(HAS_GEOMETRY);
+                    queryStr.append(" ");
+                    queryStr.appendIri(subject + "_geom");
+                    queryStr.append(" . ");
+                    queryStr.appendIri(subject + "_geom");
+                    queryStr.append(" ");
+                    queryStr.appendIri(WKT);
+                    queryStr.append(" ");
+                    queryStr.append("?g");
+                    queryStr.append(i);
+                    queryStr.append(" . ");
+                }
+                queryStr.append("}");
+                System.out.println("Print DELETE QUERY      " + queryStr.toString());
+
+                UpdateRequest q = queryStr.asUpdate();
+                HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+                UpdateProcessor insertRemoteB = UpdateExecutionFactory.createRemoteForm(q, endpointT, authenticator);
+                insertRemoteB.execute();
+
+                System.out.println("Add at " + addIdx + " Size " + cSize);
+                addIdx += (cSize - addIdx);
+                sizeUp *= 2;
+                cSize += sizeUp;
+                //cSize += 4;
+                if (cSize >= geoms.size()) {
+                    cSize = geoms.size();
+                }
+                if (cSize == addIdx) {
+                    updating = false;
+                }
+            } catch (org.apache.jena.atlas.web.HttpException ex) {
+                System.out.println("Failed at " + addIdx + " Size " + cSize);
+                System.out.println("Crazy Stuff");
+                System.out.println(ex.getLocalizedMessage());
+                ex.printStackTrace();
+                ex.printStackTrace(System.out);
+                sizeUp = 1;
+                cSize = addIdx;
+                cSize += sizeUp;
+                if (cSize >= geoms.size()) {
+                    cSize = geoms.size();
+                }
+
+                    //break;
+                //System.out.println("Going back at "+addIdx+" Size "+cSize);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                System.out.println(ex.getLocalizedMessage());
+                break;
             }
-            
+        }
+
             /*
             updating = true;
             addIdx = 0;

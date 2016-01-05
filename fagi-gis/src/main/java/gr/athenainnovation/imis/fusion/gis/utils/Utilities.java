@@ -46,7 +46,7 @@ public class Utilities {
     }
     
     // For debug purposes
-    static final boolean DEBUG_REMOTE = true;
+    static final boolean DEBUG_REMOTE = false;
     public static boolean isLocalInstance(InetAddress addr) {
         if (!DEBUG_REMOTE) {
             // Check if the address is a valid special local or loop back
