@@ -551,6 +551,39 @@ public class SPARQLUtilities {
         return success;
     }
     
+    public static boolean clearMetadataGraphs(VirtGraph vSet, GraphConfig gr_c) {
+        final VirtuosoConnection virt_conn = (VirtuosoConnection) vSet.getConnection();
+        final String dropMetaAGraph = "SPARQL DROP SILENT GRAPH <" + gr_c.getMetadataGraphA() + ">";
+        final String dropMetaBGraph = "SPARQL DROP SILENT GRAPH <" + gr_c.getMetadataGraphB() + ">";
+        final String createMetaAGraph = "SPARQL CREATE GRAPH <" + gr_c.getMetadataGraphA() + ">";
+        final String createMetaBGraph = "SPARQL CREATE GRAPH <" + gr_c.getMetadataGraphB() + ">";
+
+        try (PreparedStatement dropMetaAStmt = virt_conn.prepareStatement(dropMetaAGraph);
+                PreparedStatement dropMetaBStmt = virt_conn.prepareStatement(dropMetaBGraph);
+                PreparedStatement createMetaAStmt = virt_conn.prepareStatement(createMetaAGraph);
+                PreparedStatement createMetaBStmt = virt_conn.prepareStatement(createMetaBGraph)) {
+
+            System.out.println("INSIDE META CREATION");
+            dropMetaAStmt.execute();
+            System.out.println("INSIDE META CREATION 1");
+            dropMetaBStmt.execute();
+            System.out.println("INSIDE META CREATION 2");
+            createMetaAStmt.execute();
+            System.out.println("INSIDE META CREATION 3");
+            createMetaBStmt.execute();
+            System.out.println("OUTSIDE META CREATION");
+
+        } catch (SQLException ex) {
+
+            LOG.trace("SQLException thrown during temp graph creation");
+            LOG.debug("SQLException thrown during temp graph creation : " + ex.getMessage());
+            LOG.debug("SQLException thrown during temp graph creation : " + ex.getSQLState());
+
+        }
+        
+        return true;
+    }
+    
     public static int createLinksGraphBatch(List<Link> lst, int nextIndex, GraphConfig grConf, VirtGraph vSet) {
         final String dropGraph = "SPARQL DROP SILENT GRAPH <"+grConf.getLinksGraph()+ ">";
         final String createGraph = "SPARQL CREATE GRAPH <"+grConf.getLinksGraph()+ ">";
