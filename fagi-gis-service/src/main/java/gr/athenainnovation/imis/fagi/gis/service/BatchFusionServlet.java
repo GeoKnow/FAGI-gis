@@ -533,7 +533,7 @@ public class BatchFusionServlet extends HttpServlet {
                 for (int i = 1; i < selectedFusions.length; i++) {
                     eraseOldMetadata(selectedFusions[i].action, i, tGraph, sess, grConf, vSet, selectedFusions );
                 }
-            }
+            }   
             
             // Create insertion statements
             /*
@@ -561,6 +561,8 @@ public class BatchFusionServlet extends HttpServlet {
             }
             System.out.println("Links End\n\n\n\n\n\n");
 
+            SPARQLUtilities.clearMetadataGraphs(vSet, grConf);
+                    
             int lastIndex = 0;
             do {
                 System.out.println("Running link creation loop " + linkList.size());
@@ -571,13 +573,13 @@ public class BatchFusionServlet extends HttpServlet {
                                 
                 // Perform Metadata Fusion
                 if ( selectedFusions.length == 1 && !restAction.equalsIgnoreCase("None") ) {
-                    fetchRemaining(restAction, grConf, vSet);
+                    fetchRemaining(restAction, grConf, vSet, activeCluster);
                 }
                 
                 for (int i = 1; i < selectedFusions.length; i++) {
                     System.out.println("Rest Action ===== " + restAction);
                     if (Constants.LATE_FETCH) {
-                        fetchRemaining(restAction, grConf, vSet);
+                        fetchRemaining(restAction, grConf, vSet, activeCluster);
                         lateFetchData(i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
                     }
                     //handleMetadataFusion(selectedFusions[i].action, i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
@@ -655,7 +657,7 @@ public class BatchFusionServlet extends HttpServlet {
         return success;
     }
     
-    private void fetchRemaining(String restAction, GraphConfig grConf, VirtGraph vSet) {
+    private void fetchRemaining(String restAction, GraphConfig grConf, VirtGraph vSet, int activeCluster) {
         if ( restAction.equalsIgnoreCase("None") ) {
             return;
         }
@@ -685,7 +687,11 @@ public class BatchFusionServlet extends HttpServlet {
         getFromA.append(" ?o4 ?p6 ?o5\n");
         getFromA.append("} }\nWHERE\n");
         getFromA.append("{\n");
-        getFromA.append(" GRAPH <" + grConf.getLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
+        if (activeCluster > -1) {
+            getFromA.append(" GRAPH <" + grConf.getClusterGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+        } else {
+            getFromA.append(" GRAPH <" + grConf.getLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
+        }
         if (isEndpointALocal) {
             getFromA.append(" GRAPH <").append(grConf.getGraphA()).append("> { {?s ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
         } else {
@@ -714,7 +720,11 @@ public class BatchFusionServlet extends HttpServlet {
         getFromB.append(" ?o4 ?p6 ?o5\n");
         getFromB.append("} }\nWHERE\n");
         getFromB.append("{\n");
-        getFromB.append(" GRAPH <" + grConf.getLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
+        if (activeCluster > -1) {
+            getFromB.append(" GRAPH <" + grConf.getClusterGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . ");
+        } else {
+            getFromB.append(" GRAPH <" + grConf.getLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } .\n");
+        }
         if (isEndpointBLocal) {
             getFromB.append(" GRAPH <").append(grConf.getGraphB()).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
         } else {

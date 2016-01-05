@@ -1175,11 +1175,11 @@ $(document).ready(function () {
     }
         
     // Add laeyrs with appropriate depth indexes
-    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsA, 2);
-    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsB, 3);
-    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsLinks, 4);
-    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsLinksTemp, 5);
-    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsFused, 6);
+    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsA, 3);
+    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsB, 4);
+    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsLinks, 5);
+    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsLinksTemp, 6);
+    FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.vectorsFused, 2);
     FAGI.MapUI.map.setLayerIndex(FAGI.MapUI.Layers.bboxLayer, 7);
 
     // Create a select control for all Layers and
