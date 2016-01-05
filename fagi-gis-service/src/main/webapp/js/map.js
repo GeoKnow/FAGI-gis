@@ -274,7 +274,7 @@ FAGI.MapUI.Contexts = {
                 if (feature.attributes.cluster == 'Unset') {
                     return 'red';
                 } else {
-                    return clusterColors[feature.attributes.cluster];
+                    return FAGI.Constants.CLUSTER_COLORS[feature.attributes.cluster];
                 }
             }
         },
@@ -473,7 +473,7 @@ FAGI.MapUI.Callbacks = {
     onClusterSelectionChange        :       function() {
         var selectedCluster = $(this).val();
         if (selectedCluster < 0) {
-            $.each(FAGI.MapUI.Layers.FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
+            $.each(FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
                 //var assign = assigns.results[element.attributes.a];
                 //element.attributes.cluster = assign.cluster;
                 element.style = null;
@@ -482,7 +482,7 @@ FAGI.MapUI.Callbacks = {
             });
         } else if ( selectedCluster == 9999 ) {
             //alert("Custom Cluster");
-            $.each(FAGI.MapUI.Layers.FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
+            $.each(FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
                 element.style = {display: 'none'};
                 element.attributes.la.style = {display: 'none'};
                 element.attributes.lb.style = {display: 'none'};
@@ -493,7 +493,7 @@ FAGI.MapUI.Callbacks = {
                 element.attributes.lb.style = null;
             });
         } else {
-            $.each(FAGI.MapUI.Layers.FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
+            $.each(FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
                 //var assign = assigns.results[element.attributes.a];
                 //element.attributes.cluster = assign.cluster;
                 if (element.attributes.cluster != selectedCluster) {
@@ -506,7 +506,7 @@ FAGI.MapUI.Callbacks = {
         
         FAGI.MapUI.Layers.vectorsA.refresh();
         FAGI.MapUI.Layers.vectorsB.refresh();
-        FAGI.MapUI.Layers.FAGI.MapUI.Layers.vectorsLinks.refresh();
+        FAGI.MapUI.Layers.vectorsLinks.refresh();
     }
         
 };
