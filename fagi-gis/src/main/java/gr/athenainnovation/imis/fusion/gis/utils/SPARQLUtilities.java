@@ -7,6 +7,7 @@ package gr.athenainnovation.imis.fusion.gis.utils;
 
 import com.hp.hpl.jena.query.ParameterizedSparqlString;
 import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryException;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.shared.JenaException;
@@ -549,6 +550,31 @@ public class SPARQLUtilities {
         }
         
         return success;
+    }
+    
+    public static boolean validateDataset(String endpoint, String graph) {
+        boolean valid = false;
+        
+        String check = "SELECT * WHERE { GRAPH <" + graph + "> {?s ?p ?o } } LIMIT 1";
+        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+        
+        try (QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(endpoint, QueryFactory.create(check), authenticator)) {
+
+            com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+
+            if (resultSet.hasNext()) {
+                valid = true;
+            }
+        } catch (QueryException qex) {
+            LOG.trace("QueryException thrown during dataset" + "(" + endpoint + "," + graph + ")" + " validation");
+            LOG.debug("QueryException thrown during dataset" + "(" + endpoint + "," + graph + ")" + " validation : \n" + qex.getMessage());
+
+            valid = false;
+        }
+        
+        System.out.println("Is valid " + valid);
+        
+        return valid;
     }
     
     public static boolean isInputTarget(GraphConfig grConf) {
