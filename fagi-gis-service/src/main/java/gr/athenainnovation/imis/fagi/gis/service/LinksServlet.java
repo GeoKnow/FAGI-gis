@@ -161,6 +161,10 @@ public class LinksServlet extends HttpServlet {
         StringBuilder sb = new StringBuilder(1024);
         // This query remives the limitation of having only SAME_AS predicates
         // but we will need additional checks
+        
+        if ( !SPARQLUtilities.validateDataset(e, g) ) {
+            return null;
+        }
         String q = "SELECT * WHERE { GRAPH <"+g+"> { ?s ?p ?o } }";
         System.out.println("\n\n\n\nSubject " + q);
         try {
@@ -303,6 +307,8 @@ public class LinksServlet extends HttpServlet {
                 out.println(mapper.writeValueAsString(ret));
             
                 out.close();
+                
+                return;
             }
             
             // Helps to keep links as both a List and Ma ap

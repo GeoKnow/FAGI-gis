@@ -11,9 +11,26 @@ $(document).ready(function () {                        // When the HTML DOM is r
 function init() {
     $( "input" ).tooltip();
     //$( document ).tooltip();
-    
+    FAGI.PanelsUI.hideAllPanels();
+     
     FAGI.Utilities.disableSpinner();
     
+    /*
+    Split(['#pane', '#map'], {
+      gutterSize: 8,
+      onDragEnd: function (event, ui) {
+                $("#mainPanel").width("0%");
+                $("#mainPanel").height("0%");
+                //$("#map").removeClass("split content");
+                //$("#fagi").removeClass("split split-horizontal");
+                //$("#pane").width("0%");
+                $('.gutter').remove();
+                $("#map").width("100%");
+        },
+      cursor: 'col-resize'
+    });
+    */   
+   
     $('#popupBBoxMenu').hide();
     $('#popupTransformMenu').hide();
     $('#popupValidateMenu').hide();
@@ -908,6 +925,7 @@ function loadLinkedEntities(formData) {
                 typesB.innerHTML = responseJson.filtersListBHTML;
             } else {
                 alert(responseJson.result.message);
+                $("#buttonL").prop('disabled', false);
             }
             FAGI.Utilities.disableSpinner();
         },

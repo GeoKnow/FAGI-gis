@@ -83,14 +83,11 @@ font-family: 'Menlo', Menlo;
 article, aside, figure, footer, header, hgroup, nav, section { 
   display:block;
 }
-/*
+
 body { 
-  font: normal .80em arial, sans-serif;
-  background: #eeeeee;
-  color: #444;
-  overflow:hidden;
+  box-sizing: border-box;
 }
-*/
+
 
 .scored {
     font-weight: bold;
@@ -966,4 +963,60 @@ label {
       -ms-transform: rotate(390deg);
           transform: rotate(390deg);
           fill: red;
+}
+
+.btn-circle {
+  width: 24px;
+  height: 30px;
+  text-align: left;
+  padding: 0px 0px;
+  font-size: 15px;
+  line-height: 1.42;
+  border-radius: 15px;
+}
+
+// Split Planes
+.split {
+    -webkit-box-sizing: border-box;
+       -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            
+  }
+  .content {
+    border: 0px solid #C0C0C0;
+    box-shadow: inset 0 0px 0px #e4e4e4;
+    background-color: #fff;
+  }
+  .gutter {
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: 50%;
+  }
+  .gutter.gutter-horizontal {
+    cursor: col-resize;
+    background-image: url('../images/vertical.png');
+  }
+  .gutter.gutter-vertical {
+    cursor: row-resize;
+    background-image: url('../images/horizontal.png');
+  }
+  .split.split-horizontal, .gutter.gutter-horizontal {
+    height: 95%;
+    float: left;
+  }
+  
+#fg-close-panel {
+    float:right;
+    display:inline-block;
+    padding:2px 5px;
+    background:#ccc;
+}
+
+#fg-close-panel:hover {
+    float:right;
+    display:inline-block;
+    padding:2px 5px;
+    background:#ccc;
+    cursor: pointer;
+    color:#fff;
 }

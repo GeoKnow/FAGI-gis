@@ -272,7 +272,9 @@
                                 </ul>
                             </div>
                             </div></td>
-                        <td><a href="#about">about</a></td>
+                        <td>
+                            <a href="#about">about</a>
+                        </td>
                         <td>
                             <table style="vertical-align: middle; padding: 0; margin: 0;">
                                 <tr>
@@ -280,41 +282,24 @@
                                     <td>
                                         <div style="top: -100px; vertical-align: middle;" id="bFusionToggle">
                                             <input id="batchOn" style="top: 2px; vertical-align:middle;" type="radio" name="batchOn" value="batchOn"><label style="top: 2px; vertical-align:middle;" id="batch-on-radio" for="batchOn">ON</label>
-                                            <input id="batchOff" style="top: 2px; vertical-align:middle;" type="radio" name="batchOff" value="batchOff"><label style="top: 2px; vertical-align:middle;" id="batch-off-radio" for="batchOff">OFF</label>
-                                        </div>
-                                    </td> 
-                                </tr>
-                            </table>
-                        </td>
-                        <td><form method="get" action="/search" id="search">
-                                <input name="q" type="text" size="40" placeholder="Search..." />
-                            </form></td>
-                    </tr>
-                </table> </div>
-            <div style="float:right; width:100%; height:96%;" id="map"></div>
-        </div>
-
-        <!--
-        <div id="batch-offset-dialog" style="ui-dialog-titlebar" title="Create new user">
-            <p>All form fields are required.</p>
-            <form>
-                <fieldset>
-                    <label for="name">Name</label>
-                    <input type="text" name="name" id="name" value="Jane Smith" class="text ui-widget-content ui-corner-all">
-                    <label for="email">Email</label>
-                    <input type="text" name="email" id="email" value="jane@smith.com" class="text ui-widget-content ui-corner-all">
-                    <label for="password">Password</label>
-                    <input type="password" name="password" id="password" value="xxxxxxx" class="text ui-widget-content ui-corner-all">
-
-                    <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
-                </fieldset>
-            </form>
-        </div>
-        -->
-        <div id="dialog" style="ui-dialog-titlebar" title="Connections">
-            <div id="mainPanel">
-                <div id="datasetPanel">
-                    
+                                                <input id="batchOff" style="top: 2px; vertical-align:middle;" type="radio" name="batchOff" value="batchOff"><label style="top: 2px; vertical-align:middle;" id="batch-off-radio" for="batchOff">OFF</label>
+                                                    </div>
+                                                    </td> 
+                                                    </tr>
+                                                    </table>
+                                                    </td>
+                                                    <td>
+                                                        <form method="get" action="/search" id="search">
+                                                            <input name="q" type="text" size="40" placeholder="Search..." />
+                                                        </form>
+                                                    </td>
+                                                    </tr>
+                                                    </table>
+                                                    </div>
+         <div id="fagi" class="split split-horizontal" style="width: 100%; height:95%;">
+             <div class="split content" style="overflow: auto; height:100%; margin: 0px;" id="mainPanel">
+                 <span id='fg-close-panel' onclick='return false;'>x</span>
+                 <div style="overflow: auto" id="datasetPanel">
                     <form id="dataDiv" name="data_input">
                         <div class="form-group">
                             <label for="fg-dataset-input-a">Dataset A:</label>
@@ -755,7 +740,10 @@
                     <input id="fg-fetch-queries-submit" type="submit" value="Submit Query" style="float:right" onclick="return true;"/>
                 </div>
             </div>
-        </div>
+        <div class="split content" style="height:100%" id="map"></div>
+    </div>
+                        </div>
+    </div>
         <!--sript src="//code.jquery.com/jquery-1.10.2.js"></script>-->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
@@ -771,6 +759,7 @@
         <script type="text/javascript" src="js/codemirror/lib/codemirror.js"></script>
         <script type="text/javascript" src="js/codemirror/mode/sparql/sparql.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" src="js/codemirror/addon/edit/matchbrackets.js"></script>
+        <script type="text/javascript" src="js/split.min.js"></script>
         <script type="text/javascript" src="js/map.js"></script>
         <script src="http://maps.google.com/maps/api/js?v=3.5&sensor=false"></script>
         <script type="text/javascript" src="js/fusion.js"></script>
