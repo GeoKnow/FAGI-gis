@@ -299,7 +299,17 @@
          <div id="fagi" class="split split-horizontal" style="width: 100%; height:95%;">
              <div class="split content" style="overflow: auto; height:100%; margin: 0px;" id="mainPanel">
                  <span id='fg-close-panel' onclick='return false;'>x</span>
-                 <div style="overflow: auto" id="datasetPanel">
+                 <br />
+                 <div id="previewPanel">
+                    <table id="previewTable" class="rwd-table" style="width:100%; color:white;">
+                        <tr>
+                            <td>Subject</td>
+                            <td>Predictae></td> 
+                            <td>Object</td> 
+                        </tr>
+                    </table>
+                </div>
+                 <div id="datasetPanel">
                     <form id="dataDiv" name="data_input">
                         <div class="form-group">
                             <label for="fg-dataset-input-a">Dataset A:</label>
@@ -438,15 +448,6 @@
                         <label id="fg-dataset-label" for="male">No dataset selected</label><input id="dataButton" type="submit" value="Submit" style="float:right" onclick="return false;"/>
 
                     </form>
-                </div>
-                <div id="previewPanel">
-                    <table id="previewTable" class="rwd-table" style="width:100%; color:white;">
-                        <tr>
-                            <td>Subject</td>
-                            <td>Predictae></td> 
-                            <td>Object</td> 
-                        </tr>
-                    </table>
                 </div>
                 <div id="connectionPanel">
                     <form id="connDiv" name="conn_input"><p />

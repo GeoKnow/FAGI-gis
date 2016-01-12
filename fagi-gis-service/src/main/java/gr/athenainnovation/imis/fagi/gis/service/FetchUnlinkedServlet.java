@@ -238,6 +238,7 @@ public class FetchUnlinkedServlet extends HttpServlet {
                                "WHERE {\n" +
                                "?s <"+p+"> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n" +
                                "FILTER (bif:st_intersects (?geo, bif:st_geomfromtext(\""+BBox.getBarea()+"\"), 0))\n" +
+                               "FILTER (bif:st_xmax (?geo) - bif:st_xmin (?geo) < 0.01 )\n" +
                                 "}");
         }
         System.out.println("Geom query "+geoQuery);

@@ -414,6 +414,7 @@ public class BatchFindLinkServlet extends HttpServlet {
                             + "WHERE {\n"
                             + "?s <" + p + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n"
                             + "FILTER (bif:st_intersects (?geo, bif:st_geomfromtext(\"" + BBox.getBarea() + "\"), 0))\n"
+                            + "FILTER (bif:st_xmax (?geo) - bif:st_xmin (?geo) < 0.01 )\n"
                             + "} ");
                 }
             }
@@ -480,6 +481,7 @@ public class BatchFindLinkServlet extends HttpServlet {
                             + "WHERE {\n"
                             + "?s <" + p + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n"
                             + "FILTER (bif:st_intersects (?geo, bif:st_geomfromtext(\"" + BBox.getBarea() + "\"), 0))\n"
+                            + "FILTER (bif:st_xmax (?geo) - bif:st_xmin (?geo) < 0.01 )\n"
                             + "} ");
                 }
             }
@@ -550,7 +552,8 @@ public class BatchFindLinkServlet extends HttpServlet {
                 } else {
                     geoQuery.append("?s <" + geoPropsB.get(0) + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n");
                 }
-                geoQuery.append("FILTER (bif:st_contains (?geo, bif:st_geomfromtext(\"" + geoA.getCentroid().toText() + "\"), " + ((float) radius * Constants.MAGIC_METERS_TO_MErc_NUMBER) + "))\n"
+                geoQuery.append("FILTER (bif:st_contains (?geo, bif:st_geomfromtext(\"" + geoA.getCentroid().toText() + "\"), " + ((float) radius * Constants.MAGIC_METERS_TO_MErc_NUMBER) + "))\n");
+                geoQuery.append("FILTER (bif:st_xmax (?geo) - bif:st_xmin (?geo) < 0.01 )\n"
                         + "} } }");
 
                 //System.out.println("For loop query "+geoQuery.toString());
@@ -707,7 +710,7 @@ public class BatchFindLinkServlet extends HttpServlet {
                             } else {
                                 //System.out.println("Comparing " + obj + " with " + pa.getObj());
                                 float JaccardIndex = getJaccardIndex(obj, pa.getObj());
-                                if (JaccardIndex > 0.8) {
+                                if (JaccardIndex > 0.2) {
                                     //System.out.println("Matched " + obj + " with " + pa.getObj());
                                     //System.out.println("Matched " + subA + " with " + pa.getSub());
                                     String geomText = geoms.get(pa.getSub());

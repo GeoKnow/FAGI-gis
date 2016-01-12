@@ -1006,17 +1006,17 @@ label {
   }
   
 #fg-close-panel {
-    float:right;
     display:inline-block;
-    padding:2px 5px;
     background:#ccc;
+    padding: 4px 10px;
+    float: right;
 }
 
 #fg-close-panel:hover {
-    float:right;
     display:inline-block;
-    padding:2px 5px;
     background:#ccc;
     cursor: pointer;
     color:#fff;
+    padding: 4px 10px;
+    float: right;
 }

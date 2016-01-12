@@ -504,6 +504,8 @@ public class BatchFusionServlet extends HttpServlet {
                 try (PreparedStatement stmt = dbConn.prepareStatement(queryGeoms);
                         ResultSet rs = stmt.executeQuery();) {
                     while (rs.next()) {
+                        System.out.println("GEOMETRY   :   "+rs.getString(3));
+                        
                         JSONFusionResult res = new JSONFusionResult(rs.getString(3), rs.getString(2));
                         ret.getFusedGeoms().put(rs.getString(1), res);
                     }
@@ -3068,6 +3070,8 @@ public class BatchFusionServlet extends HttpServlet {
             stmt.setFloat(2, offy);
             stmt.executeUpdate();
             
+            stmt.close();
+
             dbConn.commit();
         } catch (SQLException ex) {
             LOG.trace("SQLException thrown during geometry offseting");

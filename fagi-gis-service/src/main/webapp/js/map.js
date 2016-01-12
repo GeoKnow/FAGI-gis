@@ -499,6 +499,9 @@ FAGI.MapUI.Callbacks = {
             $.each(FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
                 //var assign = assigns.results[element.attributes.a];
                 //element.attributes.cluster = assign.cluster;
+                element.style = null;
+                element.attributes.la.style = null;
+                element.attributes.lb.style = null;
                 if (element.attributes.cluster != selectedCluster) {
                     element.style = {display: 'none'};
                     element.attributes.la.style = {display: 'none'};
@@ -507,9 +510,12 @@ FAGI.MapUI.Callbacks = {
             });
         }
         
-        FAGI.MapUI.Layers.vectorsA.refresh();
-        FAGI.MapUI.Layers.vectorsB.refresh();
-        FAGI.MapUI.Layers.vectorsLinks.refresh();
+        FAGI.MapUI.Layers.vectorsA.redraw();
+        FAGI.MapUI.Layers.vectorsB.redraw();
+        FAGI.MapUI.Layers.vectorsLinks.redraw();
+        //FAGI.MapUI.Layers.vectorsA.refresh();
+        //FAGI.MapUI.Layers.vectorsB.refresh();
+        //FAGI.MapUI.Layers.vectorsLinks.refresh();
     }
         
 };
@@ -1902,6 +1908,8 @@ function expandMatchingPanel() {
 }
 
 function expandPreviewPanel() {
+    FAGI.PanelsUI.hideAllPanels();
+    
     if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#previewPanel")))) {
 
         $("#mainPanel").show();
@@ -2444,7 +2452,7 @@ function startDragB(feature, pixel) {
         //clusterLink.nodeA = event.feature.attributes.links[0].attributes.la.attributes.a;
         //clusterLink.nodeB = event.feature.attributes.links[0].attributes.lb.attributes.a;
         //activeFeatureCluster[activeFeatureCluster.length] = clusterLink;
-        FAGI.ActiveState.FAGI.ActiveState.activeFeatureClusterA[feature.attributes.links[0].attributes.la.attributes.a] = feature.attributes.links[0];
+        FAGI.ActiveState.activeFeatureClusterA[feature.attributes.links[0].attributes.la.attributes.a] = feature.attributes.links[0];
         FAGI.ActiveState.activeFeatureClusterB[feature.attributes.links[0].attributes.lb.attributes.a] = feature.attributes.links[0];
         
         return;

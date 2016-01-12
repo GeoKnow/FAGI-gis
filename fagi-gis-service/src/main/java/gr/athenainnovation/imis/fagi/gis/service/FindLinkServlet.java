@@ -194,7 +194,8 @@ public class FindLinkServlet extends HttpServlet {
             } else {
                 geoQuery.append("?s <" + geoPropsB.get(0) + "> ?o . ?o <http://www.opengis.net/ont/geosparql#asWKT> ?geo .\n");
             }
-            geoQuery.append("FILTER (bif:st_contains (?geo, bif:st_geomfromtext(\"" + ent.getGeom() + "\"), " + ((float) radius / 111195) + "))\n"
+            geoQuery.append("FILTER (bif:st_contains (?geo, bif:st_geomfromtext(\"" + ent.getGeom() + "\"), " + ((float) radius / 111195) + "))\n");
+            geoQuery.append("FILTER (bif:st_xmax (?geo) - bif:st_xmin (?geo) < 0.01 )\n"
                     + "} } }");
 
             System.out.println(geoQuery.toString());
