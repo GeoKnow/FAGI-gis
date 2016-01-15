@@ -80,6 +80,8 @@ function init() {
     $('#allLinksButton').click(selectAll);
     $('#finalButton').click(submitLinks);
 
+    $('#fg-close-panel').click(FAGI.PanelsUI.closeOpenPanel);
+
     $('#previewPanel').data("opened", false);
     $('#connectionMenu').click(expandConnectionPanel);
     $('#connectionPanel').data("opened", false);

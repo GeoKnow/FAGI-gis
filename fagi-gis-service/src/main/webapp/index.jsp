@@ -263,7 +263,6 @@
                                     <li><a id="bboxTool" href="#">bounding box select</a></li>
                                     <li><a id="fetchTool" href="#">fetch unlinked</a></li>
                                     <li><a id="clusteringTool" href="#">perform clustering</a></li>
-                                    <li><a href="#">find similar</a></li>
                                     <li class="divider"></li>
                                     <li><a href="#">advanced search</a></li>
                                     <li><a href="#">sparql</a></li>

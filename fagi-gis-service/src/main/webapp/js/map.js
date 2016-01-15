@@ -192,6 +192,25 @@ FAGI.PanelsUI = {
         //$("#mainPanel").height("0%");
     },
     
+    closeOpenPanel      :       function () {
+        FAGI.PanelsUI.hideAllPanels();    
+        //alert("ole");
+        if (FAGI.PanelsUI.lastClickedMenu != null) {
+            FAGI.PanelsUI.lastClickedMenu.data("opened", false);
+            FAGI.PanelsUI.lastClickedMenu = null;
+            
+            $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
+            $("#mainPanel").width("0%");
+            $("#mainPanel").height("0%");
+            //$("#map").removeClass("split content");
+            //$("#fagi").removeClass("split split-horizontal");
+            //$("#pane").width("0%");
+            $('.gutter').remove();
+            $("#map").width("100%");
+        }
+        FAGI.MapUI.map.updateSize();
+    },
+
     closeAllPanels      :       function (activePanel) {
         $("#connectionPanel").currentlyOpened = false;
         $("#datasetPanel").currentlyOpened = false;
@@ -2805,6 +2824,18 @@ function onFusedSelect(event) {
     });
 
     if (typeof event.feature.attributes.la !== "undefined") {
+        var originalA = FAGI.MapUI.wkt.read(event.feature.attributes.la.attributes.oGeom);
+        var originalB = FAGI.MapUI.wkt.read(event.feature.attributes.lb.attributes.oGeom);
+        
+        originalA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        originalB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        
+        var centerA = originalA.geometry.getCentroid(true);
+        var centerB = originalA.geometry.getCentroid(true);
+        
+        event.feature.attributes.la.geometry.move(centerA.x, centerA.y);
+        event.feature.attributes.lb.geometry.move(centerB.x, centerB.y);
+        
         event.feature.attributes.la.style = null;
         event.feature.attributes.lb.style = null;
     }
@@ -2892,6 +2923,20 @@ function onLinkFeatureSelect(event) {
         });
         
         expandPreviewPanel();
+        
+        alert('hu');
+        
+        var originalA = FAGI.MapUI.wkt.read(event.feature.attributes.la.attributes.oGeom);
+        var originalB = FAGI.MapUI.wkt.read(event.feature.attributes.lb.attributes.oGeom);
+        
+        originalA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        originalB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+
+        //event.feature.attributes.la.geometry = originalA.geometry;
+        //event.feature.attributes.lb.geometry = originalB.geometry;
+        
+        event.feature.attributes.la.move(originalA.geometry.getCentroid(true));
+        event.feature.attributes.lb.move(originalB.geometry.getCentroid(true));
         
         event.feature.attributes.la.style = null;
         event.feature.attributes.lb.style = null;
