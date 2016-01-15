@@ -79,6 +79,11 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
 import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.JsonProcessingException;
+import org.codehaus.jackson.map.JsonSerializer;
+import org.codehaus.jackson.map.SerializerProvider;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 import virtuoso.jdbc4.VirtuosoConnection;
 import virtuoso.jdbc4.VirtuosoException;
 import virtuoso.jdbc4.VirtuosoPreparedStatement;
@@ -253,22 +258,33 @@ public class BatchFusionServlet extends HttpServlet {
     }
     
     private class JSONFusionResult {
-        String geom;
+        private class StringBuilderToStringSerializer extends JsonSerializer<StringBuilder> {
+
+        @Override
+        public void serialize(StringBuilder t, JsonGenerator jg, SerializerProvider sp) throws IOException, JsonProcessingException {
+            t.setLength(t.length()- 1);
+            jg.writeObject(t.toString());
+        }
+
+    }
+    
+    @JsonSerialize(using = StringBuilderToStringSerializer.class, as = String.class)
+        StringBuilder geom;
         String nb;
 
         public JSONFusionResult() {
         }
 
-        public JSONFusionResult(String geom, String nb) {
+        public JSONFusionResult(StringBuilder geom, String nb) {
             this.geom = geom;
             this.nb = nb;
         }
 
-        public String getGeom() {
+        public StringBuilder getGeom() {
             return geom;
         }
 
-        public void setGeom(String geom) {
+        public void setGeom(StringBuilder geom) {
             this.geom = geom;
         }
 
@@ -499,14 +515,25 @@ public class BatchFusionServlet extends HttpServlet {
                 ret.setCluster(activeCluster);
                 String subject;
                 String subjectB;
-                StringBuilder geom = new StringBuilder();
                 
                 try (PreparedStatement stmt = dbConn.prepareStatement(queryGeoms);
                         ResultSet rs = stmt.executeQuery();) {
                     while (rs.next()) {
-                        System.out.println("GEOMETRY   :   "+rs.getString(3));
+                        final String geomStr = rs.getString(3);
+                        final String subA = rs.getString(1);
+                        final String subB = rs.getString(2);
                         
-                        JSONFusionResult res = new JSONFusionResult(rs.getString(3), rs.getString(2));
+                        System.out.println("GEOMETRY   :   "+geomStr);
+                        StringBuilder geom;
+                        
+                        if ( ret.getFusedGeoms().containsKey(subA) ) {
+                            geom = ret.getFusedGeoms().get(subA).getGeom();
+                            geom.append(geomStr).append("|");
+                        } else {
+                            geom = new StringBuilder(geomStr+"|");
+                        }
+                        System.out.println("GEOMETRY   :   "+geom.toString());
+                        JSONFusionResult res = new JSONFusionResult(geom, subB);
                         ret.getFusedGeoms().put(rs.getString(1), res);
                     }
                 } catch (SQLException ex) {
@@ -515,6 +542,11 @@ public class BatchFusionServlet extends HttpServlet {
                     LOG.debug("SQLException thrown during temp graph populating : " + ex.getSQLState());
                 }
                 
+                for (JSONFusionResult value : ret.getFusedGeoms().values()) {
+                    final StringBuilder geomSB = value.getGeom();
+                    geomSB.setLength(geomSB.length()-1);
+                }
+
                 VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
                 virtImp.setTransformationID(trans.getID());
             
@@ -556,15 +588,16 @@ public class BatchFusionServlet extends HttpServlet {
             */
             
             List<Link> linkList = (List<Link>) sess.getAttribute("links_list_chosen");
+            /*
             for ( Link lnk : linkList) {
                 System.out.println("\n\n\n\n\n\nLinks");
                 System.out.println(lnk.getNodeA());
                 System.out.println(lnk.getNodeB());
             }
             System.out.println("Links End\n\n\n\n\n\n");
-
+            */  
             SPARQLUtilities.clearMetadataGraphs(vSet, grConf);
-                    
+                  
             int lastIndex = 0;
             do {
                 System.out.println("Running link creation loop " + linkList.size());

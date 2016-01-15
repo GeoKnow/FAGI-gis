@@ -1263,32 +1263,39 @@ function addGeom(feat, geom) {
     toDeleteFeatures = new Array();
     feat.attributes.la.style = { display : 'none' };
     feat.attributes.lb.style = { display : 'none' };
-     
-    var linkFeature = FAGI.MapUI.wkt.read(geom);
+    
+    FAGI.MapUI.Layers.vectorsA.drawFeature(feat.attributes.la);
+    FAGI.MapUI.Layers.vectorsB.drawFeature(feat.attributes.lb);
+    
     //console.log("Link feature "+linkFeature);
     //alert(resp.geom);
-    if (Object.prototype.toString.call(linkFeature) === '[object Array]') {
-        //alert('Array');
-        for (var i = 0; i < linkFeature.length; i++) {
-            linkFeature[i].geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
-            linkFeature[i].attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
-            linkFeature[i].validated = true;
-            linkFeature[i].prev_fused = true;
-            
-            FAGI.MapUI.Layers.vectorsFused.addFeatures([linkFeature[i]]);
-            //alert('done');
-        }
-        toDeleteFeatures[toDeleteFeatures.length] = feat;
-    } else {
-        //alert('reached');
-        linkFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
-        linkFeature.attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
+    $.each(geom.split('|'), function (index, value) {
+        //alert(index + ": " + value);
+        var linkFeature = FAGI.MapUI.wkt.read(value);
         
-        linkFeature.prev_fused = true;
-        linkFeature.validated = true;
-        FAGI.MapUI.Layers.vectorsFused.addFeatures([linkFeature]);
-    }
+        if (Object.prototype.toString.call(linkFeature) === '[object Array]') {
+            //alert('Array');
+            for (var i = 0; i < linkFeature.length; i++) {
+                linkFeature[i].geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+                linkFeature[i].attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
+                linkFeature[i].validated = true;
+                linkFeature[i].prev_fused = true;
 
+                FAGI.MapUI.Layers.vectorsFused.addFeatures([linkFeature[i]]);
+                //alert('done');
+            }
+            toDeleteFeatures[toDeleteFeatures.length] = feat;
+        } else {
+            //alert('reached');
+            linkFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+            linkFeature.attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
+
+            linkFeature.prev_fused = true;
+            linkFeature.validated = true;
+            FAGI.MapUI.Layers.vectorsFused.addFeatures([linkFeature]);
+        }
+    });
+    
     //FAGI.MapUI.Layers.vectorsA.redraw();
     //FAGI.MapUI.Layers.vectorsB.redraw();
     //FAGI.MapUI.Layers.vectorsLinks.refresh();

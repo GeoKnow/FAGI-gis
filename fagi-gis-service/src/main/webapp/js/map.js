@@ -2378,14 +2378,17 @@ function doDragA(feature, pixel) {
                     } 
                 }
                 FAGI.MapUI.Layers.vectorsLinks.destroyFeatures([FAGI.ActiveState.selectedGeomA.attributes.links[i]]);
+                var original = FAGI.MapUI.wkt.read(FAGI.ActiveState.selectedGeomA.attributes.oGeom);
                 var start_point = FAGI.ActiveState.selectedGeomA.geometry.getCentroid(true);
                 var end_point = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb.geometry.getCentroid(true);
 
                 FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
                 FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+                original.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
 
                 var start_point_wgs = FAGI.ActiveState.selectedGeomA.geometry.getCentroid(true);
-                var end_point_wgs = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb.geometry.getCentroid(true);
+                var end_point_wgs = original.geometry.getCentroid(true);
+                //var end_point_wgs = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb.geometry.getCentroid(true);
 
                 globalOffsetAX = end_point_wgs.x - start_point_wgs.x;
                 globalOffsetAY = end_point_wgs.y - start_point_wgs.y;
@@ -2515,14 +2518,17 @@ function doDragB(feature, pixel) {
                     } 
                 }
                 FAGI.MapUI.Layers.vectorsLinks.destroyFeatures([FAGI.ActiveState.selectedGeomB.attributes.links[i]]);
+                var original = FAGI.MapUI.wkt.read(FAGI.ActiveState.selectedGeomB.attributes.oGeom);
                 var start_point = FAGI.ActiveState.selectedGeomB.geometry.getCentroid(true);
                 var end_point = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la.geometry.getCentroid(true);
 
                 FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
                 FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
-
+                original.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+                
                 var start_point_wgs = FAGI.ActiveState.selectedGeomB.geometry.getCentroid(true);
-                var end_point_wgs = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la.geometry.getCentroid(true);
+                var end_point_wgs = original.geometry.getCentroid(true);
+                //var end_point_wgs = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la.geometry.getCentroid(true);
 
                 //console.log(globalOffsetBX);
                 //console.log(end_point_wgs.x + " " + end_point_wgs.x);
