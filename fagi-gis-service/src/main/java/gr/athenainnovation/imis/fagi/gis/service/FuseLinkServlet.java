@@ -383,7 +383,8 @@ public class FuseLinkServlet extends HttpServlet {
                     deleteSelectedProperties(restAction, selectedFusions[i].getAction(), i, nodeA, tGraph, sess, grConf, vSet, selectedFusions );
                 }
             }
-            insertRemaining(nodeA, grConf, vSet);
+            
+            insertRemaining(nodeA, restAction, grConf, vSet);
             SPARQLUtilities.clearFusedLink(nodeA, grConf, vSet.getConnection());
             
             System.out.println(mapper.writeValueAsString(ret));
@@ -426,10 +427,14 @@ public class FuseLinkServlet extends HttpServlet {
         }
     }
     
-    private void insertRemaining(String node, GraphConfig grConf, VirtGraph vSet) {
+    private void insertRemaining(String node, String restAction, GraphConfig grConf, VirtGraph vSet) {
         Connection virt_conn = vSet.getConnection();
         StringBuilder getFromB = new StringBuilder();
         StringBuilder getFromA = new StringBuilder();
+        
+        if (restAction.equalsIgnoreCase("None")) {
+            return;
+        }
 
         getFromA.append("SPARQL INSERT\n");
         getFromA.append("  { GRAPH <").append(grConf.getTargetTempGraph()).append("> {\n");
@@ -455,16 +460,23 @@ public class FuseLinkServlet extends HttpServlet {
         getFromB.append("\n");
         getFromB.append("}");
 
-        System.out.println("GET FROM REMAINING B \n" + getFromB);
-        System.out.println("GET FROM REMAINING A \n" + getFromA);
+        //System.out.println("GET FROM REMAINING B \n" + getFromB);
+        //System.out.println("GET FROM REMAINING A \n" + getFromA);
 
         // Populate with data from the Sample Liink set
+        
         try (PreparedStatement populateDataA = virt_conn.prepareStatement(getFromA.toString());
                 PreparedStatement populateDataB = virt_conn.prepareStatement(getFromB.toString())) {
             //starttime = System.nanoTime();
 
-            populateDataA.executeUpdate();
-            populateDataB.executeUpdate();
+            if (restAction.equalsIgnoreCase("Keep Both")
+                    || restAction.equalsIgnoreCase("Keep A")) {
+                populateDataA.executeUpdate();
+            }
+            if (restAction.equalsIgnoreCase("Keep Both")
+                    || restAction.equalsIgnoreCase("Keep B")) {
+                populateDataB.executeUpdate();
+            }
 
         } catch (SQLException ex) {
 

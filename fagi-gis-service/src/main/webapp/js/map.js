@@ -2827,14 +2827,17 @@ function onFusedSelect(event) {
         var originalA = FAGI.MapUI.wkt.read(event.feature.attributes.la.attributes.oGeom);
         var originalB = FAGI.MapUI.wkt.read(event.feature.attributes.lb.attributes.oGeom);
         
-        originalA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
-        originalB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        originalA.attributes = {'a': event.feature.attributes.la.attributes.a, 'cluster': 'Unset', 'opacity': 0.3, 'oGeom': event.feature.attributes.la.attributes.oGeom};
+        FAGI.MapUI.Layers.vectorsA.addFeatures([originalA]);
         
-        var centerA = originalA.geometry.getCentroid(true);
-        var centerB = originalA.geometry.getCentroid(true);
+        originalB.attributes = {'a': event.feature.attributes.lb.attributes.a, 'cluster': 'Unset', 'opacity': 0.3, 'oGeom': event.feature.attributes.lb.attributes.oGeom};
+        FAGI.MapUI.Layers.vectorsB.addFeatures([originalB]);
         
-        event.feature.attributes.la.geometry.move(centerA.x, centerA.y);
-        event.feature.attributes.lb.geometry.move(centerB.x, centerB.y);
+        FAGI.MapUI.Layers.vectorsA.removeFeatures([event.feature.attributes.la]);
+        FAGI.MapUI.Layers.vectorsB.removeFeatures([event.feature.attributes.lb]);
+
+        event.feature.attributes.la = originalA;
+        event.feature.attributes.lb = originalB;
         
         event.feature.attributes.la.style = null;
         event.feature.attributes.lb.style = null;
