@@ -2489,7 +2489,7 @@ function endDragA(feature, pixel) {
         //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
         FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
         //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
-        FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+        //FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
         //FAGI.ActiveState.selectedGeomA.state = OpenLayers.State.UPDATE;
         FAGI.ActiveState.selectedGeomA = null;
     }
@@ -2628,6 +2628,41 @@ function doDragB(feature, pixel) {
 // Featrue stopped moving 
 function endDragB(feature, pixel) {
      if (FAGI.ActiveState.selectedGeomB != null) {
+        FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomB));
+        alert(FAGI.ActiveState.selectedGeomB.attributes.a);
+        $.ajax({
+            // request type
+            type: "POST",
+            // the URL for the request
+            url: "UpdatePositionServlet",
+            // the data to send (will be converted to a query string)
+            data: {pSubject: FAGI.ActiveState.selectedGeomB.attributes.a, pGeometry: FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomB), pGraph: 'B' },
+            // the type of data we expect back
+            dataType: "json",
+            // code to run if the request succeeds;
+            // the response is passed to the function
+            success: function (responseJson) {
+                
+            },
+            // code to run if the request fails; the raw request and
+            // status codes are passed to the function
+            error: function (xhr, status, errorThrown) {
+                alert("Sorry, there was a problem!");
+                console.log("Error: " + errorThrown);
+                console.log("Status: " + status);
+                console.dir(xhr);
+            },
+            // code to run regardless of success or failure
+            complete: function (xhr, status) {
+                //$('#connLabel').text("connected");
+            }
+        });
+    
+        //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
+        FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
+        //FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
         FAGI.ActiveState.selectedGeomB = null;
     }
 }
