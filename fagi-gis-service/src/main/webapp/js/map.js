@@ -102,7 +102,9 @@ FAGI.Constants = {
                                             '   '+FAGI.PropertyConstants.SAME_AS_PROPERTY+'\n'+
                                             '   ?subjectB \n'+
                                         '   }\n'+
-                                    '}'
+                                    '}',
+                            
+    SERVICE_BUILD           : false
 
 
 };
@@ -186,6 +188,7 @@ FAGI.PanelsUI = {
         $("#linksPanel").hide();
         $("#clusteringPanel").hide();
         $("#fg-fetch-sparql-panel").hide();
+        $("#fg-user-panel").hide();
         $("#previewPanel").hide();
         $("#mainPanel").hide();
         //$("#mainPanel").width("0%");
@@ -217,6 +220,7 @@ FAGI.PanelsUI = {
         $("#fusionPanel").currentlyOpened = false;
         $("#fusionPanel").currentlyOpened = false;
         $("#linksPanel").currentlyOpened = false;
+        $("#fg-user-panel").currentlyOpened = false;
 
         $(activePanel).currentlyOpened = false;
     },
@@ -746,53 +750,6 @@ $(document).ready(function () {
         
     /* NEW INTERFACE */
     FAGI.PanelsUI.hideAllPanels();
-    
-    /*
-    $("#dialog").dialog({
-        position: {
-            my: 'left top',
-            at: 'left top',
-            of: $('#map')
-        },
-        //autoOpen: false,
-        beforeClose: beforeClosePanel,
-        resize: function(event, ui) { 
-            //clearTimeout(doit);
-            //doit = setTimeout(resizedw, 300);
-  
-            $this = $(this);
-            $map = $("#map");
-            $dialog = $("#dialog");
-            $fagi = $("#fagi");
-            var offsetm = $map.offset();
-            var offsetd = $this.offset();
-            var offsetf = $fagi.offset();
-            
-            if ( firstRe ) {
-               //$map.width($map.width() - 50);
-               //firstRe = false;
-            }
-            //alert($this.height());
-            //alert(offsetm.left + "  " + (offsetm.left-offsetd.left) );
-            //alert($fagi.width() + "   " + offsetm.left + "  " + (offsetd.left + $this.width()) );
-            //alert($fagi.width() + "   " + ($map.width() + $dialog.width() )  );
-            //alert(offsetd.left + $this.width() + "  ");
-            //alert(FAGI.PanelsUI.dialogWidth);
-            //alert($this.width() + "  " + $dialog.width());
-            //alert(FAGI.PanelsUI.dialogWidth);
-            //alert($map.height());
-            //alert($map.width());
-            //var diff = ( offsetm.left - (offsetd.left + $this.width() ) ) - 200;
-            var diff = offsetm.left - (offsetm.left-offsetd.left);
-            console.log(diff);
-            //alert(diff);
-            $map.width($map.width() + diff);
-            //FAGI.MapUI.map.updateSize();
-            
-        },
-        draggable: false
-    });
-    */
    
     FAGI.PanelsUI.dialogWidth = $("#dialog").width();
     
@@ -1837,27 +1794,55 @@ function expandConnectionPanel() {
     
     
     FAGI.MapUI.map.updateSize();
-    //FAGI.PanelsUI.hideAllPanels();
-    
-    /*FAGI.PanelsUI.hideAllPanels();
-    //alert(FAGI.PanelsUI.lastClickedMenu);
-    //alert($(FAGI.PanelsUI.lastClickedMenu).is($("#connectionPanel")));
-    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#connectionPanel")))) {
-        //alert($(FAGI.PanelsUI.lastClickedMenu));
-        $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
-    }
-    FAGI.PanelsUI.lastClickedMenu = $("#connectionPanel");
+}
 
-    $('#dialog').dialog('option', 'title', 'Connection');
-    $("#connectionPanel").show();
-    //alert($("#connectionPanel").data("opened"));
-    if ($("#connectionPanel").data("opened")) {
-        animatePanel(0, $("#connectionPanel").data("opened"));
-        $("#connectionPanel").data("opened", false);
+function expandUserPanel() {
+    FAGI.PanelsUI.hideAllPanels();
+    
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-panel")))) {
+
+        $("#mainPanel").show();
+        $("#fg-user-panel").show();
+        FAGI.PanelsUI.lastClickedMenu.data("opened", false);
+        $("#fg-user-panel").data("opened", true);
+        FAGI.PanelsUI.lastClickedMenu = $("#fg-user-panel");
+        
     } else {
-        animatePanel(33, $("#connectionPanel").data("opened"));
-        $("#connectionPanel").data("opened", true);
-    }*/
+        if ($("#fg-user-panel").data("opened")) {
+            $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
+            $("#mainPanel").width("0%");
+            $("#mainPanel").height("0%");
+            //$("#map").removeClass("split content");
+            //$("#fagi").removeClass("split split-horizontal");
+            //$("#pane").width("0%");
+            $('.gutter').remove();
+            $("#map").width("100%");
+            
+            FAGI.PanelsUI.lastClickedMenu = null;
+            $("#fg-user-panel").data("opened", false);
+        } else {
+            $("#mainPanel").show();    
+            $("#mainPanel").width("100%");
+            $("#mainPanel").height("100%");
+
+            $("#fg-user-panel").show();
+
+            Split(['#mainPanel', '#map'], {
+                gutterSize: 8,
+                sizes: [30, 70],
+                onDragEnd: function (event, ui) {
+                    FAGI.MapUI.map.updateSize();
+                },
+                cursor: 'col-resize'
+            });
+            
+            FAGI.PanelsUI.lastClickedMenu = $("#fg-user-panel");
+            $("#fg-user-panel").data("opened", true);
+        }
+    }
+    
+    
+    FAGI.MapUI.map.updateSize();
 }
 
 function expandMatchingPanel() {

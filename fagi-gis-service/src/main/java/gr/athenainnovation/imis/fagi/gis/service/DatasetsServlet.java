@@ -11,11 +11,13 @@ import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.shared.JenaException;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.json.JSONDatasetConfigResult;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
+import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import java.io.IOException;
@@ -27,6 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.log4j.Logger;
+import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
@@ -118,10 +121,10 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setGraphL(request.getParameter("l_graph"));
             graphConf.setEndpointL(request.getParameter("l_end"));
 
-            System.out.println(graphConf.getEndpointA());
-            System.out.println(graphConf.getEndpointB());
-            System.out.println(graphConf.getGraphA());
-            System.out.println(graphConf.getGraphB());
+            //System.out.println(graphConf.getEndpointA());
+            //System.out.println(graphConf.getEndpointB());
+            //System.out.println(graphConf.getGraphA());
+            //System.out.println(graphConf.getGraphB());
             
             // [FAGI_TODOs] add checks 
             graphConf.setTargetGraph(targetGraph);
@@ -135,6 +138,30 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setMetadataGraphB(metadataGraphB);
             graphConf.setTypeGraphA(typeGraphA);
             graphConf.setTypeGraphB(typeGraphB);
+            
+            if ( Constants.FAAS ) {
+                // Try a dummy connection to Virtuoso
+                VirtGraph vSet = null;
+                try {
+                    vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
+                            dbConf.getUsername(),
+                            dbConf.getPassword());
+                } catch (JenaException connEx) {
+                    LOG.error("Virtgraph Create Exception", connEx);
+                    vSet = null;
+                    //ret.setMessage("Connection to Virtuoso failed!");
+                    //ret.setStatusCode(-1);
+                    //System.out.println(connEx.getMessage());      
+                    out.println(mapper.writeValueAsString(ret));
+                    out.close();
+
+                    return;
+                }
+            
+                System.out.println("Creating User FAGI");
+                SPARQLUtilities.createSPARQLUser(vSet.getConnection(), "FAGI", "FAGI");
+                SPARQLUtilities.createSPARQLUserGraph(graphConf, vSet.getConnection(), "FAGI", "FAGI");
+            }
             
             /*
             int depthA = SPARQLUtilities.getGraphDepth(graphConf.getGraphA(), graphConf.getEndpointA());

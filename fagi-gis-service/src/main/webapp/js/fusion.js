@@ -71,6 +71,8 @@ function init() {
    
     $(".buttonset").buttonset();
     
+    $('#fg-user-create-btn').click(createUser);
+    $('#fg-user-login-btn').click(loginUser);
     $('#connButton').click(setConnection);
     $('#dataButton').click(setDatasets);
     $('#loadButton').click(setConnection);
@@ -83,8 +85,6 @@ function init() {
     $('#fg-close-panel').click(FAGI.PanelsUI.closeOpenPanel);
 
     $('#previewPanel').data("opened", false);
-    $('#connectionMenu').click(expandConnectionPanel);
-    $('#connectionPanel').data("opened", false);
     $('#datasetMenu').click(expandDatasetPanel);
     $('#datasetPanel').data("opened", false);
     $('#linksMenu').click(expandLinksPanel);
@@ -92,6 +92,8 @@ function init() {
     $('#matchingMenu').click(expandMatchingPanel);
     $('#matchingPanel').data("opened", false);
     $('#fusionPanel').data("opened", false);
+    $('#fg-user-panel').data("opened", false);
+    $('#userMenu').click(expandUserPanel);
     $('#clusteringPanel').data("opened", false);
     $('#fg-fetch-sparql-panel').data("opened", false);
     $('#clusteringTool').click(expandClusteringPanel);   
@@ -102,6 +104,24 @@ function init() {
     $('#visibleSelect').click(activateVisibleSelect);
     $('#fg-links-queries-submit').click(linksSPARQLFilter);
     $('#fg-fetch-queries-submit').click(fetchSPARQLContained);
+    
+    if ( FAGI.Constants.SERVICE_BUILD ) {
+        $('#connectionCell').hide();
+        $('#datasetMenu').off();
+        $('#linksMenu').off();
+        $('#matchingMenu').off();
+        $('#clusteringPanel').off();
+        $('#fg-fetch-sparql-panel').off();
+        //$('#datasetMenu').disable();
+        //$('#linksMenu').disable();
+        //$('#matchingMenu').disable();
+        //$('#clusteringPanel').disable();
+        //$('#fg-fetch-sparql-panel').disable();
+    } else {
+        $('#userCell').hide();
+        $('#connectionMenu').click(expandConnectionPanel);
+        $('#connectionPanel').data("opened", false);
+    }
     
     // Reload all links
     $('#fg-links-unfilter-button').click(FAGI.PanelsUI.Callbacks.onUnfilterButtonPressed);
@@ -2395,6 +2415,84 @@ function setConnection()
         type: "POST",
         // the URL for the request
         url: "ConnectionServlet",
+        // the data to send (will be converted to a query string)
+        data: values,
+        // the type of data we expect back
+        dataType: "json",
+        // code to run if the request succeeds;
+        // the response is passed to the function
+        success: function (responseJson) {
+            $('#connLabel').text(responseJson.message);
+            FAGI.Utilities.disableSpinner();
+            if (responseJson.statusCode == 0) {
+                $("#datasetMenu").trigger('click');
+            }
+        },
+        // code to run if the request fails; the raw request and
+        // status codes are passed to the function
+        error: function (xhr, status, errorThrown) {
+            FAGI.Utilities.disableSpinner();
+            alert("Sorry, there was a problem!");
+            console.log("Error: " + errorThrown);
+            console.log("Status: " + status);
+            console.dir(xhr);
+        },
+        // code to run regardless of success or failure
+        complete: function (xhr, status) {
+            //$('#connLabel').text("connected");
+        }
+    });
+}
+
+function createUser()
+{
+    var values = $('#fg-user-div').serialize();
+    FAGI.Utilities.enableSpinner();
+    alert( values );
+    $.ajax({
+        // request type
+        type: "POST",
+        // the URL for the request
+        url: "UserCreationServlet",
+        // the data to send (will be converted to a query string)
+        data: values,
+        // the type of data we expect back
+        dataType: "json",
+        // code to run if the request succeeds;
+        // the response is passed to the function
+        success: function (responseJson) {
+            $('#connLabel').text(responseJson.message);
+            FAGI.Utilities.disableSpinner();
+            if (responseJson.statusCode == 0) {
+                $("#datasetMenu").trigger('click');
+            }
+        },
+        // code to run if the request fails; the raw request and
+        // status codes are passed to the function
+        error: function (xhr, status, errorThrown) {
+            FAGI.Utilities.disableSpinner();
+            alert("Sorry, there was a problem!");
+            console.log("Error: " + errorThrown);
+            console.log("Status: " + status);
+            console.dir(xhr);
+        },
+        // code to run regardless of success or failure
+        complete: function (xhr, status) {
+            //$('#connLabel').text("connected");
+        }
+    });
+}
+
+function loginUser()
+{
+    var values = $('#fg-user-div').serialize();
+    FAGI.Utilities.enableSpinner();
+    //alert( values );
+    $.ajax({
+        // request type
+        type: "POST",
+        // the URL for the request
+        url: "LoginUserServlet",
         // the data to send (will be converted to a query string)
         data: values,
         // the type of data we expect back

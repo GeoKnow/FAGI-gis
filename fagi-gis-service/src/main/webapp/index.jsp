@@ -243,7 +243,8 @@
                 <table style="width:100%; height:1%;">
                     <tr>
 
-                        <td><a id="connectionMenu" href="#connection">connection</a></td>
+                        <td id="connectionCell"><a id="connectionMenu" href="#connection">connection</a></td>
+                        <td id="userCell"><a id="userMenu" href="#user">user</a></td>
                         <td><a id="datasetMenu" href="#datasets">datasets</a></td>
                         <td><a id="linksMenu" href="#links">links</a></td>
                         <td><a id="matchingMenu" href="#fusion">matching</a></td>
@@ -307,6 +308,25 @@
                             <td>Object</td> 
                         </tr>
                     </table>
+                </div>
+                 <div id="fg-user-panel">
+                    <form id="fg-user-div" name="user_input"><p />
+                        <div class="form-group">
+                            <label for="fg-user-mail">E-Mail:</label>
+                            <input id="fg-user-mail" type="text" name="u_mail" value="" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-user-name">Username:</label>
+                            <input id="fg-user-name" type="text" name="u_name" value="" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="fg-user-pass">Password:</label>
+                            <input id="fg-user-pass" type="password" name="u_pass" value="" class="form-control">
+                        </div>
+                        <label id="fg-user-label" for="male">User not logged</label>
+                        <input id="fg-user-create-btn" type="submit" value="Create" style="float:right" onclick="return false;"/>
+                        <input id="fg-user-login-btn" type="submit" value="Login" style="float:right" onclick="return false;"/>
+                    </form>
                 </div>
                  <div id="datasetPanel">
                     <form id="dataDiv" name="data_input">

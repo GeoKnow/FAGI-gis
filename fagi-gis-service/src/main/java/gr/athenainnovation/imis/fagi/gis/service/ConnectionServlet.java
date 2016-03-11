@@ -87,56 +87,8 @@ public class ConnectionServlet extends HttpServlet {
             // Currrently when set to Debug, Jena really litters the output
             ARQ.setExecutionLogging(Explain.InfoLevel.ALL) ;
             Logger logger = Log.getFAGILogger();
-            logger.setLevel(Level.OFF);
-            /*Enumeration e = logger.getAllAppenders();
-            System.out.println(e.toString());
-            while (e.hasMoreElements()) {
-                Appender app = (Appender) e.nextElement();
-                if ( app instanceof FileAppender) {
-                    FileAppender fapp = (FileAppender)app;
-                    if (SystemUtils.IS_OS_MAC_OSX) {
-                        fapp.setFile("/Users/nickvitsas/Desktop/log.txt");
-                    }
-                    else if (SystemUtils.IS_OS_WINDOWS)  {
-                        fapp.setFile("/c/Users/nick/Desktop/log.txt");
-                    }
-                }
-                    
-            }
-            */
-            /*DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-            Date date = new Date();
-
-            RollingFileAppender appender = new RollingFileAppender();
-            appender.setAppend(true);
-            appender.setMaxFileSize("1MB");
-            appender.setMaxBackupIndex(1);
-            if (SystemUtils.IS_OS_MAC_OSX) {
-                File yourFile = new File("/Users/nickvitsas/Desktop/log.txt");
-                yourFile.createNewFile();
-                appender.setFile("/Users/nickvitsas/Desktop/log.txt");
-            } else if (SystemUtils.IS_OS_WINDOWS) {
-                File yourFile = new File("C:\\Users\\nick\\Desktop\\log.txt");
-                yourFile.createNewFile();
-                appender.setFile("C:\\Users\\nick\\Desktop\\log.txt");
-            } else {
-                appender.setFile("/var/log/fagi-gis-service/log.txt");
-            }
-            PatternLayout layOut = new PatternLayout();
-            layOut.setConversionPattern("%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n");
-            appender.setLayout(layOut);
-
-            logger.addAppender(appender);
-            */
-            /*
-             Enumeration e = logger.getAllAppenders();
-             System.out.println(e.toString());
-             while ( e.hasMoreElements() ) {
-             FileAppender app = (FileAppender) e.nextElement();
+            logger.setLevel(Level.ALL);
             
-             System.out.println(app.);
-             }
-             */
             if (sess == null) {
                 ret.setMessage("Failed to create session!");
                 ret.setStatusCode(-1);
@@ -204,7 +156,7 @@ public class ConnectionServlet extends HttpServlet {
             // Try a dummy connection to Postgres to check if a database with the same name exists
             try {
                 String url = Constants.DB_URL;
-                dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
+                dbConn = DriverManager.getConnection(url , dbConf.getDBUsername(), dbConf.getDBPassword());
                 //dbConn.setAutoCommit(false);
             } catch (SQLException sqlex) {
                 LOG.error("Postgis Connect Exception", sqlex);
