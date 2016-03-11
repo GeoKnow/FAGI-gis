@@ -5,6 +5,9 @@
  */
 package gr.athenainnovation.imis.fusion.gis.utils;
 
+import com.hp.hpl.jena.shared.JenaException;
+import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
+import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
 import static gr.athenainnovation.imis.fusion.gis.utils.Constants.NANOS_PER_SECOND;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -12,10 +15,19 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.atlas.web.auth.HttpAuthenticator;
+import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import org.apache.log4j.Logger;
+import virtuoso.jena.driver.VirtGraph;
 
 /**
  *
@@ -23,6 +35,94 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class Utilities {
 
+    private static final Logger LOG = Log.getClassFAGILogger(Utilities.class);    
+    
+    public static DBConfig setUpDefaultDatabase() {
+        final String DEFAULT_VIRT_USER = "dba";
+        final String DEFAULT_VIRT_PASS = "dba";
+        final String DEFAULT_VIRT_URL = "localhost:1111";
+        final String DEFAULT_POST_DB = "fagi";
+        final String DEFAULT_POST_USER = "postgres";
+        final String DEFAULT_POST_PASS = "1111";
+        
+        boolean                         success = true;
+        
+        VirtGraph vSet = null;
+        DBConfig                        dbConf = new DBConfig("", "", "", "", "", "", "");
+        Connection                      dbConn = null;
+        
+        dbConf.setUsername(DEFAULT_VIRT_USER);
+        dbConf.setPassword(DEFAULT_VIRT_PASS);
+        dbConf.setDbURL(DEFAULT_VIRT_URL);
+
+            //HttpAuthenticator authenticator = new SimpleAuthenticator(DEFAULT_VIRT_USER, DEFAULT_VIRT_PASS.toCharArray());
+        //sess.setAttribute("fg-sparql-auth", authenticator);
+        dbConf.setDbName(DEFAULT_POST_DB);
+        dbConf.setDbUsername(DEFAULT_POST_USER);
+        dbConf.setDbPassword(DEFAULT_POST_PASS);
+
+        // Try a dummy connection to Virtuoso
+        try {
+            vSet = new VirtGraph("jdbc:virtuoso://" + DEFAULT_VIRT_URL + "/CHARSET=UTF-8",
+                    DEFAULT_VIRT_USER,
+                    DEFAULT_VIRT_PASS);
+        } catch (JenaException connEx) {
+            LOG.error("Virtgraph Create Exception", connEx);
+
+        }
+
+        // Try loading the postgres sql driver
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException ex) {
+            LOG.info("Driver Class Not Found Exception");
+            LOG.error("Driver Class Not Found Exception ", ex);
+
+        }
+
+        // Try a dummy connection to Postgres to check if a database with the same name exists
+        try {
+            String url = Constants.DB_URL;
+            dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
+            //dbConn.setAutoCommit(false);
+        } catch (SQLException sqlex) {
+            LOG.info("Postgis Connect Exception");
+            LOG.error("Postgis Connect Exception ", sqlex);
+        }
+
+        // Check database existance ( PostgreSQL specific )
+        PreparedStatement stmt;
+        // If it has a row then the database exists
+        boolean createDB = true;
+        try {
+            stmt = dbConn.prepareStatement("SELECT 1 from pg_database WHERE datname = ? ");
+
+            stmt.setString(1, dbConf.getDBName());
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                System.out.println("Database already exists");
+                createDB = false;
+            }
+        } catch (SQLException ex) {
+            LOG.trace("SQLException thrown table probing");
+            LOG.debug("SQLException thrown table probing : " + ex.getMessage());
+            LOG.debug("SQLException thrown table probing : " + ex.getSQLState());
+        }
+
+        // Create if needed
+        if (createDB) {
+            final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
+            success = databaseInitialiser.initialise(dbConf);
+        } else {
+            final DatabaseInitialiser databaseInitialiser = new DatabaseInitialiser();
+            success = databaseInitialiser.clearTables(dbConf);
+        }
+
+        return dbConf;
+    }
+    
+    
     public static String getPredicateOntology(String pred )
     {
         String onto = StringUtils.substringBefore(pred, "#");

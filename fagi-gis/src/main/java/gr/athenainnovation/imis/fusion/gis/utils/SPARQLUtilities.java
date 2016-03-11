@@ -66,6 +66,81 @@ public class SPARQLUtilities {
         return "WITH <" + tGraph + "> INSERT { <" + subject +"> <" + predicate +"> " + object +" }";
     }
     
+    public static boolean createSPARQLUser(Connection virt_conn, String name, String pass) {
+        boolean success = true;
+        final String queryCreateUser = "DB.DBA.USER_CREATE ('"+name+"', '"+pass+"')";
+        //final String queryCreateUser = "DB.DBA.USER_CREATE ('FAGI', 'FAGI')";
+        final String queryGrantSparUL = "GRANT SPARQL_UPDATE TO \""+name+"\"";
+        //final String queryGrantSparUL = "GRANT SPARQL_UPDATE TO \"FAGI\"";
+
+        System.out.println("Excecuting " + queryCreateUser );
+        System.out.println("Excecuting " + queryGrantSparUL );
+        try (PreparedStatement createUserStmt = virt_conn.prepareStatement(queryCreateUser);
+             PreparedStatement grantSparULStmt = virt_conn.prepareStatement(queryGrantSparUL)) {
+
+            virt_conn.setAutoCommit(false);
+            System.out.println("Excecuting");
+            createUserStmt.execute();
+            grantSparULStmt.execute();
+            virt_conn.commit();
+            virt_conn.setAutoCommit(true);
+            
+        } catch (SQLException ex) {
+            LOG.trace("Creating user failed");
+            LOG.debug("Creating user failed : " + ex.getMessage());
+            
+            success = false;
+        }
+
+        if ( !success ) {
+            try {
+                virt_conn.rollback();
+            } catch (SQLException ex) {
+                LOG.trace("Rollback user creation failed");
+                LOG.debug("Rollback user failed : " + ex.getMessage());
+            }
+        }
+        
+        return success;
+    }
+
+    public static boolean createSPARQLUserGraph(GraphConfig grConf, Connection virt_conn, String name, String graphName) {
+        boolean success = true;
+        
+        final String querySetUserPerms = "DB.DBA.RDF_DEFAULT_USER_PERMS_SET (?, 0)";
+        final String querySetUserGraphPerms = "DB.DBA.RDF_GRAPH_USER_PERMS_SET (?, ?, 3)";
+
+        try (PreparedStatement setUserPermsStmt = virt_conn.prepareStatement(querySetUserPerms);
+                PreparedStatement setUserGraphPermsStmt = virt_conn.prepareStatement(querySetUserGraphPerms)) {
+
+            virt_conn.setAutoCommit(false);
+            setUserPermsStmt.execute();
+            setUserPermsStmt.setString(1, name);
+            setUserGraphPermsStmt.execute();
+            setUserGraphPermsStmt.setString(1, graphName);
+            setUserGraphPermsStmt.setString(2, "http://localhost:8890/DAV/test_service");
+            virt_conn.commit();
+            virt_conn.setAutoCommit(true);
+            
+        } catch (SQLException ex) {
+            LOG.trace("Creating user graph failed");
+            LOG.debug("Creating user graph failed");
+            
+            success = false;
+        }
+
+        if ( !success ) {
+            try {
+                virt_conn.rollback();
+            } catch (SQLException ex) {
+                LOG.trace("Rollback user graph creation failed");
+                LOG.debug("Rollback user graph creation failed");
+            }
+        }
+        
+        return success;
+    }
+    
     public static boolean clearFusedLinks(GraphConfig grConf, int activeCluster, Connection virt_conn) {
         final String dropCluster = "SPARQL DROP SILENT GRAPH <"+ grConf.getClusterGraph()+  ">";
         final String dropAllCluster = "SPARQL DROP SILENT GRAPH <"+ grConf.getAllClusterGraph()+  ">";
