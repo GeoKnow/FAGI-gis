@@ -468,35 +468,6 @@
 
                     </form>
                 </div>
-                <div id="connectionPanel">
-                    <form id="connDiv" name="conn_input"><p />
-                        <div class="form-group">
-                            <label for="fg-virt-url">Virtuoso URL:</label>
-                            <input tid="fg-virt-url" ype="text" name="v_url" value="<% out.println(request.getAttribute("postgis-host")+":"+request.getAttribute("postgis-port"));%>" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="fg-virt-name">Virtuoso Username:</label>
-                            <input id="fg-virt-name" type="text" name="v_name" value="dba" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="fg-virt-pass">Virtuoso Password:</label>
-                            <input id="fg-virt-pass" type="password" name="v_pass" value="dba" class="form-control">
-                        </div>
-                         <div class="form-group">
-                            <label for="fg-post-name">PostGIS Username:</label>
-                            <input id="fg-post-name" ype="text" name="p_name" value="<% out.println(request.getAttribute("postgis-username"));%>" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="fg-post-db">PostGIS Database</label>
-                            <input id="fg-post-db" type="text" name="p_data" value="<% out.println(request.getAttribute("postgis-database"));%>" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="fg-post-pass">PostGIS Password:</label>
-                            <input id="fg-post-pass" type="password" name="p_pass" value="<% out.println(request.getAttribute("postgis-password"));%>" class="form-control" value="<% out.println(request.getAttribute("postgis-username"));%>">
-                        </div>
-                        <label id="connLabel" for="male">Connection not established</label><input id="connButton" type="submit" value="Submit" style="float:right" onclick="return false;"/>
-                    </form>
-                </div>
                 <div id="linksPanel">
                     <table id="filterTable">
                         <tbody>

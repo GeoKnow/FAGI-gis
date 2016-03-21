@@ -9,68 +9,68 @@ $(document).ready(function () {                        // When the HTML DOM is r
 });
 
 function init() {
-    $( "input" ).tooltip();
+    $("input").tooltip();
     //$( document ).tooltip();
     FAGI.PanelsUI.hideAllPanels();
-     
+
     FAGI.Utilities.disableSpinner();
-    
+
     /*
-    Split(['#pane', '#map'], {
-      gutterSize: 8,
-      onDragEnd: function (event, ui) {
-                $("#mainPanel").width("0%");
-                $("#mainPanel").height("0%");
-                //$("#map").removeClass("split content");
-                //$("#fagi").removeClass("split split-horizontal");
-                //$("#pane").width("0%");
-                $('.gutter').remove();
-                $("#map").width("100%");
-        },
-      cursor: 'col-resize'
-    });
-    */   
-   
+     Split(['#pane', '#map'], {
+     gutterSize: 8,
+     onDragEnd: function (event, ui) {
+     $("#mainPanel").width("0%");
+     $("#mainPanel").height("0%");
+     //$("#map").removeClass("split content");
+     //$("#fagi").removeClass("split split-horizontal");
+     //$("#pane").width("0%");
+     $('.gutter').remove();
+     $("#map").width("100%");
+     },
+     cursor: 'col-resize'
+     });
+     */
+
     $('#popupBBoxMenu').hide();
     $('#popupTransformMenu').hide();
     $('#popupValidateMenu').hide();
     $('#popupFindLinkMenu').hide();
     $('#fg-info-popup').hide();
-    
+
     $('input').addClass("ui-widget ui-widget-content ui-corner-all");
-    
-    $( "input[type=submit], button" )
-      .button()
-      .click(function( event ) {
-        event.preventDefault();
-      });
-      
+
+    $("input[type=submit], button")
+            .button()
+            .click(function (event) {
+                event.preventDefault();
+            });
+
     // Allow authentication for Remote Endpoints
     $('#fg-auth-dropdown-a').accordion({
-      collapsible: false,
-      heightStyle: "content",
-      active: false
-      
+        collapsible: false,
+        heightStyle: "content",
+        active: false
+
     });
     $('#fg-auth-dropdown-b').accordion({
-      collapsible: false,
-      heightStyle: "content",
-      active: false
+        collapsible: false,
+        heightStyle: "content",
+        active: false
     });
     $('#fg-auth-dropdown-l').accordion({
-      collapsible: false,
-      heightStyle: "content",
-      active: false
+        collapsible: false,
+        heightStyle: "content",
+        active: false
     });
     $('#fg-auth-dropdown-t').accordion({
-      collapsible: false,
-      heightStyle: "content",
-      active: false
+        collapsible: false,
+        heightStyle: "content",
+        active: false
     });
-    
-   
+
+
     $(".buttonset").buttonset();
-    
+
     $('#fg-user-create-btn').click(createUser);
     $('#fg-user-login-btn').click(loginUser);
     $('#connButton').click(setConnection);
@@ -96,71 +96,69 @@ function init() {
     $('#userMenu').click(expandUserPanel);
     $('#clusteringPanel').data("opened", false);
     $('#fg-fetch-sparql-panel').data("opened", false);
-    $('#clusteringTool').click(expandClusteringPanel);   
-    $('#fetchBBoxSPARQLButton').click(expandSPARQLFetchPanel);   
-    $('#multipleTool').click(activateMultipleTool);   
-    $('#bboxTool').click(activateBBoxTool);   
+    $('#clusteringTool').click(expandClusteringPanel);
+    $('#fetchBBoxSPARQLButton').click(expandSPARQLFetchPanel);
+    $('#multipleTool').click(activateMultipleTool);
+    $('#bboxTool').click(activateBBoxTool);
     $('#fetchTool').click(activateFecthUnlinked);
     $('#visibleSelect').click(activateVisibleSelect);
     $('#fg-links-queries-submit').click(linksSPARQLFilter);
     $('#fg-fetch-queries-submit').click(fetchSPARQLContained);
-    
-    if ( FAGI.Constants.SERVICE_BUILD ) {
-        $('#connectionCell').hide();
-        $('#datasetMenu').off();
-        $('#linksMenu').off();
-        $('#matchingMenu').off();
-        $('#clusteringPanel').off();
-        $('#fg-fetch-sparql-panel').off();
-        //$('#datasetMenu').disable();
-        //$('#linksMenu').disable();
-        //$('#matchingMenu').disable();
-        //$('#clusteringPanel').disable();
-        //$('#fg-fetch-sparql-panel').disable();
-    } else {
-        $('#userCell').hide();
-        $('#connectionMenu').click(expandConnectionPanel);
-        $('#connectionPanel').data("opened", false);
-    }
-    
+
+    $('#connectionCell').hide();
+    //$('#datasetMenu').off();
+    //$('#linksMenu').off();
+    //$('#matchingMenu').off();
+    //$('#clusteringPanel').off();
+    //$('#fg-fetch-sparql-panel').off();
+    //$('#datasetMenu').disable();
+    //$('#linksMenu').disable();
+    //$('#matchingMenu').disable();
+    //$('#clusteringPanel').disable();
+    //$('#fg-fetch-sparql-panel').disable();
+
+
     // Reload all links
     $('#fg-links-unfilter-button').click(FAGI.PanelsUI.Callbacks.onUnfilterButtonPressed);
-    
+
     // Clustering
     $('#clusterButton').click(performClustering);
-    $("#clusterSelector").change(FAGI.MapUI.Callbacks.onClusterSelectionChange); 
-    
+    $("#clusterSelector").change(FAGI.MapUI.Callbacks.onClusterSelectionChange);
+
     $('#fetchBBoxSPARQLButton').click(enableSPARQLFetch);
     $('#transformBBoxButton').click(enableBBoxTransform);
     $('#fetchBBoxContainedButton').click(fetchContained);
     //$('#fetchBBoxFindButton').click(fetchContainedAndLink);
     $('#fetchBBoxFindButton').click(FAGI.MapUI.Callbacks.Linking.onBatchFindLinkButtonPressed);
-    
-    $('#moveButton').click(function () {FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
+
+    $('#moveButton').click(function () {
+        FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
         FAGI.MapUI.Controls.dragControlA.activate();
         FAGI.MapUI.Controls.dragControlB.activate();
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
     });
-    $('#scaleButton').click(function () {FAGI.ActiveState.transType = FAGI.Constants.SCALE_TRANS;
+    $('#scaleButton').click(function () {
+        FAGI.ActiveState.transType = FAGI.Constants.SCALE_TRANS;
         FAGI.MapUI.Controls.dragControlA.activate();
         FAGI.MapUI.Controls.dragControlB.activate();
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
     });
-    $('#rotateButton').click(function () {FAGI.ActiveState.transType = FAGI.Constants.ROTATE_TRANS;
+    $('#rotateButton').click(function () {
+        FAGI.ActiveState.transType = FAGI.Constants.ROTATE_TRANS;
         FAGI.MapUI.Controls.dragControlA.activate();
         FAGI.MapUI.Controls.dragControlB.activate();
         document.getElementById("popupTransformMenu").style.opacity = 0;
         document.getElementById("popupTransformMenu").style.display = 'none';
     });
-    
-    $('#valAllButton').click(function () {  
+
+    $('#valAllButton').click(function () {
         var ds = $('#valAllButton').data("dataset");
         if (ds == "A") {
             $.each(FAGI.MapUI.Layers.vectorsA.features, function (index, element) {
                 var links = element.attributes.links;
-                if ( typeof links === "undefined" ) {
+                if (typeof links === "undefined") {
                     console.log(element.attributes.a);
                     FAGI.MapUI.map.zoomToExtent(element.geometry.getBounds());
                 }
@@ -170,24 +168,24 @@ function init() {
                     var bestScore = -1;
                     console.log("Links Count " + links.length);
                     for (var i = 0; i < links.length; i++) {
-                        if ( links[i].validated ) 
+                        if (links[i].validated)
                             continue;
                         var linkScore = links[i].dist + links[i].jIndex;
-                        if ( linkScore > bestScore ) {
+                        if (linkScore > bestScore) {
                             bestScore = linkScore;
                             bestLink = links[i];
                         }
                     }
                     console.log("Best Score " + bestScore);
-                    
-                    if ( bestLink != null )
+
+                    if (bestLink != null)
                         validateLink(bestLink, ds);
                 }
             });
         } else {
             $.each(FAGI.MapUI.Layers.vectorsB.features, function (index, element) {
                 var links = element.attributes.links;
-                if ( typeof links === "undefined" ) {
+                if (typeof links === "undefined") {
                     console.log(element.attributes.a);
                     FAGI.MapUI.map.zoomToExtent(element.geometry.getBounds());
                 }
@@ -195,23 +193,23 @@ function init() {
                     var bestLink = null;
                     var bestScore = -1;
                     for (var i = 0; i < links.length; i++) {
-                        if ( links[i].validated ) 
+                        if (links[i].validated)
                             continue;
                         var linkScore = links[i].dist + links[i].jIndex;
-                        if ( linkScore > bestScore ) {
+                        if (linkScore > bestScore) {
                             bestScore = linkScore;
                             bestLink = links[i];
                         }
                     }
                     console.log("Best Score " + bestScore);
-                    if ( bestLink != null )
+                    if (bestLink != null)
                         validateLink(bestLink, ds);
                 }
             });
         }
     });
-    
-    $('#valButton').click( function () {
+
+    $('#valButton').click(function () {
         var feat = $(this).prop("link");
         document.getElementById("popupValidateMenu").style.opacity = 0;
         document.getElementById("popupValidateMenu").style.display = 'none';
@@ -224,21 +222,21 @@ function init() {
             dataType: "json",
             success: function (responseText) {
                 feat.validated = true;
-                
+
                 var i = 0;
                 var linksA = feat.attributes.la.attributes.links;
                 var linksB = feat.attributes.lb.attributes.links;
                 var toDel = [];
                 var newLinksA = [];
                 var newLinksB = [];
-                for ( i = 0; i < linksA.length; i++ ) {
-                    if (linksA[i].validated == false )
+                for (i = 0; i < linksA.length; i++) {
+                    if (linksA[i].validated == false)
                         toDel[toDel.length] = linksA[i];
                     else
                         newLinksA[newLinksA.length] = linksA[i];
                 }
-                for ( i = 0; i < linksB.length; i++ ) {
-                    if (linksB[i].validated == false )
+                for (i = 0; i < linksB.length; i++) {
+                    if (linksB[i].validated == false)
                         toDel[toDel.length] = linksB[i];
                     else
                         newLinksB[newLinksB.length] = linksB[i];
@@ -250,7 +248,7 @@ function init() {
                 feat.validated = true;
                 FAGI.MapUI.Layers.vectorsLinks.drawFeature(feat);
                 //console.log("All good " + responseText);
-                
+
                 FAGI.Utilities.disableSpinner();
             },
             error: function (responseText) {
@@ -262,13 +260,13 @@ function init() {
             //Options to tell jQuery not to process data or worry about content-type.
         });
     });
-    
+
     // Set Callbacks for Link Creation
     $('#createLinkButton').click(FAGI.MapUI.Callbacks.Linking.onCreateLinkButtonPressed);
     $("#popupFindLinkButton").click(FAGI.MapUI.Callbacks.Linking.onFindLinkPopupButtonPressed);
     $("#fg-popup-find-link-button").click(FAGI.MapUI.Callbacks.Linking.onBatchFindLinkPopupButtonPressed);
     $('#findLinkButton').click(FAGI.MapUI.Callbacks.Linking.onFindLinkButtonPressed);
-    
+
     $('.dropdown').css("z-index", "700000");
 
     var radSpinner = $("#radiusSpinner").spinner({step: 1,
@@ -288,7 +286,7 @@ function init() {
             $(this).change();
         }});
     radSpinner.spinner("value", 100);
-    
+
     var spinner = $("#spinner").spinner({step: 0.05,
         numberFormat: "n",
         min: 0.0,
@@ -301,7 +299,7 @@ function init() {
 
 function validateLink(feat, ds) {
     //console.log(feat.attributes.la.attributes.a);
-    console.log("Dataset "+ds);
+    console.log("Dataset " + ds);
     document.getElementById("popupValidateMenu").style.opacity = 0;
     document.getElementById("popupValidateMenu").style.display = 'none';
     FAGI.Utilities.enableSpinner();
@@ -389,10 +387,10 @@ $(':file').change(function () {
     //Your validation
 });
 
-function enableSPARQLFetch( links ) {
-   
+function enableSPARQLFetch(links) {
+
 }
-    
+
 function createSingleUnvalidatedLinks(feat, links) {
     $.each(links, function (index, element) {
         var featB = null;
@@ -404,10 +402,10 @@ function createSingleUnvalidatedLinks(feat, links) {
             console.log(element.subB);
             if (featB.length > 0) {
                 var retFeat = createUnvalidatedLink(feat, featB[0]);
-                
+
                 retFeat.jIndex = element.jIndex;
                 retFeat.dist = element.dist;
-            
+
                 feat.attributes.links[feat.attributes.links.length] = retFeat;
                 featB[0].attributes.links[featB[0].attributes.links.length] = retFeat;
             } else {
@@ -415,17 +413,17 @@ function createSingleUnvalidatedLinks(feat, links) {
                 polygonFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
                 polygonFeature.attributes = {'links': [], 'a': element.subB, 'cluster': 'Unset', 'opacity': 0.3, 'oGeom': FAGI.MapUI.wkt.write(polygonFeature)};
                 var retFeat = createUnvalidatedLink(feat, polygonFeature);
-                
+
                 retFeat.jIndex = element.jIndex;
                 retFeat.dist = element.dist;
-            
+
                 //console.log(retFeat.attributes.la.attributes.a);
                 polygonFeature.attributes.links[polygonFeature.attributes.links.length] = retFeat;
                 feat.attributes.links[feat.attributes.links.length] = retFeat;
                 //polygonFeature.attributes.a = retFeat.attributes.lb.attributes.a;
                 layer.addFeatures([polygonFeature]);
             }
-                //createUnvalidatedLinkWithGeom(feat, element, layer);
+            //createUnvalidatedLinkWithGeom(feat, element, layer);
         } else {
             featB = FAGI.MapUI.Layers.vectorsA.getFeaturesByAttribute("a", element.subB);
             layer = FAGI.MapUI.Layers.vectorsA;
@@ -433,10 +431,10 @@ function createSingleUnvalidatedLinks(feat, links) {
             console.log(element.subB);
             if (featB.length > 0) {
                 var retFeat = createUnvalidatedLink(featB[0], feat);
-                
+
                 retFeat.jIndex = element.jIndex;
                 retFeat.dist = element.dist;
-            
+
                 feat.attributes.links[feat.attributes.links.length] = retFeat;
                 featB[0].attributes.links[featB[0].attributes.links.length] = retFeat;
             } else {
@@ -444,17 +442,17 @@ function createSingleUnvalidatedLinks(feat, links) {
                 polygonFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
                 polygonFeature.attributes = {'links': [], 'a': element.subB, 'cluster': 'Unset', 'opacity': 0.3, 'oGeom': FAGI.MapUI.wkt.write(polygonFeature)};
                 var retFeat = createUnvalidatedLink(polygonFeature, feat);
-                
+
                 retFeat.jIndex = element.jIndex;
                 retFeat.dist = element.dist;
-            
+
                 console.log(retFeat.attributes.la.attributes.a);
                 polygonFeature.attributes.links[polygonFeature.attributes.links.length] = retFeat;
                 feat.attributes.links[feat.attributes.links.length] = retFeat;
                 //polygonFeature.attributes.a = retFeat.attributes.la.attributes.a;
                 layer.addFeatures([polygonFeature]);
             }
-                //createUnvalidatedLinkWithGeom(feat, element, layer);
+            //createUnvalidatedLinkWithGeom(feat, element, layer);
         }
     });
 }
@@ -465,7 +463,7 @@ function createUnvalidatedLinkWithGeom(feat, elem, layer) {
 
     var start_point = polygonFeature.geometry.getCentroid(true);
     var end_point = feat.geometry.getCentroid(true);
-    
+
     var line2 = new OpenLayers.Geometry.LineString([FAGI.ActiveState.lastPo, FAGI.ActiveState.nowPo]);
     linkFeature = new OpenLayers.Feature.Vector(line2);
     linkFeature.attributes = {'la': nodeA,
@@ -476,7 +474,7 @@ function createUnvalidatedLinkWithGeom(feat, elem, layer) {
 
     var links = [];
     links[0] = linkFeature;
-    
+
     polygonFeature.attributes = {'links': links, 'a': first, 'cluster': 'Unset', 'opacity': 0.3, 'oGeom': FAGI.MapUI.wkt.write(polygonFeature)};
 
     linkFeature.prev_fused = false;
@@ -488,11 +486,11 @@ function createUnvalidatedLinkWithGeom(feat, elem, layer) {
     FAGI.MapUI.Layers.vectorsLinks.addFeatures([linkFeature]);
     FAGI.MapUI.Layers.vectorsLinks.drawFeature(linkFeature);
     layer.addFeatures();
-    
+
     return linkFeature;
 }
 
-function createUnvalidatedLink(nodeA, nodeB) {    
+function createUnvalidatedLink(nodeA, nodeB) {
     var start_point_wgs = nodeA.geometry.getCentroid(true);
     var end_point_wgs = nodeB.geometry.getCentroid(true);
 
@@ -528,18 +526,18 @@ function createNewLink(nodeA, nodeB) {
         if (nodeA.layer == FAGI.MapUI.Layers.vectorsA) {
             // Unless if the dominant set is B
             /*if (!$('#domA').is(":checked")) {
-                var temp = nodeA;
-                nodeA = nodeB;
-                nodeB = temp;
-            }*/
+             var temp = nodeA;
+             nodeA = nodeB;
+             nodeB = temp;
+             }*/
         } else {
             //if ($('#domA').is(":checked")) {
-                var temp = nodeA;
-                nodeA = nodeB;
-                nodeB = temp;
+            var temp = nodeA;
+            nodeA = nodeB;
+            nodeB = temp;
             //}
         }
-        
+
         var line2 = new OpenLayers.Geometry.LineString([FAGI.ActiveState.lastPo, FAGI.ActiveState.nowPo]);
         linkFeature = new OpenLayers.Feature.Vector(line2);
         linkFeature.attributes = {'la': nodeA,
@@ -547,7 +545,7 @@ function createNewLink(nodeA, nodeB) {
             'lb': nodeB,
             'cluster': nodeB.attributes.cluster,
             'opacity': 0.8};
-        
+
         linkFeature.prev_fused = false;
         linkFeature.validated = true;
         nodeA.attributes.links[nodeA.attributes.links.length] = linkFeature;
@@ -578,8 +576,8 @@ function createNewLink(nodeA, nodeB) {
                 alert("All bad " + responseText);
                 alert("Error");
             },
-            data: {'subA' : nodeA.attributes.a, 'subB' : nodeB.attributes.a}
-                    //Options to tell jQuery not to process data or worry about content-type.
+            data: {'subA': nodeA.attributes.a, 'subB': nodeB.attributes.a}
+            //Options to tell jQuery not to process data or worry about content-type.
         });
     } else {
         FAGI.ActiveState.lastPo = null;
@@ -600,7 +598,7 @@ $('#addLinkSchema').click(function () {
     // Property result
     var strA = "";
     var strB = "";
-    
+
     // Add properties from A
     var listA = document.getElementById("linkSchemasA");
     var listItemsA = listA.getElementsByTagName("li");
@@ -611,11 +609,11 @@ $('#addLinkSchema').click(function () {
         if (typeof scoreLbl[0] !== "undefined") {
             scoreLbl[0].innerHTML = "";
         }
-        if ( linkLastSelectedFromA === null )
+        if (linkLastSelectedFromA === null)
             linkLastSelectedFromA = element;
-        
+
         if (element.prev_selected === true) {
-            strA += element.long_name+"|";
+            strA += element.long_name + "|";
             element.prev_selected = false;
         }
     });
@@ -630,15 +628,15 @@ $('#addLinkSchema').click(function () {
         if (typeof scoreLbl[0] !== "undefined") {
             scoreLbl[0].innerHTML = "";
         }
-        if ( linkLastSelectedFromB === null )
+        if (linkLastSelectedFromB === null)
             linkLastSelectedFromB = element;
-        
+
         if (element.prev_selected === true) {
-            strB +=  element.long_name+"|";
+            strB += element.long_name + "|";
             element.prev_selected = false;
         }
     });
-    
+
     strA = strA.substring(0, strA.length - 1);
     strB = strB.substring(0, strB.length - 1);
     //alert(strA);
@@ -670,22 +668,22 @@ $('#addLinkSchema').click(function () {
         node.long_name = strA + FAGI.Constants.PROPERTY_SEPARATOR + strB;
     }
     console.log(node.long_name);
-    
+
     node.innerHTML = text;
-    $( node ).on('input', function (e) {
+    $(node).on('input', function (e) {
         var row = $("#fusionTable tr")[this.rowIndex];
         this.newPred = e.target.value;
         $(row).get(0).newPred = e.target.value;
         $(row).find("td")[1].innerHTML = e.target.value;
     });
-    
+
     next_link_id++;
     document.getElementById("linkMatchList").appendChild(node);
-    
+
     //Reset selections
     linkLastSelectedFromA = null;
     linkLastSelectedFromB = null;
-    
+
     // Update tables
     updateFusionTable(node);
 });
@@ -713,7 +711,7 @@ $('#addSchema').click(function () {
             scoreLbl[0].innerHTML = "";
         }
         if (element.prev_selected === true) {
-            strA += element.long_name+"|";
+            strA += element.long_name + "|";
             element.prev_selected = false;
         }
     });
@@ -728,7 +726,7 @@ $('#addSchema').click(function () {
             scoreLbl[0].innerHTML = "";
         }
         if (element.prev_selected === true) {
-            strB +=  element.long_name+"|";
+            strB += element.long_name + "|";
             element.prev_selected = false;
         }
     });
@@ -767,26 +765,26 @@ $('#addSchema').click(function () {
     //selectedProperties['id'+next_id] = lastSelectedFromA.long_name+FAGI.Constants.PROPERTY_SEPARATOR+lastSelectedFromB.long_name;
     //alert(selectedProperties['id'+next_id]);
     node.innerHTML = text;
-    $( node ).on('input', function (e) {
+    $(node).on('input', function (e) {
         var row = $("#bFusionTable tr")[this.rowIndex - 1];
         this.newPred = e.target.value;
         $(row).get(0).newPred = e.target.value;
         $(row).find("td")[1].innerHTML = e.target.value;
-    });    
-    
+    });
+
     next_id++;
     document.getElementById("matchList").appendChild(node);
-    
+
     //Reset Selection
     lastSelectedFromA = null;
     lastSelectedFromB = null;
-    
+
     // Update fusion table
     updateBFusionTable(node);
 });
 
 function replaceAt(str, at, withChar) {
-    return str.substr(0, at) + withChar + str.substr(at+withChar.length);
+    return str.substr(0, at) + withChar + str.substr(at + withChar.length);
 }
 
 
@@ -805,12 +803,12 @@ function linkMatchedSchemaClicked() {
 
 function assignClusters(assigns) {
     //alert(assigns.numOfClusters);
-    for(var i = 0; i < assigns.numOfClusters; i++) {
+    for (var i = 0; i < assigns.numOfClusters; i++) {
         //alert($("#clusterSelector").html());
-        $("#clusterSelector").append("<option value=\""+i+"\" >Cluster "+i+"</option>");
-        
+        $("#clusterSelector").append("<option value=\"" + i + "\" >Cluster " + i + "</option>");
+
     }
-    
+
     $.each(FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
         var assign = assigns.results[element.attributes.a];
         element.attributes.cluster = assign.cluster;
@@ -818,27 +816,30 @@ function assignClusters(assigns) {
     //$.each(responseJson.foundB, function (index, element) {}
 }
 
-function performClustering () {
+function performClustering() {
     //alert('tom');
-    console.log($( "#slider" ).slider( "value" ));
+    console.log($("#slider").slider("value"));
     var vLen = $("#connVecDirCheck :radio:checked + label").text();
     var vDir = $("#connVecLenCheck :radio:checked + label").text();
     var cov = $("#connCoverageCheck :radio:checked + label").text();
-    
+
     console.log($("#connVecDirCheck :radio:checked + label").text());
     console.log($("#connVecLenCheck :radio:checked + label").text());
     console.log($("#connCoverageCheck :radio:checked + label").text());
-    
-    if ( vLen == "" && vDir == "" && cov == "" ) {
+
+    if (vLen == "" && vDir == "" && cov == "") {
         alert("please select at least one attribute for clustering");
     } else {
         var sendData = new Object();
-        
-        if (vLen == 'YES') sendData.vLen = 'YES';
-        if (vDir == 'YES') sendData.vDir = 'YES';
-        if (vLen == 'YES') sendData.cov = 'YES';
-        sendData.clusterCount = $( "#slider" ).slider( "value" );
-        
+
+        if (vLen == 'YES')
+            sendData.vLen = 'YES';
+        if (vDir == 'YES')
+            sendData.vDir = 'YES';
+        if (vLen == 'YES')
+            sendData.cov = 'YES';
+        sendData.clusterCount = $("#slider").slider("value");
+
         //alert('file', $('input[type=file]')[0].files[0]);
         //alert($('#swapButton').is(":checked"));
         //alert('hey');
@@ -860,7 +861,7 @@ function performClustering () {
                 alert("Error");
             },
             data: sendData
-            //Options to tell jQuery not to process data or worry about content-type.
+                    //Options to tell jQuery not to process data or worry about content-type.
         });
     }
 }
@@ -892,7 +893,7 @@ $('#removeSchema').click(function () {
     //alert("Start : "+start);
     document.getElementById("matchList").removeChild(FAGI.ActiveState.lastMatchedSchemaClicked);
     //alert('done : ' + FAGI.ActiveState.lastMatchedSchemaClicked.rowIndex);
-    $("#bFusionTable tr").eq(FAGI.ActiveState.lastMatchedSchemaClicked.rowIndex-1).remove();
+    $("#bFusionTable tr").eq(FAGI.ActiveState.lastMatchedSchemaClicked.rowIndex - 1).remove();
     var rowCount = $('#matchList li').length;
     //alert(rowCount);
     for (var i = start; i < rowCount; i++) {
@@ -910,7 +911,7 @@ $('#removeLinkSchema').click(function () {
     //alert("Start : "+start);
     document.getElementById("linkMatchList").removeChild(FAGI.ActiveState.lastLinkMatchedSchemaClicked);
     //alert('done : ' + FAGI.ActiveState.lastLinkMatchedSchemaClicked.rowIndex);
-    $("#fusionTable tr").eq(FAGI.ActiveState.lastLinkMatchedSchemaClicked.rowIndex-1).remove();
+    $("#fusionTable tr").eq(FAGI.ActiveState.lastLinkMatchedSchemaClicked.rowIndex - 1).remove();
     var rowCount = $('#linkMatchList li').length;
     //alert(rowCount);
     for (var i = start; i < rowCount; i++) {
@@ -954,8 +955,8 @@ function loadLinkedEntities(formData) {
         error: function (xhr, status, errorThrown) {
             FAGI.Utilities.disableSpinner();
             alert("Sorry, there was a problem!");
-                                console.log("Error: " + errorThrown);
-                                console.log("Status: " + status);
+            console.log("Error: " + errorThrown);
+            console.log("Status: " + status);
             alert("Error");
         },
         data: formData,
@@ -970,7 +971,7 @@ $('#buttonL').click(function () {
     //var formData = new FormData(document.getElementById("linksDiv"));
     var formData = new FormData();
     formData.append('file', $('input[type=file]')[0].files[0]);
-    
+
     loadLinkedEntities(formData);
 });
 
@@ -1066,8 +1067,8 @@ function submitLinks(batchFusion) {
 
                         var sndJSON = JSON.stringify(sendJSON);
                         var sndShiftJSON = JSON.stringify(shiftValuesJSON);
-                        var restFuseAction = $( "#fg-batch-fuse-rest-selector option:selected" ).text();
-                                
+                        var restFuseAction = $("#fg-batch-fuse-rest-selector option:selected").text();
+
                         $.ajax({
                             // request type
                             type: "POST",
@@ -1176,8 +1177,8 @@ function submitLinks(batchFusion) {
 
             var sndJSON = JSON.stringify(sendJSON);
             var sndShiftJSON = JSON.stringify(shiftValuesJSON);
-            var restFuseAction = $( "#fg-batch-fuse-rest-selector option:selected" ).text();
-            
+            var restFuseAction = $("#fg-batch-fuse-rest-selector option:selected").text();
+
             $.ajax({
                 // request type
                 type: "POST",
@@ -1239,24 +1240,24 @@ function createLinkCluster(cluster) {
 
 function batchFusionPreview(geomsJSON) {
     var cluster = geomsJSON.cluster;
-    var toDelFeatures =  new Array();
+    var toDelFeatures = new Array();
     if (cluster < 0) {
         /*$.each(geomsJSON.fusedGeoms, function (index, element) {
-            var clusterLink = new Object();
-            var geom = element.geom;
-            addGeom(index, geom);
-            console.log("Got " + element.nb + " with geom " + element.geom);
-        });
-        */
-        
+         var clusterLink = new Object();
+         var geom = element.geom;
+         addGeom(index, geom);
+         console.log("Got " + element.nb + " with geom " + element.geom);
+         });
+         */
+
         $.each(FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
             var clusterLink = new Object();
             var geom = geomsJSON.fusedGeoms[element.attributes.a];
             addGeom(element, geom.geom);
             //console.log("Got " + geom.nb + " with geom " + geom.geom);
         });
-        
-    } else if ( cluster == 9999 ) {
+
+    } else if (cluster == 9999) {
         $.each(FAGI.ActiveState.activeFeatureClusterA, function (index, element) {
             toDelFeatures[toDelFeatures.length] = element;
             var geom = geomsJSON.fusedGeoms[element.attributes.a];
@@ -1270,32 +1271,32 @@ function batchFusionPreview(geomsJSON) {
                 var geom = geomsJSON.fusedGeoms[element.attributes.a];
                 addGeom(element, geom.geom);
                 //console.log("Got " + geom.nb + " with geom " + geom.geom);
-            } 
+            }
         });
     }
-    
-    if ( toDelFeatures.length )
-       FAGI.MapUI.Layers.vectorsLinks.destroyFeatures(toDelFeatures);
+
+    if (toDelFeatures.length)
+        FAGI.MapUI.Layers.vectorsLinks.destroyFeatures(toDelFeatures);
     else
-       FAGI.MapUI.Layers.vectorsLinks.destroyFeatures();
+        FAGI.MapUI.Layers.vectorsLinks.destroyFeatures();
 }
 
 function addGeom(feat, geom) {
     //console.log(feat);
     //console.log(geom);
     toDeleteFeatures = new Array();
-    feat.attributes.la.style = { display : 'none' };
-    feat.attributes.lb.style = { display : 'none' };
-    
+    feat.attributes.la.style = {display: 'none'};
+    feat.attributes.lb.style = {display: 'none'};
+
     FAGI.MapUI.Layers.vectorsA.drawFeature(feat.attributes.la);
     FAGI.MapUI.Layers.vectorsB.drawFeature(feat.attributes.lb);
-    
+
     //console.log("Link feature "+linkFeature);
     //alert(resp.geom);
     $.each(geom.split('|'), function (index, value) {
         //alert(index + ": " + value);
         var linkFeature = FAGI.MapUI.wkt.read(value);
-        
+
         if (Object.prototype.toString.call(linkFeature) === '[object Array]') {
             //alert('Array');
             for (var i = 0; i < linkFeature.length; i++) {
@@ -1318,12 +1319,12 @@ function addGeom(feat, geom) {
             FAGI.MapUI.Layers.vectorsFused.addFeatures([linkFeature]);
         }
     });
-    
+
     //FAGI.MapUI.Layers.vectorsA.redraw();
     //FAGI.MapUI.Layers.vectorsB.redraw();
     //FAGI.MapUI.Layers.vectorsLinks.refresh();
     //FAGI.MapUI.Layers.vectorsFused.refresh();
-    
+
     //return toDeleteFeatures;
 }
 
@@ -1353,25 +1354,25 @@ function selectAll() {
     }
 }
 
-function performBatchFusion() {    
+function performBatchFusion() {
     submitLinks(true);
 }
 
 var mappings;
 var schemasA = new Object;
 var schemasB = new Object;
-    
-function initBatchFusionTable (val) {
+
+function initBatchFusionTable(val) {
     avail_trans = "";
     avail_meta_trans = "";
     $.each(val.geomTransforms, function (index, element) {
-        avail_trans += "<option value=\""+element+"\">" + element + "</option>";
-        
+        avail_trans += "<option value=\"" + element + "\">" + element + "</option>";
+
     });
     $.each(val.metaTransforms, function (index, element) {
-        avail_meta_trans += "<option value=\""+element+"\">" + element + "</option>";
+        avail_meta_trans += "<option value=\"" + element + "\">" + element + "</option>";
     });
-    
+
     var s = "<p class=\"geoinfo\" id=\"link_name\">Fusion Table</p>\n" +
             " <table class=\"rwd-table\" border=1 id=\"bFusionTable\">\n" +
             " <tr>\n" +
@@ -1426,7 +1427,7 @@ function initBatchFusionTable (val) {
         $('#bscale_fac').attr('disabled', 'disabled');
         $('#brotate_fac').attr('disabled', 'disabled');
         $('#bshift').attr('disabled', 'disabled');
-        
+
         $('#offset-x-a').attr('disabled', 'disabled');
         $('#offset-y-a').attr('disabled', 'disabled');
         $('#offset-x-b').attr('disabled', 'disabled');
@@ -1440,27 +1441,27 @@ function initBatchFusionTable (val) {
             $('#bscale_fac').removeAttr('disabled');
             $('#brotate_fac').removeAttr('disabled');
             $('#bshift').removeAttr('disabled');
-            
+
             $('#offset-x-a').attr('disabled', 'disabled');
             $('#offset-y-a').attr('disabled', 'disabled');
             $('#offset-x-b').attr('disabled', 'disabled');
             $('#offset-y-b').attr('disabled', 'disabled');
-            
+
         } else if (selection === "Keep A" || selection === "Keep B" || selection === "Keep both") {
             $('#offset-x-a').removeAttr('disabled');
             $('#offset-y-a').removeAttr('disabled');
             $('#offset-x-b').removeAttr('disabled');
             $('#offset-y-b').removeAttr('disabled');
-            
+
             $('#bscale_fac').attr('disabled', 'disabled');
             $('#brotate_fac').attr('disabled', 'disabled');
             $('#bshift').attr('disabled', 'disabled');
-            
+
         } else {
             $('#bscale_fac').attr('disabled', 'disabled');
             $('#brotate_fac').attr('disabled', 'disabled');
             $('#bshift').attr('disabled', 'disabled');
-            
+
             $('#offset-x-a').attr('disabled', 'disabled');
             $('#offset-y-a').attr('disabled', 'disabled');
             $('#offset-x-b').attr('disabled', 'disabled');
@@ -1474,23 +1475,23 @@ function schemaMatch() {
     var list = document.getElementById("linksList");
     var listItem = list.getElementsByTagName("li");
     var links = new Array();
-    $('#linksList input:checked').each(function() {
+    $('#linksList input:checked').each(function () {
         //alert(($(this).parent().html()));
         //alert(($(this).text()));
         //alert(getText($(this).get(0)));
-        links[links.length] = getText( $(this).parent().get(0) );
+        links[links.length] = getText($(this).parent().get(0));
         //alert(getText($(this).get(0)));
     });
     /*
-    for (var i = 0; i < listItem.length; i++) {
-        //alert(listItem[i]);
-        var listLabel = listItem[i].getElementsByTagName("label");
-        for (var j = 0; j < listLabel.length; j++) {
-            //alert("Label Last Child : "+listLabel[j].lastChild.data);
-            links[links.length] = listLabel[j].lastChild.data;
-        }
-    }
-    */
+     for (var i = 0; i < listItem.length; i++) {
+     //alert(listItem[i]);
+     var listLabel = listItem[i].getElementsByTagName("label");
+     for (var j = 0; j < listLabel.length; j++) {
+     //alert("Label Last Child : "+listLabel[j].lastChild.data);
+     links[links.length] = listLabel[j].lastChild.data;
+     }
+     }
+     */
     $("#batch-toggle-table").css("display", "inline");
     $("#matchingMenu").trigger('click');
     $.ajax({
@@ -1513,13 +1514,13 @@ function schemaMatch() {
             var linkMatchList = document.getElementById("linkMatchList");
             //linkMatchList.innerHTML = "";
             schemaListA.innerHTML = "";
-            
+
             document.getElementById("bFusionOptions").style.display = 'none';
-            
+
             //$('#linksList').html("");
-            
+
             initBatchFusionTable(responseJson);
-            
+
             // Add properties from dataset A
             $.each(responseJson.foundA, function (index, element) {
                 var opt = document.createElement("li");
@@ -1527,19 +1528,19 @@ function schemaMatch() {
                 var optlbl = document.createElement("div");
                 $(optlbl).addClass("scored");
                 optlbl.innerHTML = "";
-                
+
                 var tokens = index.split(",");
                 var result_str = "";
                 for (var i = 0; i < tokens.length; i++) {
-                    
+
                     var trunc = FAGI.Utilities.getPropertyName(tokens[i]);
-                    
+
                     result_str += trunc;
                     if (i != (tokens.length - 1)) {
                         result_str += ",";
                     }
                 }
-                
+
                 opt.innerHTML = decodeURIComponent(result_str);
                 //alert(index);
                 opt.long_name = index;
@@ -1574,7 +1575,7 @@ function schemaMatch() {
                         result_str += ","
                     }
                 }
-                
+
                 opt.innerHTML = decodeURIComponent(result_str);
                 //alert(index);
                 opt.long_name = index;
@@ -1681,8 +1682,8 @@ var clickCountB = 0;
 
 function linkPropSelectedA() {
     //alert(linkMatchesJSON);
-    if (this.prev_selected === true) {      
-        
+    if (this.prev_selected === true) {
+
         if (!window.event.ctrlKey) {
             var elems = linkMatchesJSON.m.foundA[this.long_name];
 
@@ -1721,19 +1722,19 @@ function linkPropSelectedA() {
         }
         linkLastSelectedFromA = null;
         this.prev_selected = false;
-        
+
         return;
-    } else {        
+    } else {
         this.style.backgroundColor = "blueviolet";
-        
+
         /* to be removed for m to n */
-        if(linkLastSelectedFromA !== null) {
+        if (linkLastSelectedFromA !== null) {
             //alert(linkLastSelectedFromA.long_name);
             var elems = linkMatchesJSON.m.foundA[linkLastSelectedFromA.long_name];
-            
+
             var list = document.getElementById("linkSchemasB");
             var listItems = list.getElementsByTagName("li");
-        
+
             $.each(listItems, function (index1, element1) {
                 //alert(element1.backColor);
                 if (!element1.prev_selected)
@@ -1741,15 +1742,15 @@ function linkPropSelectedA() {
                 if (typeof elems !== "undefined") {
                     $.each(elems, function (index, element) {
                         if (element1.long_name == element.rep) {
-                            
+
                             if (element1.match_count > 0)
                                 element1.match_count--;
-                            
+
                             if (element1.match_count == 0 && !element1.prev_selected)
                                 element1.style.backgroundColor = element1.backColor;
                             else if (element1.prev_selected)
                                 element1.style.backgroundColor = "blueviolet";
-                            
+
                             var scoreLbl = element1.getElementsByTagName("div");
                             if (typeof scoreLbl[0] === "undefined") {
                                 return false;
@@ -1759,11 +1760,11 @@ function linkPropSelectedA() {
                     });
                 }
             });
-            
-            if ( window.event.ctrlKey ) {
+
+            if (window.event.ctrlKey) {
                 linkLastSelectedFromA = this;
                 this.prev_selected = true;
-                
+
                 return;
             } else {
                 linkLastSelectedFromA.prev_selected = false;
@@ -1773,10 +1774,10 @@ function linkPropSelectedA() {
             }
         }
         var elems = linkMatchesJSON.m.foundA[this.long_name];
-       
+
         var list = document.getElementById("linkSchemasB");
         var listItems = list.getElementsByTagName("li");
-        
+
         if (typeof elems != 'undefined') {
             $.each(listItems, function (index1, element1) {
                 //alert(element1.backColor);
@@ -1786,7 +1787,7 @@ function linkPropSelectedA() {
                     $.each(elems, function (index, element) {
                         if (element1.long_name == element.rep) {
                             //alert(element1.long_name);
-                            
+
                             var scoreLbl = element1.getElementsByTagName("div");
                             if (typeof scoreLbl[0] === "undefined") {
                                 return false;
@@ -1795,35 +1796,35 @@ function linkPropSelectedA() {
                             element1.match_count++;
                             if (!element1.prev_selected)
                                 element1.style.backgroundColor = "yellow";
-                            
+
                         }
                     });
                 }
             });
         }
-        
+
         list = document.getElementById("linkSchemasA");
         listItems = list.getElementsByTagName("li");
         endListLoop = false;
         //if (typeof elems != 'undefined') {
-            $.each(listItems, function (index1, element1) {
-                if (endListLoop) {
-                    return false;
-                }
-                if (typeof element1.match_count != 'undefined') {
-                    if (element1.match_count > 0)
-                        element1.style.backgroundColor = "yellow";
-                    else
-                        element1.style.backgroundColor = element1.backColor;
-                    element1.prev_selected = false;
-                } else {
+        $.each(listItems, function (index1, element1) {
+            if (endListLoop) {
+                return false;
+            }
+            if (typeof element1.match_count != 'undefined') {
+                if (element1.match_count > 0)
+                    element1.style.backgroundColor = "yellow";
+                else
                     element1.style.backgroundColor = element1.backColor;
-                    element1.prev_selected = false;
-                }
-                
-            });
+                element1.prev_selected = false;
+            } else {
+                element1.style.backgroundColor = element1.backColor;
+                element1.prev_selected = false;
+            }
+
+        });
         //}
-        
+
         linkLastSelectedFromA = this;
         this.style.backgroundColor = "blueviolet";
         this.prev_selected = true;
@@ -1831,7 +1832,7 @@ function linkPropSelectedA() {
 }
 
 function linkPropSelectedB() {
-    if (this.prev_selected === true) {      
+    if (this.prev_selected === true) {
         if (!window.event.ctrlKey) {
             var elems = linkMatchesJSON.m.foundB[this.long_name];
 
@@ -1870,18 +1871,18 @@ function linkPropSelectedB() {
         }
         linkLastSelectedFromB = null;
         this.prev_selected = false;
-        
+
         return;
     } else {
         this.style.backgroundColor = "blueviolet";
-        
+
         /* to be removed for m to n */
-        if(linkLastSelectedFromB !== null) {
+        if (linkLastSelectedFromB !== null) {
             var elems = linkMatchesJSON.m.foundB[linkLastSelectedFromB.long_name];
-            
+
             var list = document.getElementById("linkSchemasA");
             var listItems = list.getElementsByTagName("li");
-        
+
             if (typeof elems != 'undefined') {
                 $.each(listItems, function (index1, element1) {
                     //alert(element1.backColor);
@@ -1890,10 +1891,10 @@ function linkPropSelectedB() {
                     if (typeof elems !== "undefined") {
                         $.each(elems, function (index, element) {
                             if (element1.long_name == element.rep) {
-                                
+
                                 if (element1.match_count > 0)
                                     element1.match_count--;
-                            
+
                                 if (element1.match_count == 0 && !element1.prev_selected)
                                     element1.style.backgroundColor = element1.backColor;
 
@@ -1908,16 +1909,16 @@ function linkPropSelectedB() {
                 });
             }
             /*
-            if (linkLastSelectedFromB.match_count > 0) 
-                linkLastSelectedFromB.style.backgroundColor = "yellow";
-            else
-                linkLastSelectedFromB.style.backgroundColor = linkLastSelectedFromB.backColor;
-            */
-            
-            if ( window.event.ctrlKey ) {
+             if (linkLastSelectedFromB.match_count > 0) 
+             linkLastSelectedFromB.style.backgroundColor = "yellow";
+             else
+             linkLastSelectedFromB.style.backgroundColor = linkLastSelectedFromB.backColor;
+             */
+
+            if (window.event.ctrlKey) {
                 linkLastSelectedFromB = this;
                 this.prev_selected = true;
-                
+
                 return;
             } else {
                 linkLastSelectedFromB.prev_selected = false;
@@ -1927,10 +1928,10 @@ function linkPropSelectedB() {
             }
         }
         var elems = linkMatchesJSON.m.foundB[this.long_name];
-        
+
         var list = document.getElementById("linkSchemasA");
         var listItems = list.getElementsByTagName("li");
-        
+
         if (typeof elems != 'undefined') {
             $.each(listItems, function (index1, element1) {
                 //alert(element1.backColor);
@@ -1958,24 +1959,24 @@ function linkPropSelectedB() {
         listItems = list.getElementsByTagName("li");
         endListLoop = false;
         //if (typeof elems != 'undefined') {
-            $.each(listItems, function (index1, element1) {
-                if (endListLoop) {
-                    return false;
-                }
-                if (typeof element1.match_count != 'undefined') {
-                    if (element1.match_count > 0)
-                        element1.style.backgroundColor = "yellow";
-                    else
-                        element1.style.backgroundColor = element1.backColor;
-                    element1.prev_selected = false;
-                } else {
+        $.each(listItems, function (index1, element1) {
+            if (endListLoop) {
+                return false;
+            }
+            if (typeof element1.match_count != 'undefined') {
+                if (element1.match_count > 0)
+                    element1.style.backgroundColor = "yellow";
+                else
                     element1.style.backgroundColor = element1.backColor;
-                    element1.prev_selected = false;
-                }
-                
-            });
+                element1.prev_selected = false;
+            } else {
+                element1.style.backgroundColor = element1.backColor;
+                element1.prev_selected = false;
+            }
+
+        });
         //}
-        
+
         linkLastSelectedFromB = this;
         this.style.backgroundColor = "blueviolet";
         this.prev_selected = true;
@@ -1984,7 +1985,7 @@ function linkPropSelectedB() {
 
 /*
  Multiple property selection to be done with Ctrl + click
-*/
+ */
 
 function propSelectedA() {
     //alert(this.prev_selected == true);
@@ -1992,7 +1993,7 @@ function propSelectedA() {
 
     if (this.prev_selected === true) {
         if (!window.event.ctrlKey) {
-            
+
             var elems = mappins.foundA[this.long_name];
             //alert(elems);
             var list = document.getElementById("schemasB");
@@ -2018,7 +2019,7 @@ function propSelectedA() {
                     });
                 });
             }
-            
+
             var list = document.getElementById("schemasA");
             var listItems = list.getElementsByTagName("li");
             if (typeof elems != 'undefined') {
@@ -2027,11 +2028,11 @@ function propSelectedA() {
                         element1.style.backgroundColor = "yellow";
                     else
                         element1.style.backgroundColor = this.backColor;
-                    
+
                     element1.prev_selected = false;
                 });
             }
-            
+
             //alert("as");
             if (this.match_count > 0)
                 this.style.backgroundColor = "yellow";
@@ -2042,7 +2043,7 @@ function propSelectedA() {
                 this.style.backgroundColor = "yellow";
             else
                 this.style.backgroundColor = this.backColor;
-            
+
         }
         lastSelectedFromA = null;
         this.prev_selected = false;
@@ -2062,11 +2063,11 @@ function propSelectedA() {
                         element1.style.backgroundColor = element1.backColor;
                     $.each(elems, function (index, element) {
                         if (element1.long_name == element.rep) {
-                            if ( element1.match_count > 0 )
+                            if (element1.match_count > 0)
                                 element1.match_count--;
                             if (element1.match_count == 0 && !element1.prev_selected)
                                 element1.style.backgroundColor = element1.backColor;
-                            else if (element1.prev_selected) 
+                            else if (element1.prev_selected)
                                 element1.style.backgroundColor = "blueviolet";
 
                             var scoreLbl = element1.getElementsByTagName("div");
@@ -2078,11 +2079,11 @@ function propSelectedA() {
                     });
                 });
             }
-            
-            if ( window.event.ctrlKey ) {
+
+            if (window.event.ctrlKey) {
                 lastSelectedFromA = this;
                 this.prev_selected = true;
-                
+
                 return;
             } else {
                 lastSelectedFromA.prev_selected = false;
@@ -2122,30 +2123,30 @@ function propSelectedA() {
                     }
                 });
             });
-        }    
-        
+        }
+
         list = document.getElementById("schemasA");
         listItems = list.getElementsByTagName("li");
         endListLoop = false;
         //if (typeof elems != 'undefined') {
-            $.each(listItems, function (index1, element1) {
-                if (endListLoop) {
-                    return false;
-                }
-                if (typeof element1.match_count != 'undefined') {
-                    if (element1.match_count > 0)
-                        element1.style.backgroundColor = "yellow";
-                    else
-                        element1.style.backgroundColor = element1.backColor;
-                    element1.prev_selected = false;
-                } else {
+        $.each(listItems, function (index1, element1) {
+            if (endListLoop) {
+                return false;
+            }
+            if (typeof element1.match_count != 'undefined') {
+                if (element1.match_count > 0)
+                    element1.style.backgroundColor = "yellow";
+                else
                     element1.style.backgroundColor = element1.backColor;
-                    element1.prev_selected = false;
-                }
-                
-            });
+                element1.prev_selected = false;
+            } else {
+                element1.style.backgroundColor = element1.backColor;
+                element1.prev_selected = false;
+            }
+
+        });
         //}
-        
+
         lastSelectedFromA = this;
         this.prev_selected = true;
         this.style.backgroundColor = "blueviolet";
@@ -2187,7 +2188,7 @@ function propSelectedB() {
                 this.style.backgroundColor = "yellow";
             else
                 this.style.backgroundColor = this.backColor;
-            
+
             var list = document.getElementById("schemasB");
             var listItems = list.getElementsByTagName("li");
             if (typeof elems != 'undefined') {
@@ -2196,11 +2197,11 @@ function propSelectedB() {
                         element1.style.backgroundColor = "yellow";
                     else
                         element1.style.backgroundColor = this.backColor;
-                    
+
                     element1.prev_selected = false;
                 });
             }
-            
+
         } else {
             if (this.match_count > 0)
                 this.style.backgroundColor = "yellow";
@@ -2216,7 +2217,7 @@ function propSelectedB() {
 
         if (lastSelectedFromB !== null) {
             var elems = mappins.foundB[lastSelectedFromB.long_name];
-            
+
             var list = document.getElementById("schemasA");
             var listItems = list.getElementsByTagName("li");
             if (typeof elems != 'undefined') {
@@ -2225,11 +2226,11 @@ function propSelectedB() {
                         element1.style.backgroundColor = element1.backColor;
                     $.each(elems, function (index, element) {
                         if (element1.long_name == element.rep) {
-                            if ( element1.match_count > 0 )
+                            if (element1.match_count > 0)
                                 element1.match_count--;
                             if (element1.match_count == 0 && !element1.prev_selected)
                                 element1.style.backgroundColor = element1.backColor;
-                            else if (element1.prev_selected) 
+                            else if (element1.prev_selected)
                                 element1.style.backgroundColor = "blueviolet";
 
                             var scoreLbl = element1.getElementsByTagName("div");
@@ -2242,17 +2243,17 @@ function propSelectedB() {
                 });
             }
             /*
-            if (lastSelectedFromB.match_count > 0)
-                lastSelectedFromB.style.backgroundColor = "yellow";
-            else
-                lastSelectedFromB.style.backgroundColor = lastSelectedFromB.backColor;
-            lastSelectedFromB.prev_selected = false;
-            */
-           
-            if ( window.event.ctrlKey ) {
+             if (lastSelectedFromB.match_count > 0)
+             lastSelectedFromB.style.backgroundColor = "yellow";
+             else
+             lastSelectedFromB.style.backgroundColor = lastSelectedFromB.backColor;
+             lastSelectedFromB.prev_selected = false;
+             */
+
+            if (window.event.ctrlKey) {
                 lastSelectedFromB = this;
                 this.prev_selected = true;
-                
+
                 return;
             } else {
                 lastSelectedFromB.prev_selected = false;
@@ -2265,7 +2266,7 @@ function propSelectedB() {
         //alert(elems);
         var list = document.getElementById("schemasA");
         var listItems = list.getElementsByTagName("li");
-        
+
         var endListLoop = false;
         if (typeof elems != 'undefined') {
             $.each(listItems, function (index1, element1) {
@@ -2294,29 +2295,29 @@ function propSelectedB() {
                 });
             });
         }
-        
+
         list = document.getElementById("schemasB");
         listItems = list.getElementsByTagName("li");
         endListLoop = false;
         //if (typeof elems != 'undefined') {
-            $.each(listItems, function (index1, element1) {
-                if (endListLoop) {
-                    return false;
-                }
-                if (typeof element1.match_count != 'undefined') {
-                    if (element1.match_count > 0)
-                        element1.style.backgroundColor = "yellow";
-                    else
-                        element1.style.backgroundColor = element1.backColor;
-                    element1.prev_selected = false;
-                } else {
+        $.each(listItems, function (index1, element1) {
+            if (endListLoop) {
+                return false;
+            }
+            if (typeof element1.match_count != 'undefined') {
+                if (element1.match_count > 0)
+                    element1.style.backgroundColor = "yellow";
+                else
                     element1.style.backgroundColor = element1.backColor;
-                    element1.prev_selected = false;
-                }
-                
-            });
+                element1.prev_selected = false;
+            } else {
+                element1.style.backgroundColor = element1.backColor;
+                element1.prev_selected = false;
+            }
+
+        });
         //}
-        
+
         lastSelectedFromB = this;
         this.prev_selected = true;
         this.style.backgroundColor = "blueviolet";
@@ -2342,7 +2343,7 @@ function filterLinksA( )
         // the response is passed to the function
         success: function (responseJson) {
             //var list = document.getElementById("linksList");
-            if ( responseJson.result.statusCode == 0) {
+            if (responseJson.result.statusCode == 0) {
                 $("#linksList").html(responseJson.linksHTML);
             } else {
                 alert(responseJson.result.message);
@@ -2383,7 +2384,7 @@ function filterLinksB( )
         // the response is passed to the function
         success: function (responseJson) {
             //$('#connLabel').text(responseText);
-            if ( responseJson.result.statusCode == 0) {
+            if (responseJson.result.statusCode == 0) {
                 $("#linksList").html(responseJson.linksHTML);
             } else {
                 alert(responseJson.result.message);
@@ -2448,7 +2449,9 @@ function createUser()
 {
     var values = $('#fg-user-div').serialize();
     FAGI.Utilities.enableSpinner();
-    alert( values );
+    //alert( values.u_name );
+    alert(FAGI.Constants.EMAIL_CHECKER.test($("#fg-user-mail").val()));
+
     $.ajax({
         // request type
         type: "POST",
@@ -2464,6 +2467,9 @@ function createUser()
             $('#connLabel').text(responseJson.message);
             FAGI.Utilities.disableSpinner();
             if (responseJson.statusCode == 0) {
+                $('#datasetMenu').click(expandDatasetPanel);
+                $('#linksMenu').click(expandLinksPanel);
+                $('#matchingMenu').click(expandMatchingPanel);
                 $("#datasetMenu").trigger('click');
             }
         },
@@ -2492,7 +2498,7 @@ function loginUser()
         // request type
         type: "POST",
         // the URL for the request
-        url: "LoginUserServlet",
+        url: "UserLoginServlet",
         // the data to send (will be converted to a query string)
         data: values,
         // the type of data we expect back
@@ -2501,8 +2507,17 @@ function loginUser()
         // the response is passed to the function
         success: function (responseJson) {
             $('#connLabel').text(responseJson.message);
+            //alert(responseJson.message);
+            //alert(responseJson.statusCode);
             FAGI.Utilities.disableSpinner();
+
             if (responseJson.statusCode == 0) {
+                $('#datasetMenu').on();
+                $('#linksMenu').on();
+                $('#matchingMenu').on();
+                $('#clusteringPanel').on();
+                $('#fg-fetch-sparql-panel').on();
+                //alert("Here");
                 $("#datasetMenu").trigger('click');
             }
         },
@@ -2544,7 +2559,7 @@ function setDatasets()
         // code to run if the request succeeds;
         // the response is passed to the function
         success: function (responseJson) {
-            
+
             FAGI.Utilities.disableSpinner();
             $('#fg-dataset-label').text("Datasets accepted");
             $('#datasetNameA').html($('#fg-dataset-input-a').val());
@@ -2555,23 +2570,24 @@ function setDatasets()
             $('#datasetNameB').html($('#fg-dataset-input-b').val());
             $('#legendLinkSetA').html($('#fg-dataset-input-a').val());
             $('#legendLinkSetB').html($('#fg-dataset-input-b').val());
-            
+
             //Loaqd links through endpoint
             //alert(JSON.stringify(responseJson.remoteLinks));
             //alert(responseJson.remoteLinks)
-;            if ( responseJson.remoteLinks ) {
+            ;
+            if (responseJson.remoteLinks) {
                 //alert("NAI");
                 loadLinkedEntities(null);
             }
-            
+
             //Scan target dataset for any already fused geometry
-            if ( $('#fg-fetch-fused-check').prop('checked') )
+            if ($('#fg-fetch-fused-check').prop('checked'))
                 scanGeometries();
-            
+
             // Disable file uploading if a SPARQL endpoint for links is provided
-            if ( $('#fg-dataset-input-l').val() && $('#fg-endpoint-input-l').val() ) 
+            if ($('#fg-dataset-input-l').val() && $('#fg-endpoint-input-l').val())
                 $("#buttonL").prop('disabled', true);
-                
+
             $("#linksMenu").trigger('click');
         },
         // code to run if the request fails; the raw request and

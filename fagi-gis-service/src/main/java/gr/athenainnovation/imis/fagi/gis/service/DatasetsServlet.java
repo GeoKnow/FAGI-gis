@@ -12,6 +12,7 @@ import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.shared.JenaException;
+import gr.athenainnovation.imis.fusion.gis.core.FAGIUser;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.json.JSONDatasetConfigResult;
@@ -57,6 +58,7 @@ public class DatasetsServlet extends HttpServlet {
         ObjectMapper                mapper = new ObjectMapper();
         GraphConfig                 graphConf;
         DBConfig                    dbConf;
+        FAGIUser                    activeUser;
         JSONDatasetConfigResult     ret;
         JSONRequestResult           res;
 
@@ -82,6 +84,7 @@ public class DatasetsServlet extends HttpServlet {
 
             graphConf = new GraphConfig("", "", "", "");
             dbConf = (DBConfig)sess.getAttribute("db_conf");
+            activeUser = (FAGIUser)sess.getAttribute("logged_user");
             
             LOG.trace("Is A the dominant dataset? : " + request.getParameter("d_dom"));
             System.out.println("Is A the dominant dataset? : " + request.getParameter("d_dom"));
@@ -97,18 +100,22 @@ public class DatasetsServlet extends HttpServlet {
                 graphConf.setDominantA(false);
             }
             
+            System.out.println(activeUser.getName());
+            System.out.println(activeUser.getPass());
+            System.out.println(activeUser.getMail());
+            
             // Construct the names of all TEMP Graphs that FAGI uses
-            final String allLinksGraph = "http://localhost:8890/DAV/all_links_" + dbConf.getDBName()+"_fagi" ;
-            final String linksGraph = "http://localhost:8890/DAV/links_" + dbConf.getDBName()+"_fagi" ;
-            final String sampleLinksGraph = "http://localhost:8890/DAV/links_sample_" + dbConf.getDBName()+"_fagi" ;
-            final String allClusterGraph = "http://localhost:8890/DAV/all_cluster_" + dbConf.getDBName()+"_fagi" ;
-            final String clusterGraph = "http://localhost:8890/DAV/cluster_" + dbConf.getDBName()+"_fagi" ;
+            final String allLinksGraph = "http://localhost:8890/DAV/all_links_" + dbConf.getDBName()+"_fagi_" + activeUser.getName();
+            final String linksGraph = "http://localhost:8890/DAV/links_" + dbConf.getDBName()+"_fagi_" + activeUser.getName() ;
+            final String sampleLinksGraph = "http://localhost:8890/DAV/links_sample_" + dbConf.getDBName()+"_fagi_" + activeUser.getName() ;
+            final String allClusterGraph = "http://localhost:8890/DAV/all_cluster_" + dbConf.getDBName()+"_fagi_" + activeUser.getName();
+            final String clusterGraph = "http://localhost:8890/DAV/cluster_" + dbConf.getDBName()+"_fagi_" + activeUser.getName();
             final String targetGraph = request.getParameter("t_graph") ;
-            final String metadataGraphA = targetGraph + "_" + dbConf.getDBName() + "A_fagi" ;
-            final String metadataGraphB = targetGraph + "_" + dbConf.getDBName() + "B_fagi" ;
-            final String typeGraphA = targetGraph + "_" + dbConf.getDBName() + "A_types_fagi" ;
-            final String typeGraphB = targetGraph + "_" + dbConf.getDBName() + "B_types_fagi" ;
-            final String targetTempGraph = targetGraph+"_"+dbConf.getDBName()+"_fagi" ;
+            final String metadataGraphA = targetGraph + "_" + dbConf.getDBName() + "A_fagi_" + activeUser.getName() ;
+            final String metadataGraphB = targetGraph + "_" + dbConf.getDBName() + "B_fagi_" + activeUser.getName() ;
+            final String typeGraphA = targetGraph + "_" + dbConf.getDBName() + "A_types_fagi_" + activeUser.getName() ;
+            final String typeGraphB = targetGraph + "_" + dbConf.getDBName() + "B_types_fagi_" + activeUser.getName() ;
+            final String targetTempGraph = targetGraph+"_"+dbConf.getDBName()+"_fagi_" + activeUser.getName() ;
             
             // Set graph configuration
             graphConf.setEndpointA(request.getParameter("da_end"));
@@ -139,30 +146,28 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setTypeGraphA(typeGraphA);
             graphConf.setTypeGraphB(typeGraphB);
             
-            if ( Constants.FAAS ) {
-                // Try a dummy connection to Virtuoso
-                VirtGraph vSet = null;
-                try {
-                    vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
-                            dbConf.getUsername(),
-                            dbConf.getPassword());
-                } catch (JenaException connEx) {
-                    LOG.error("Virtgraph Create Exception", connEx);
-                    vSet = null;
+            // Try a dummy connection to Virtuoso
+            VirtGraph vSet = null;
+            try {
+                vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
+                        dbConf.getUsername(),
+                        dbConf.getPassword());
+            } catch (JenaException connEx) {
+                LOG.error("Virtgraph Create Exception", connEx);
+                vSet = null;
                     //ret.setMessage("Connection to Virtuoso failed!");
-                    //ret.setStatusCode(-1);
-                    //System.out.println(connEx.getMessage());      
-                    out.println(mapper.writeValueAsString(ret));
-                    out.close();
+                //ret.setStatusCode(-1);
+                //System.out.println(connEx.getMessage());      
+                out.println(mapper.writeValueAsString(ret));
+                out.close();
 
-                    return;
-                }
-            
-                System.out.println("Creating User FAGI");
-                SPARQLUtilities.createSPARQLUser(vSet.getConnection(), "FAGI", "FAGI");
-                SPARQLUtilities.createSPARQLUserGraph(graphConf, vSet.getConnection(), "FAGI", "FAGI");
+                return;
             }
-            
+
+            System.out.println("Creating User FAGI");
+            SPARQLUtilities.createSPARQLUser(vSet.getConnection(), activeUser.getName(), activeUser.getPass());
+            SPARQLUtilities.createSPARQLUserGraph(graphConf, vSet.getConnection(), activeUser.getName(), activeUser.getPass());
+
             /*
             int depthA = SPARQLUtilities.getGraphDepth(graphConf.getGraphA(), graphConf.getEndpointA());
             int depthB = SPARQLUtilities.getGraphDepth(graphConf.getGraphB(), graphConf.getEndpointB());

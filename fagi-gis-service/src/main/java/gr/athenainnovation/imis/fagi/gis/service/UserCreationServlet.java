@@ -6,6 +6,7 @@
 package gr.athenainnovation.imis.fagi.gis.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gr.athenainnovation.imis.fusion.gis.core.FAGIUser;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
@@ -34,22 +35,25 @@ import virtuoso.jena.driver.VirtGraph;
  */
 @WebServlet(name = "UserCreationServlet", urlPatterns = {"/UserCreationServlet"})
 public class UserCreationServlet extends HttpServlet {
-    
-    private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(UserCreationServlet.class);    
-    
+
+    private static final org.apache.log4j.Logger LOG = Log.getClassFAGILogger(UserCreationServlet.class);
+
     private static final String DEFAULT_DB_NAME = "fagi_users";
     private static final String DEFAULT_TABLE_NAME = "fagi_users";
-    private static final String USER_DB_CHECK = "SELECT datname FROM pg_catalog.pg_database WHERE datname = '"+DEFAULT_DB_NAME+"'";
-    private static final String USER_DB_CREATE = "CREATE DATABASE "+DEFAULT_DB_NAME+"";
-    private static final String USER_DB_CREATE_USERS = "CREATE TABLE IF NOT EXISTS "+DEFAULT_TABLE_NAME+""
-            + "(\n" 
-            +  "   ID SERIAL PRIMARY KEY      NOT NULL,\n" 
-            +  "   NAME           CHAR(50) NOT NULL,\n" 
-            +  "   PASS           CHAR(50) NOT NULL,\n" 
-            +  "   MAIL           CHAR(50) NOT NULL"
+    private static final String USER_DB_CHECK = "SELECT datname FROM pg_catalog.pg_database WHERE datname = '" + DEFAULT_DB_NAME + "'";
+    private static final String USER_DB_CREATE = "CREATE DATABASE " + DEFAULT_DB_NAME + "";
+    private static final String USER_DB_CHECK_USER = "SELECT * FROM " + DEFAULT_TABLE_NAME + " WHERE MAIL = ?";
+    private static final String USER_DB_CREATE_USERS = "CREATE TABLE IF NOT EXISTS " + DEFAULT_TABLE_NAME + ""
+            + "(\n"
+            + "   ID SERIAL PRIMARY KEY      NOT NULL,\n"
+            + "   NAME           CHAR(50) NOT NULL,\n"
+            + "   PASS           CHAR(50) NOT NULL,\n"
+            + "   MAIL           CHAR(50) NOT NULL"
             + ")";
-    private static final String USER_DB_INSERT_USER = "INSERT INTO "+DEFAULT_TABLE_NAME+" VALUES ( ?, ?, ?, ?);";
+    private static final String USER_DB_INSERT_USER = "INSERT INTO " + DEFAULT_TABLE_NAME + " ( NAME, PASS, MAIL ) VALUES ( ?, ?, ?);";
     
+    private static final String USER_VIRTUOSO_CREATE = "INSERT INTO " + DEFAULT_TABLE_NAME + " ( NAME, PASS, MAIL ) VALUES ( ?, ?, ?);";
+
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -62,50 +66,70 @@ public class UserCreationServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        
-        HttpSession                     sess;
-        VirtGraph                       vSet = null;
-        DBConfig                        dbConf = null;
-        Connection                      dbConn = null;
-        ObjectMapper                    mapper = new ObjectMapper();
-        JSONRequestResult               ret = null;
-        boolean                         succeded = true;
-        
+
+        HttpSession sess;
+        VirtGraph vSet = null;
+        DBConfig dbConf = null;
+        Connection dbConn = null;
+        ObjectMapper mapper = new ObjectMapper();
+        JSONRequestResult ret = null;
+        boolean succeded = true;
+
         System.out.println("In Here");
-        
+
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
-            
+
             //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             ret = new JSONRequestResult();
 
             // The only time we need a session if one does not exist
             sess = request.getSession(true);
-            
+
             String name = request.getParameter("u_name");
             String pass = request.getParameter("u_pass");
             String mail = request.getParameter("u_mail");
-            
-            DBConfig dbCOnf = (DBConfig)sess.getAttribute("db_conf");
-            
+
+            dbConf = (DBConfig) sess.getAttribute("db_conf");
+
             System.out.println(name);
             System.out.println(pass);
             System.out.println(mail);
-            
-            if ( dbConf == null )
+            System.out.println(dbConf);
+
+            if (dbConf == null) {
                 dbConf = Utilities.setUpDefaultDatabase();
+                sess.setAttribute("db_conf", dbConf);
+            }
             
-            dbConn = createConnection(dbConf.getDBUsername(), dbConf.getDBPassword());
-            createUserDB(dbConn);
-            createUser(dbConn, name , pass, mail);
+            dbConn = createConnection("", dbConf.getDBUsername(), dbConf.getDBPassword());
+            createUserDB(dbConn, dbConf);
             
+            //createUserVirtuoso(dbConn, dbConf);
+            
+            boolean exists = checkUser(dbConf, name, pass, mail);
+
+            if ( !exists ) {
+                createUser(dbConf, name, pass, mail);
+                
+                ret.setMessage("User created");
+                ret.setStatusCode(0);
+                
+                FAGIUser user = new FAGIUser(name, pass, mail);
+                
+                sess.setAttribute("logged_user", user);
+            } else {
+                ret.setMessage("User already exists");
+                ret.setStatusCode(-1);
+            }
+            
+            out.printf("{}");
         }
     }
 
-    Connection createConnection(String user, String pass) {
+    Connection createConnection(String db, String user, String pass) {
         Connection conn = null;
 
-        
         System.out.println("User creation ");
         // Try loading the postgres sql driver
         try {
@@ -113,73 +137,114 @@ public class UserCreationServlet extends HttpServlet {
         } catch (ClassNotFoundException ex) {
             LOG.info("Driver Class Not Found Exception");
             LOG.error("Driver Class Not Found Exception", ex);
-            
+
             return null;
         }
 
         // Try a dummy connection to Postgres to check if a database with the same name exists
         try {
-            String url = Constants.DB_URL;
+            String url = Constants.DB_URL + db;
             conn = DriverManager.getConnection(url, user, pass);
             //dbConn.setAutoCommit(false);
         } catch (SQLException sqlex) {
             LOG.info("Postgis Connect Exception");
-            LOG.error("Postgis Connect Exception" , sqlex);
-            
+            LOG.error("Postgis Connect Exception", sqlex);
+
             return null;
         }
 
         return conn;
     }
-    
-    boolean createUserDB(Connection conn) {
+
+    boolean createUserVirtuoso( DBConfig dbConf, String name, String pass ) {
         boolean success = true;
         
-        try ( PreparedStatement stmtCheck = conn.prepareStatement(USER_DB_CHECK);
-              ResultSet rs = stmtCheck.executeQuery() ) {
-            System.out.println("In here too");
-            if ( rs.next() ) {
-                return true;
-            } else {
-                System.out.println("creation");
-
-                try ( PreparedStatement stmtCreate = conn.prepareStatement(USER_DB_CREATE);
-                      PreparedStatement stmtCreateTable = conn.prepareStatement(USER_DB_CREATE_USERS)) {
-                    stmtCreate.executeUpdate();
-                    stmtCreateTable.executeUpdate();
-                }
-            }
-            
-            
-            
-        } catch (SQLException ex) {
-            LOG.info("Exception during user database creation");
-            LOG.error("Exception during user database creation" , ex);
-        }
+        
         
         return success;
     }
     
-    boolean createUser(Connection conn, String name, String pass, String mail) {
+    boolean createUserDB(Connection conn, DBConfig dbConf) {
         boolean success = true;
-        
-        try ( PreparedStatement stmtCreate = conn.prepareStatement(USER_DB_INSERT_USER)) {
-            System.out.println("Creating user for the first time"); 
-            
-            stmtCreate.setInt(1, 0);
-            stmtCreate.setString(2, "name");
-            stmtCreate.setString(3, "pass");
-            stmtCreate.setString(4, "mail");
-            
-            stmtCreate.executeUpdate();
-            
+        Connection conn2;
+        try (PreparedStatement stmtCheck = conn.prepareStatement(USER_DB_CHECK);
+                ResultSet rs = stmtCheck.executeQuery()) {
+            System.out.println("In here too");
+            if (rs.next()) {
+                return true;
+            } else {
+                System.out.println("creation");
+                try (PreparedStatement stmtCreate = conn.prepareStatement(USER_DB_CREATE)) {
+                    stmtCreate.executeUpdate();
+                }
+                conn2 = createConnection("//localhost/fagi_users", dbConf.getDBUsername(), dbConf.getDBPassword());
+                try (PreparedStatement stmtCreateTable = conn2.prepareStatement(USER_DB_CREATE_USERS)) {
+                    stmtCreateTable.executeUpdate();
+                }
+                conn2.close();
+            }
+            conn.close();
+
         } catch (SQLException ex) {
             LOG.info("Exception during user database creation");
-            LOG.error("Exception during user database creation" , ex);
+            LOG.error("Exception during user database creation", ex);
         }
-        
-        return success;        
+
+        return success;
     }
+
+    boolean createUser(DBConfig dbConf, String name, String pass, String mail) {
+        boolean success = true;
+        Connection conn = createConnection("//localhost/fagi_users", dbConf.getDBUsername(), dbConf.getDBPassword());
+        try (PreparedStatement stmtCreate = conn.prepareStatement(USER_DB_INSERT_USER)) {
+
+            //stmtCreate.setInt(1, 0);
+            stmtCreate.setString(1, name);
+            stmtCreate.setString(2, pass);
+            stmtCreate.setString(3, mail);
+
+            stmtCreate.executeUpdate();
+
+        } catch (SQLException ex) {
+            LOG.info("Exception during user database creation");
+            LOG.error("Exception during user database creation", ex);
+        }
+
+        return success;
+    }
+
+    boolean checkUser(DBConfig dbConf, String name, String pass, String mail) {
+        boolean found = true;
+        Connection conn = createConnection("//localhost/fagi_users", dbConf.getDBUsername(), dbConf.getDBPassword());
+        try (PreparedStatement stmtCheck = conn.prepareStatement(USER_DB_CHECK_USER)) {
+
+            //stmtCreate.setInt(1, 0);
+            stmtCheck.setString(1, mail);
+
+            ResultSet rs = stmtCheck.executeQuery();
+
+            if (rs.next()) {
+                System.out.println(rs.getString(1));
+                System.out.println(rs.getString(2));
+                System.out.println(rs.getString(3));
+                System.out.println(rs.getString(4));
+                System.out.println("Name found");
+                found = true;
+            } else {
+                System.out.println("Name not found");
+                found = false;
+            }
+
+        } catch (SQLException ex) {
+            LOG.info("Exception during user database creation");
+            LOG.error("Exception during user database creation", ex);
+
+            found = false;
+        }
+
+        return found;
+    }
+
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**
      * Handles the HTTP <code>GET</code> method.
