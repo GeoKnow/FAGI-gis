@@ -114,11 +114,33 @@ public class SPARQLUtilities {
                 PreparedStatement setUserGraphPermsStmt = virt_conn.prepareStatement(querySetUserGraphPerms)) {
 
             virt_conn.setAutoCommit(false);
-            setUserPermsStmt.execute();
-            setUserPermsStmt.setString(1, name);
+            //setUserPermsStmt.execute();
+            //setUserPermsStmt.setString(1, name);
+            setUserGraphPermsStmt.setString(1, grConf.getAllClusterGraph());
+            setUserGraphPermsStmt.setString(2, name);
             setUserGraphPermsStmt.execute();
-            setUserGraphPermsStmt.setString(1, graphName);
-            setUserGraphPermsStmt.setString(2, "http://localhost:8890/DAV/test_service");
+            setUserGraphPermsStmt.setString(1, grConf.getLinksGraph());
+            setUserGraphPermsStmt.setString(2, name);
+            setUserGraphPermsStmt.execute();
+            setUserGraphPermsStmt.setString(1, grConf.getAllLinksGraph());
+            setUserGraphPermsStmt.setString(2, name);
+            setUserGraphPermsStmt.execute();
+            setUserGraphPermsStmt.setString(1, grConf.getMetadataGraphA());
+            setUserGraphPermsStmt.setString(2, name);
+            setUserGraphPermsStmt.execute();
+            setUserGraphPermsStmt.setString(1, grConf.getMetadataGraphB());
+            setUserGraphPermsStmt.setString(2, name);
+            setUserGraphPermsStmt.execute();
+            setUserGraphPermsStmt.setString(1, grConf.getSampleLinksGraph());
+            setUserGraphPermsStmt.setString(2, name);
+            setUserGraphPermsStmt.execute();
+            setUserGraphPermsStmt.setString(1, grConf.getTargetTempGraph());
+            setUserGraphPermsStmt.setString(2, name);
+            setUserGraphPermsStmt.execute();
+            setUserGraphPermsStmt.setString(1, grConf.getTargetGraph());
+            setUserGraphPermsStmt.setString(2, name);
+            setUserGraphPermsStmt.execute();
+            
             virt_conn.commit();
             virt_conn.setAutoCommit(true);
             

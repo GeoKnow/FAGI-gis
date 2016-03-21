@@ -94,5 +94,4 @@ public class Constants {
         GEOM_TYPE_PRECEDENCE_TABLE.put("NONE", 6);
     }
     
-    public static final boolean                 FAAS = false;
 }
