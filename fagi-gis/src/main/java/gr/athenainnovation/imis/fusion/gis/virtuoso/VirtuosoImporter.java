@@ -9,6 +9,7 @@ import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
+import gr.athenainnovation.imis.fusion.gis.core.FAGIUser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import static gr.athenainnovation.imis.fusion.gis.gui.workers.FusionState.ANSI_RESET;
@@ -17,6 +18,7 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.utils.Patterns;
+import gr.athenainnovation.imis.fusion.gis.utils.SPARQLUtilities;
 import gr.athenainnovation.imis.fusion.gis.utils.Utilities;
 import static gr.athenainnovation.imis.fusion.gis.utils.Utilities.isURLToLocalInstance;
 import java.io.BufferedInputStream;
@@ -97,39 +99,38 @@ public final class VirtuosoImporter {
 
     private static final Logger LOG = Log.getClassFAGILogger(VirtuosoImporter.class);
 
-    
     private final TripleHandler trh;
 
     private String transformationID;
 
-    private final Connection                        virt_conn;
-    private final VirtGraph                          set;
-    
-    private final DBConfig                           db_c;
-    private final GraphConfig                        gr_c;
+    private final Connection virt_conn;
+    private final VirtGraph set;
 
-    private int                                     wordnetDepth;
-    private int                                     maxParentDepth;
+    private final DBConfig db_c;
+    private final GraphConfig gr_c;
 
-    private double                                  raiseToPower;
-    private double                                  wordWeight;
-    private double                                  textWeight;
-    private double                                  typeWeight;
-    private double                                  simThreshold;
+    private int wordnetDepth;
+    private int maxParentDepth;
+
+    private double raiseToPower;
+    private double wordWeight;
+    private double textWeight;
+    private double typeWeight;
+    private double simThreshold;
 
     // Ωιρτθοσο Ιμπορτερ Στατε
-    private boolean                                 initialized = false;
+    private boolean initialized = false;
 
     // Used during property matching
-    private HashMap< String, MetadataChain>         propertiesA;
-    private HashMap< String, MetadataChain>         propertiesB;
-    private HashMap<String, HashSet<ScoredMatch>>   foundA = new HashMap<>();
-    private HashMap<String, HashSet<ScoredMatch>>   foundB = new HashMap<>();
-    private HashSet<String>                         recoveredWords = null;
-    private HashSet<String>                         uniquePropertiesA = new HashSet<>();
-    private HashSet<String>                         uniquePropertiesB = new HashSet<>();
-    private HashSet<String>                         nonMatchedPropertiesA = new HashSet<>();
-    private HashSet<String>                         nonMatchedPropertiesB = new HashSet<>();
+    private HashMap< String, MetadataChain> propertiesA;
+    private HashMap< String, MetadataChain> propertiesB;
+    private HashMap<String, HashSet<ScoredMatch>> foundA = new HashMap<>();
+    private HashMap<String, HashSet<ScoredMatch>> foundB = new HashMap<>();
+    private HashSet<String> recoveredWords = null;
+    private HashSet<String> uniquePropertiesA = new HashSet<>();
+    private HashSet<String> uniquePropertiesB = new HashSet<>();
+    private HashSet<String> nonMatchedPropertiesA = new HashSet<>();
+    private HashSet<String> nonMatchedPropertiesB = new HashSet<>();
 
     public VirtuosoImporter(final DBConfig dbConfig, String transformationID, final String fusedGraph, final boolean checkboxIsSelected, final GraphConfig graphConfig) {
         db_c = dbConfig;
@@ -501,11 +502,12 @@ public final class VirtuosoImporter {
                 int p = 0;
                 //System.out.println("Happens");
                 while (rs.next()) {
-                    if ( gr_c.isDominantA())
+                    if (gr_c.isDominantA()) {
                         subject = rs.getString("subject_a");
-                    else
+                    } else {
                         subject = rs.getString("subject_b");
-                    
+                    }
+
                     fusedGeometry = rs.getString("ST_AsText");
                     //System.out.println("Inserting "+subject + " " + fusedGeometry);
                     if (!(transformationID.equals("Keep both"))) {
@@ -720,16 +722,16 @@ public final class VirtuosoImporter {
             if (!success) {
                 break;
             }
-/*
-            int tries = 0;
-                startTime = System.nanoTime();
-                while (tries < Constants.MAX_SPARQL_TRIES) {
+            /*
+             int tries = 0;
+             startTime = System.nanoTime();
+             while (tries < Constants.MAX_SPARQL_TRIES) {
                    
-                        LOG.debug("SQLException thrown during temp graph populating Try : " + (tries + 1));
-                endTime = System.nanoTime();
+             LOG.debug("SQLException thrown during temp graph populating Try : " + (tries + 1));
+             endTime = System.nanoTime();
                     
-                LOG.info("Uploading A lasted "+Utilities.nanoToSeconds(endTime-startTime));*/
-            
+             LOG.info("Uploading A lasted "+Utilities.nanoToSeconds(endTime-startTime));*/
+
             int tries = 0;
             startTime = System.nanoTime();
             while (tries < Constants.MAX_SPARQL_TRIES) {
@@ -746,15 +748,15 @@ public final class VirtuosoImporter {
                     LOG.debug("SQLException thrown during temp graph B populating : " + ex.getSQLState());
 
                     tries++;
-                    
+
                 }
             }
 
-            if ( tries == Constants.MAX_SPARQL_TRIES) {
+            if (tries == Constants.MAX_SPARQL_TRIES) {
                 success = false;
                 return success;
             }
-            
+
             endTime = System.nanoTime();
 
             LOG.info("Uploading A lasted " + Utilities.nanoToSeconds(endTime - startTime));
@@ -778,17 +780,16 @@ public final class VirtuosoImporter {
 
                 }
             }
-            
-            if ( tries == Constants.MAX_SPARQL_TRIES) {
+
+            if (tries == Constants.MAX_SPARQL_TRIES) {
                 success = false;
                 return success;
             }
-            
+
             endTime = System.nanoTime();
 
             LOG.info("Uploading B lasted " + Utilities.nanoToSeconds(endTime - startTime));
-            
-            
+
             //endtime = System.nanoTime();
             //LOG.info("Metadata main parsed in " + (endtime - starttime) / 1000000000f);
             i += Constants.BATCH_SIZE;
@@ -844,24 +845,23 @@ public final class VirtuosoImporter {
     HashMap<String, Schema> schemasB = Maps.newHashMap();
 
     private void scanMatches() {
-        
+
         // expand properties chains
         expandChain(schemasA, propertiesA, "");
         expandChain(schemasB, propertiesB, "");
-        
+
         /*
-        for (Map.Entry pairs : schemasA.entrySet()) {
-            String chain = (String) pairs.getKey();
-            Schema sche = (Schema) pairs.getValue();
-            System.out.println("A " + chain + " " + sche.predicate + " Size " + sche.indexes.size());
-        }
-        for (Map.Entry pairs : schemasB.entrySet()) {
-            String chain = (String) pairs.getKey();
-            Schema sche = (Schema) pairs.getValue();
-            System.out.println("B " + chain + " " + sche.predicate + " Size " + sche.indexes.size());
-        }
-        */
-        
+         for (Map.Entry pairs : schemasA.entrySet()) {
+         String chain = (String) pairs.getKey();
+         Schema sche = (Schema) pairs.getValue();
+         System.out.println("A " + chain + " " + sche.predicate + " Size " + sche.indexes.size());
+         }
+         for (Map.Entry pairs : schemasB.entrySet()) {
+         String chain = (String) pairs.getKey();
+         Schema sche = (Schema) pairs.getValue();
+         System.out.println("B " + chain + " " + sche.predicate + " Size " + sche.indexes.size());
+         }
+         */
         List<SchemaMatcher> matchers = new ArrayList<>();
         int countA;
         int countB;
@@ -941,7 +941,7 @@ public final class VirtuosoImporter {
                 float sim_score = (score + jaro_dist) / 2;
                 //if (sim_score > 0.5) {
                 int same_type = compareTypes(scheA.objectStr, scheB.objectStr);
-                    //System.out.print("Sim Score : "+sim_score+" "+same_type+" ");
+                //System.out.print("Sim Score : "+sim_score+" "+same_type+" ");
                 //System.out.print("Type Score : "+scheA.objectStr+" and "+scheB.objectStr+" "+sim_score+" "+same_type+" ");
                 //System.out.print("Jaro distance of "+jaro_dist_norm+" ");
                 //System.out.print("Mul : "+scheA.indexes.size()+" x "+scheB.indexes.size() + " = "+(scheA.indexes.size()*scheB.indexes.size())+" ");
@@ -1054,7 +1054,7 @@ public final class VirtuosoImporter {
         Dictionary dictionary = Dictionary.getInstance();
         for (Map.Entry pairs : chains.entrySet()) {
             MetadataChain chain = (MetadataChain) pairs.getValue();
-            
+
             // Chains are comma separated
             String pad;
             if (chain.chains != null) {
@@ -1079,20 +1079,20 @@ public final class VirtuosoImporter {
             } catch (UnsupportedEncodingException ex) {
                 LOG.trace("UnsupportedEncodingException thrown during parsing of \"" + chain.link + "\"");
                 LOG.debug("UnsupportedEncodingException thrown during parsing of \"" + chain.link + "\" " + ex.getMessage());
-                    
+
                 // A bad decoding should not break the whole FAGI 
                 continue;
             }
-            
+
             Matcher mat = Patterns.PATTERN_WORD_BREAKER.matcher(normalizedLink);
             while (mat.find()) {
                 arrl.add(mat.group());
             }
             //System.out.print("Found:");
             /*for (String s : arrl) {
-                System.out.print(" " + s);
-            }
-            System.out.println();*/
+             System.out.print(" " + s);
+             }
+             System.out.println();*/
 
             Schema m = new Schema();
             m.predicate = pred;
@@ -1115,17 +1115,17 @@ public final class VirtuosoImporter {
                 } catch (ParseException ex) {
                     LOG.trace("ParseException thrown during parsing of \"" + a + "\"");
                     LOG.debug("ParseException thrown during parsing of \"" + a + "\" " + ex.getMessage());
-                    
+
                     // A bad word stem should not break the whole FAGI 
                     continue;
                 } catch (JWNLException ex) {
                     LOG.trace("JWNLException thrown during parsing of \"" + a + "\"");
                     LOG.debug("JWNLException thrown during parsing of \"" + a + "\" " + ex.getMessage());
-                    
+
                     // A bad word look up should not break the whole FAGI 
                     continue;
                 }
-                
+
                 //IndexWordSet wordSet = dictionary.lookupAllIndexWords(a);
                 if (wordSet == null) {
                     continue;
@@ -1154,12 +1154,12 @@ public final class VirtuosoImporter {
 
                 m.addIndex(best);
             }
-            
+
             //System.out.println("Inserting predicate: "+ pred);
             lst.put(pred, m);
         }
         //System.out.println();
-        
+
         return success;
     }
 
@@ -1222,9 +1222,9 @@ public final class VirtuosoImporter {
         //System.out.println(root);
     }
 
-    public SchemaMatchState scanProperties(int optDepth, String linkA, String linkB, Boolean swapped) {
+    public SchemaMatchState scanProperties(int optDepth, String linkA, String linkB, Boolean swapped, FAGIUser activeUser) {
         boolean success = true;
-        
+
         try {
             if (SystemUtils.IS_OS_MAC_OSX) {
                 JWNL.initialize(new ByteArrayInputStream(getJWNL(Constants.PATH_TO_WORDNET_OS_X).getBytes(StandardCharsets.UTF_8)));
@@ -1240,36 +1240,71 @@ public final class VirtuosoImporter {
             LOG.trace("JWNLException thrown during set up of the Dictionary");
             LOG.debug("JWNLException thrown during set up of the Dictionary : \n" + ex.getMessage());
         }
-        
+
         try (
-            // StopWords are stored in a serialized HashSet
-            InputStream file = this.getClass().getResourceAsStream("/stopWords.ser");
-            InputStream buffer = new BufferedInputStream(file);
-            ObjectInput input = new ObjectInputStream(buffer);) {
-            
+                // StopWords are stored in a serialized HashSet
+                InputStream file = this.getClass().getResourceAsStream("/stopWords.ser");
+                InputStream buffer = new BufferedInputStream(file);
+                ObjectInput input = new ObjectInputStream(buffer);) {
+
             recoveredWords = (HashSet) input.readObject();
 
         } catch (ClassNotFoundException ex) {
             LOG.trace("ClassNotFoundException thrown during loading of the StopWords file");
             LOG.debug("ClassNotFoundException thrown during loading of the StopWords file : \n" + ex.getMessage());
-            
+
             recoveredWords = new HashSet();
         } catch (IOException ex) {
             LOG.trace("IOException thrown during loading of the StopWords file");
             LOG.debug("IOException thrown during loading of the StopWords file : \n" + ex.getMessage());
-            
+
             recoveredWords = new HashSet();
         }
 
         // Clear previous findings
         foundA.clear();
         foundB.clear();
-        
+
         // If it' s a per link matching
-        if ( linkA != null && linkB != null ) {
+        if (linkA != null && linkB != null) {
             // If we are using Late Fetch Optimisation we need to create
             // the temp graphs here
             if (Constants.LATE_FETCH) {
+                final String dropMetaAGraph = "SPARQL CLEAR GRAPH <" + gr_c.getMetadataGraphA() + ">";
+                final String dropMetaBGraph = "SPARQL CLEAR GRAPH <" + gr_c.getMetadataGraphB() + ">";
+                final String createMetaAGraph = "SPARQL CREATE GRAPH <" + gr_c.getMetadataGraphA() + ">";
+                final String createMetaBGraph = "SPARQL CREATE GRAPH <" + gr_c.getMetadataGraphB() + ">";
+
+                PreparedStatement tempStmt;
+                try {
+                    tempStmt = virt_conn.prepareStatement(dropMetaAGraph);
+
+                    tempStmt.execute();
+                    tempStmt.close();
+                    tempStmt = virt_conn.prepareStatement(dropMetaBGraph);
+                    tempStmt.execute();
+                    tempStmt.close();
+                    tempStmt = virt_conn.prepareStatement(createMetaAGraph);
+                    //tempStmt.execute();
+                    tempStmt.close();
+                    tempStmt = virt_conn.prepareStatement(createMetaBGraph);
+                    //tempStmt.execute();
+                    tempStmt.close();
+
+                } catch (SQLException ex) {
+
+                    LOG.trace("SQLException thrown during temp graph creation");
+                    LOG.debug("SQLException thrown during temp graph creation : " + ex.getMessage());
+                    LOG.debug("SQLException thrown during temp graph creation : " + ex.getSQLState());
+
+                    success = false;
+
+                    return null;
+                }
+
+                SPARQLUtilities.createSPARQLUserNamedGraph(virt_conn, activeUser.getName(), gr_c.getMetadataGraphA());
+                SPARQLUtilities.createSPARQLUserNamedGraph(virt_conn, activeUser.getName(), gr_c.getMetadataGraphB());
+
                 StringBuilder getFromB = new StringBuilder();
                 StringBuilder getFromA = new StringBuilder();
 
@@ -1283,19 +1318,19 @@ public final class VirtuosoImporter {
                 getFromA.append("SPARQL INSERT\n");
                 getFromA.append("  { GRAPH <").append(gr_c.getMetadataGraphA()).append("> {\n");
                 if (gr_c.isDominantA()) {
-                    getFromA.append(" <"+linkA+"> ?p ?o1 . \n");
+                    getFromA.append(" <" + linkA + "> ?p ?o1 . \n");
                 } else {
-                    getFromA.append(" <"+linkB+"> ?p ?o1 . \n");
+                    getFromA.append(" <" + linkB + "> ?p ?o1 . \n");
                 }
                 getFromA.append(" ?o1 ?p4 ?o3 .\n");
                 getFromA.append(" ?o3 ?p5 ?o4 .\n");
                 getFromA.append(" ?o4 ?p6 ?o5\n");
                 getFromA.append("} }\nWHERE\n");
-                getFromA.append("{\n");               
+                getFromA.append("{\n");
                 if (isEndpointALocal) {
-                    getFromA.append(" GRAPH <").append(gr_c.getGraphA()).append("> { {<"+linkA+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+                    getFromA.append(" GRAPH <").append(gr_c.getGraphA()).append("> { {<" + linkA + "> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
                 } else {
-                    getFromA.append(" SERVICE <" + gr_c.getEndpointA() + "> { GRAPH <").append(gr_c.getGraphA()).append("> { {<"+linkA+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
+                    getFromA.append(" SERVICE <" + gr_c.getEndpointA() + "> { GRAPH <").append(gr_c.getGraphA()).append("> { {<" + linkA + "> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
                 }
                 getFromA.append("\n");
                 getFromA.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
@@ -1311,19 +1346,19 @@ public final class VirtuosoImporter {
                 getFromB.append("sparql INSERT\n");
                 getFromB.append("  { GRAPH <").append(gr_c.getMetadataGraphB()).append("> {\n");
                 if (gr_c.isDominantA()) {
-                    getFromB.append(" <"+linkA+"> ?p ?o1 . \n");
+                    getFromB.append(" <" + linkA + "> ?p ?o1 . \n");
                 } else {
-                    getFromB.append(" <"+linkB+"> ?p ?o1 . \n");
+                    getFromB.append(" <" + linkB + "> ?p ?o1 . \n");
                 }
                 getFromB.append(" ?o1 ?p4 ?o3 .\n");
                 getFromB.append(" ?o3 ?p5 ?o4 .\n");
                 getFromB.append(" ?o4 ?p6 ?o5 \n");
                 getFromB.append("} }\nWHERE\n");
-                getFromB.append("{\n"); 
+                getFromB.append("{\n");
                 if (isEndpointBLocal) {
-                    getFromB.append(" GRAPH <").append(gr_c.getGraphB()).append("> { {<"+linkB+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
+                    getFromB.append(" GRAPH <").append(gr_c.getGraphB()).append("> { {<" + linkB + "> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
                 } else {
-                    getFromB.append(" SERVICE <" + gr_c.getEndpointB() + "> { GRAPH <").append(gr_c.getGraphB()).append("> { {<"+linkB+"> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
+                    getFromB.append(" SERVICE <" + gr_c.getEndpointB() + "> { GRAPH <").append(gr_c.getGraphB()).append("> { {<" + linkB + "> ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } } }\n");
                 }
                 getFromB.append("\n");
                 getFromB.append("  FILTER(!regex(?p,\"http://www.opengis.net/ont/geosparql#hasGeometry\",\"i\")) \n");
@@ -1338,7 +1373,7 @@ public final class VirtuosoImporter {
 
                 System.out.println("GET FROM B \n" + getFromB);
                 System.out.println("GET FROM B \n" + getFromA);
-             
+
                 // Populate with data from the Sample Liink set
                 try (PreparedStatement populateDataA = virt_conn.prepareStatement(getFromA.toString());
                         PreparedStatement populateDataB = virt_conn.prepareStatement(getFromB.toString())) {
@@ -1358,7 +1393,7 @@ public final class VirtuosoImporter {
                 }
 
             }
-            
+
             String link;
             if (gr_c.isDominantA()) {
                 link = linkA;
@@ -1401,7 +1436,6 @@ public final class VirtuosoImporter {
 
                 //System.out.println("DEPTH: " + i);
                 //System.out.println("QUERY FOR PREDICATES : " + query.toString());
-                
                 try (PreparedStatement fetchProperties = virt_conn.prepareStatement(query.toString());
                         ResultSet propertiesRS = fetchProperties.executeQuery()) {
 
@@ -1472,13 +1506,12 @@ public final class VirtuosoImporter {
                     LOG.debug("SQLException thrown during set up of the Dictionary : \n" + ex.getMessage());
                     LOG.debug("SQLException thrown during set up of the Dictionary : \n" + ex.getSQLState());
                 }
-                
+
                 scanMatches();
                 propertiesA.clear();
                 propertiesB.clear();
 
                         //propertiesRS.close();
-                   
                 //fetchProperties.close();
             }
         } else {
@@ -1499,8 +1532,8 @@ public final class VirtuosoImporter {
                     + "}}";
 
             try (PreparedStatement dropSamplesStmt = virt_conn.prepareStatement(dropSamplesGraph);
-                PreparedStatement insertLinksSample = virt_conn.prepareStatement(createLinksSample);
-                PreparedStatement createSamplesStmt = virt_conn.prepareStatement(createSamplesGraph) ) {
+                    PreparedStatement insertLinksSample = virt_conn.prepareStatement(createLinksSample);
+                    PreparedStatement createSamplesStmt = virt_conn.prepareStatement(createSamplesGraph)) {
 
                 dropSamplesStmt.execute();
                 createSamplesStmt.execute();
@@ -1510,10 +1543,10 @@ public final class VirtuosoImporter {
                 LOG.trace("SQLException thrown during sample creation");
                 LOG.debug("SQLException thrown during sample creation : \n" + ex.getMessage());
                 LOG.debug("SQLException thrown during sample creation : \n" + ex.getSQLState());
-                                
+
                 return null;
             }
-            
+
             // If we are using Late Fetch Optimisation we need to create
             // the temp graphs here
             if (Constants.LATE_FETCH) {
@@ -1526,10 +1559,10 @@ public final class VirtuosoImporter {
                 final String createMetaBGraph = "SPARQL CREATE GRAPH <" + gr_c.getMetadataGraphB() + ">";
 
                 try (PreparedStatement dropMetaAStmt = virt_conn.prepareStatement(dropMetaAGraph);
-                    PreparedStatement dropMetaBStmt = virt_conn.prepareStatement(dropMetaBGraph);
-                    PreparedStatement createMetaAStmt = virt_conn.prepareStatement(createMetaAGraph);
-                    PreparedStatement createMetaBStmt = virt_conn.prepareStatement(createMetaBGraph) ) {
-                    
+                        PreparedStatement dropMetaBStmt = virt_conn.prepareStatement(dropMetaBGraph);
+                        PreparedStatement createMetaAStmt = virt_conn.prepareStatement(createMetaAGraph);
+                        PreparedStatement createMetaBStmt = virt_conn.prepareStatement(createMetaBGraph)) {
+
                     System.out.println("INSIDE META CREATION");
                     dropMetaAStmt.execute();
                     System.out.println("INSIDE META CREATION 1");
@@ -1539,7 +1572,7 @@ public final class VirtuosoImporter {
                     System.out.println("INSIDE META CREATION 3");
                     createMetaBStmt.execute();
                     System.out.println("OUTSIDE META CREATION");
-                    
+
                 } catch (SQLException ex) {
 
                     LOG.trace("SQLException thrown during temp graph creation");
@@ -1550,14 +1583,12 @@ public final class VirtuosoImporter {
 
                 //testThreads(links);
                 //LOG.info(ANSI_YELLOW + "Thread test lasted " + ((endtime - starttime) / 1000000000f) + "" + ANSI_RESET);
-
                 boolean isEndpointALocal;
                 boolean isEndpointBLocal;
 
                 isEndpointALocal = isURLToLocalInstance(gr_c.getEndpointA()); //"localhost" for localhost
 
                 isEndpointBLocal = isURLToLocalInstance(gr_c.getEndpointB()); //"localhost" for localhost
-
 
                 getFromA.append("SPARQL INSERT\n");
                 getFromA.append("  { GRAPH <").append(gr_c.getMetadataGraphA()).append("> {\n");
@@ -1573,7 +1604,7 @@ public final class VirtuosoImporter {
                 getFromA.append("{\n");
                 getFromA.append(" GRAPH <" + gr_c.getSampleLinksGraph() + "> { ");
                 //if ( swapped )
-                    getFromA.append(" ?s <"+Constants.SAME_AS+"> ?o } .\n");     
+                getFromA.append(" ?s <" + Constants.SAME_AS + "> ?o } .\n");
                 //else
                 //    getFromA.append(" ?o <"+Constants.SAME_AS+"> ?s } .\n");                
                 if (isEndpointALocal) {
@@ -1606,9 +1637,9 @@ public final class VirtuosoImporter {
                 getFromB.append("{\n");
                 getFromB.append(" GRAPH <" + gr_c.getSampleLinksGraph() + "> { ");
                 //if ( swapped )
-                    getFromB.append(" ?s <"+Constants.SAME_AS+"> ?o } .\n");     
+                getFromB.append(" ?s <" + Constants.SAME_AS + "> ?o } .\n");
                 //else
-                    //getFromB.append(" ?o <"+Constants.SAME_AS+"> ?s } .\n");  
+                //getFromB.append(" ?o <"+Constants.SAME_AS+"> ?s } .\n");  
                 if (isEndpointBLocal) {
                     getFromB.append(" GRAPH <").append(gr_c.getGraphB()).append("> { {?o ?p ?o1} OPTIONAL { ?o1 ?p4 ?o3 . OPTIONAL { ?o3 ?p5 ?o4 . OPTIONAL { ?o4 ?p6 ?o5 .} } } }\n");
                 } else {
@@ -1627,7 +1658,7 @@ public final class VirtuosoImporter {
 
                 System.out.println("GET FROM B \n" + getFromB);
                 System.out.println("GET FROM B \n" + getFromA);
-             
+
                 // Populate with data from the Sample Liink set
                 try (PreparedStatement populateDataA = virt_conn.prepareStatement(getFromA.toString());
                         PreparedStatement populateDataB = virt_conn.prepareStatement(getFromB.toString())) {
@@ -1647,16 +1678,16 @@ public final class VirtuosoImporter {
                 }
 
             //endtime = System.nanoTime();
-            //LOG.info("Metadata main parsed in " + (endtime - starttime) / 1000000000f);
-            //i += Constants.BATCH_SIZE;
-            //count++;
-            //
+                //LOG.info("Metadata main parsed in " + (endtime - starttime) / 1000000000f);
+                //i += Constants.BATCH_SIZE;
+                //count++;
+                //
             }
-            
+
             foundA.clear();
             foundB.clear();
             for (int i = 0; i < optDepth + 1; i++) {
-                
+
                 // Dynamically construct properties query
                 StringBuilder query = new StringBuilder();
                 query.append("sparql SELECT distinct(?s) ?pa1 ?oa1 ");
@@ -1711,7 +1742,7 @@ public final class VirtuosoImporter {
                         + "} ORDER BY (?s)");
 
                 System.out.println("Properties Query : " + query.toString());
-                
+
                 String prevSubject = "";
                 try (PreparedStatement fetchProperties = virt_conn.prepareStatement(query.toString());
                         ResultSet propertiesRS = fetchProperties.executeQuery()) {
@@ -1720,24 +1751,24 @@ public final class VirtuosoImporter {
                     List<String> chainB = new ArrayList<>();
                     List<String> objectChainA = new ArrayList<>();
                     List<String> objectChainB = new ArrayList<>();
-                        
+
                     while (propertiesRS.next()) {
                         final String subject = propertiesRS.getString(1);
                         //propertiesRS.
                         if (!prevSubject.equals(subject) && !prevSubject.equals("")) {
-                        //if (i == optDepth) {
+                            //if (i == optDepth) {
                             //System.out.println(subject);
                             scanMatches();
                             propertiesA.clear();
                             propertiesB.clear();
                             //}
                         }
-                        
+
                         chainA.clear();
                         chainB.clear();
                         objectChainA.clear();
                         objectChainB.clear();
-                        
+
                         for (int j = 0; j <= i; j++) {
                             int step_over = 2 * (i + 1);
 
@@ -1799,13 +1830,12 @@ public final class VirtuosoImporter {
                             chainB.add(predicateB);
                             objectChainB.add(objectB);
 
-                        //System.out.println(" "+predicateA+" "+objectA);
+                            //System.out.println(" "+predicateA+" "+objectA);
                             //System.out.println(" "+predicateB+" "+objectB);
                         }
-                        
+
                     //System.out.println("Chain A "+chainA);
                         //System.out.println("Chain B "+chainB);
-                        
                         scanChain(propertiesA, chainA, objectChainA);
                         scanChain(propertiesB, chainB, objectChainB);
 
@@ -1818,7 +1848,7 @@ public final class VirtuosoImporter {
 
                     return null;
                 }
-                
+
                 scanMatches();
                 propertiesA.clear();
                 propertiesB.clear();
@@ -1830,26 +1860,26 @@ public final class VirtuosoImporter {
         if (JWNL.isInitialized()) {
             JWNL.shutdown();
         }
-        
+
         // A frequncy map of ontology substring in each predicate
         HashMap<String, Integer> freqMap = Maps.newHashMap();
-        
+
         // Find dominant ontology in Dataset A
         for (String key : uniquePropertiesA) {
             //System.out.println(key);
-            
+
             // Get meaningful part
             String onto = Utilities.getPredicateOntology(key);
-            
+
             // If previously encountered, bump the number
             if (freqMap.containsKey(onto)) {
                 freqMap.put(onto, freqMap.get(onto) + 1);
             } else {
                 freqMap.put(onto, 1);
             }
-            
+
         }
-        
+
         int max = -1;
         String domOntologyA = "";
         for (Map.Entry<String, Integer> entry : freqMap.entrySet()) {
@@ -1864,10 +1894,10 @@ public final class VirtuosoImporter {
             }
             //System.out.println("Entry "+key+" : "+value);
         }
-        
+
         // Clear frequencies
         freqMap.clear();
-        
+
         // Find dominant ontology in Dataset A
         for (String key : uniquePropertiesB) {
             //System.out.println(key);
@@ -1884,7 +1914,7 @@ public final class VirtuosoImporter {
                 freqMap.put(onto, 1);
             }
         }
-        
+
         max = -1;
         String domOntologyB = "";
         for (Map.Entry<String, Integer> entry : freqMap.entrySet()) {
@@ -1906,29 +1936,27 @@ public final class VirtuosoImporter {
         //    System.out.println(key);
         //}
         //System.out.println("Found A");
-        
         /*
-        Iterator iter = foundA.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry pairs = (Map.Entry) iter.next();
-            HashSet<ScoredMatch> set = (HashSet<ScoredMatch>) pairs.getValue();
-            //System.out.println("KEY: "+pairs.getKey());
-            for (ScoredMatch s : set) {
-                //System.out.println(s.getRep());
-            }
-        }
-        //System.out.println("Found B");
-        iter = foundB.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry pairs = (Map.Entry) iter.next();
-            HashSet<ScoredMatch> set = (HashSet<ScoredMatch>) pairs.getValue();
-                //System.out.println("KEY: "+pairs.getKey());
-            //for(ScoredMatch s : set) {
-            //System.out.println(s.getRep());
-            //}
-        }
-        */
-        
+         Iterator iter = foundA.entrySet().iterator();
+         while (iter.hasNext()) {
+         Map.Entry pairs = (Map.Entry) iter.next();
+         HashSet<ScoredMatch> set = (HashSet<ScoredMatch>) pairs.getValue();
+         //System.out.println("KEY: "+pairs.getKey());
+         for (ScoredMatch s : set) {
+         //System.out.println(s.getRep());
+         }
+         }
+         //System.out.println("Found B");
+         iter = foundB.entrySet().iterator();
+         while (iter.hasNext()) {
+         Map.Entry pairs = (Map.Entry) iter.next();
+         HashSet<ScoredMatch> set = (HashSet<ScoredMatch>) pairs.getValue();
+         //System.out.println("KEY: "+pairs.getKey());
+         //for(ScoredMatch s : set) {
+         //System.out.println(s.getRep());
+         //}
+         }
+         */
         return new SchemaMatchState(foundA, foundB, domOntologyA, domOntologyB, nonMatchedPropertiesA, nonMatchedPropertiesB);
     }
 
@@ -1942,7 +1970,7 @@ public final class VirtuosoImporter {
         } catch (JWNLException ex) {
             return -1;
         }
-	//System.out.println("Hypernym relationship between \"" + start.getLemma() + "\" and \"" + end.getLemma() + "\":");
+        //System.out.println("Hypernym relationship between \"" + start.getLemma() + "\" and \"" + end.getLemma() + "\":");
         //int ret = -1;
         int tom;
         //int count = 0;
@@ -1969,7 +1997,7 @@ public final class VirtuosoImporter {
     }
 
     private float calculateAsymmetricRelationshipOperation(IndexWord start, IndexWord end, SchemaMatcher m) {
-		// Try to find a relationship between the first sense of <var>start</var> and the first sense of <var>end</var>
+        // Try to find a relationship between the first sense of <var>start</var> and the first sense of <var>end</var>
         //System.out.println("Asymetric relationship between \"" + start.getLemma() + "\" and \"" + end.getLemma() + "\":");	
         if (start == null || end == null) {
             return (float) 0.0;
@@ -1989,9 +2017,9 @@ public final class VirtuosoImporter {
             setA = start.getSenses();
             setB = end.getSenses();
         } catch (JWNLException ex) {
-            
+
         }
-        
+
         if (setA == null || setB == null) {
             return (float) 0.0;
         }
@@ -2215,15 +2243,15 @@ public final class VirtuosoImporter {
          */
     }
 
-     /**
+    /**
      * Use the Triple Handler to upload data to Virtuoso
      *
      */
     public void finishUpload() {
         trh.finish();
     }
-    
-     /**
+
+    /**
      * Create connection to Virtuoso through Jena
      *
      */
@@ -2236,7 +2264,7 @@ public final class VirtuosoImporter {
             LOG.trace("JenaException thrown during VirtGraph creatinon");
             LOG.debug("JenaException thrown during VirtGraph creatinon : " + ex.getMessage());
         }
-        
+
         return vSet;
     }
 
@@ -2322,7 +2350,6 @@ public final class VirtuosoImporter {
         success = SPARQLInsertLinksBatch(lst, nextIndex);
 
         //System.out.println("THE BOOL OUT IS " + success);
-
         return success;
     }
 
@@ -2489,7 +2516,7 @@ public final class VirtuosoImporter {
 
             return success;
         }
-        
+
         System.out.println("THE BOOL IN IS " + success);
 
         return success;
