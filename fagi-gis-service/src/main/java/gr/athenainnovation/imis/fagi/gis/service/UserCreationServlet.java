@@ -123,7 +123,7 @@ public class UserCreationServlet extends HttpServlet {
                 ret.setStatusCode(-1);
             }
             
-            out.printf("{}");
+            out.printf(mapper.writeValueAsString(ret));
         }
     }
 

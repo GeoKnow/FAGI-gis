@@ -2467,9 +2467,6 @@ function createUser()
             $('#connLabel').text(responseJson.message);
             FAGI.Utilities.disableSpinner();
             if (responseJson.statusCode == 0) {
-                $('#datasetMenu').click(expandDatasetPanel);
-                $('#linksMenu').click(expandLinksPanel);
-                $('#matchingMenu').click(expandMatchingPanel);
                 $("#datasetMenu").trigger('click');
             }
         },

@@ -14,6 +14,7 @@ import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
+import gr.athenainnovation.imis.fusion.gis.core.FAGIUser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.Dataset;
@@ -93,6 +94,7 @@ public class SchemaMatchServlet extends HttpServlet {
         Connection              virt_conn;
         VirtGraph               vSet = null;
         HttpSession             sess;
+        FAGIUser                activeUser;
         ObjectMapper            mapper = new ObjectMapper();
         boolean                 success = true;
         
@@ -134,8 +136,10 @@ public class SchemaMatchServlet extends HttpServlet {
             
             dbConf = (DBConfig)sess.getAttribute("db_conf");
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
+            activeUser = (FAGIUser)sess.getAttribute("logged_user");
             
             String[] selectedLinks = request.getParameterValues("links[]");
+            
             List<Link> lst = new ArrayList<>();
             for(String s : selectedLinks) {
                 final String subs[] = s.split("<-->");
@@ -182,6 +186,9 @@ public class SchemaMatchServlet extends HttpServlet {
             }
             //2105779425
             VirtuosoImporter virtImp = (VirtuosoImporter)sess.getAttribute("virt_imp");
+            
+            SPARQLUtilities.createSPARQLUserNamedGraph(vSet.getConnection(), activeUser.getName(), grConf.getLinksGraph());
+            
             if (Constants.LATE_FETCH) {
 
                 Dataset sourceADataset = new Dataset(grConf.getEndpointA(), grConf.getGraphA(), "");
@@ -281,9 +288,11 @@ public class SchemaMatchServlet extends HttpServlet {
                     }
                 }
                 
+                SPARQLUtilities.createSPARQLUserNamedGraph(vSet.getConnection(), activeUser.getName(), grConf.getTargetTempGraph());
+                
             }
             
-            SchemaMatchState sms = virtImp.scanProperties(3, null, null, (Boolean)sess.getAttribute("make-swap"));
+            SchemaMatchState sms = virtImp.scanProperties(3, null, null, (Boolean)sess.getAttribute("make-swap"), activeUser);
             
             if ( sms == null ) {
                 LOG.trace("Failed to create SchemaMatchState");
@@ -311,14 +320,14 @@ public class SchemaMatchServlet extends HttpServlet {
             matches.setMetaTransforms(sms.metaTransforms);
             
             List<String> lstProp = sms.getPropertyList("A");
-            System.out.println("\n\n\n\n\nPROPERTIES A\n\n\n\n\n\n\n");
+            //System.out.println("\n\n\n\n\nPROPERTIES A\n\n\n\n\n\n\n");
             for ( String prope : lstProp ) {
-                System.out.println(prope);
+                //System.out.println(prope);
             }
             lstProp = sms.getPropertyList("B");
-            System.out.println("\n\n\n\n\nPROPERTIES B\n\n\n\n\n\n\n");
+            //System.out.println("\n\n\n\n\nPROPERTIES B\n\n\n\n\n\n\n");
             for ( String prope : lstProp ) {
-                System.out.println(prope);
+                //System.out.println(prope);
             }
             sess.setAttribute("property_patternsA", sms.getPropertyList("A"));
             sess.setAttribute("property_patternsB", sms.getPropertyList("B"));

@@ -30,6 +30,7 @@ import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
 import static com.vividsolutions.jts.triangulate.quadedge.QuadEdgeTriangle.nextIndex;
 import gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI;
+import gr.athenainnovation.imis.fusion.gis.core.FAGIUser;
 import gr.athenainnovation.imis.fusion.gis.core.GeometryFuser;
 import gr.athenainnovation.imis.fusion.gis.core.Link;
 import gr.athenainnovation.imis.fusion.gis.gui.listeners.ErrorListener;
@@ -221,6 +222,7 @@ public class LinksServlet extends HttpServlet {
         HttpSession             sess;
         JSONLoadLinksResult     ret;
         JSONRequestResult       res;
+        FAGIUser                activeUser;
         boolean                 succeeded = false;
         long                    startTime, endTime;
         
@@ -247,6 +249,8 @@ public class LinksServlet extends HttpServlet {
             
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
+            activeUser = (FAGIUser)sess.getAttribute("logged_user");
+
             for ( String s : QueryEngineHTTP.supportedSelectContentTypes) {
                 if ( s.contains("xml"))
                     sess.setAttribute("content-type", s);
@@ -471,6 +475,10 @@ public class LinksServlet extends HttpServlet {
                 return;
             }
             
+            SPARQLUtilities.createSPARQLUserNamedGraph(vSet.getConnection(), activeUser.getName(), grConf.getAllLinksGraph());
+            //SPARQLUtilities.createSPARQLUserGraph(graphConf, vSet.getConnection(), activeUser.getName(), activeUser.getPass());
+
+            
             // If we are using late fetching, geometry upload
             // is done in a later stage
             VirtuosoImporter virtImp = new VirtuosoImporter(dbConf, null, (String) sess.getAttribute("t_graph"), true, grConf);
@@ -549,6 +557,8 @@ public class LinksServlet extends HttpServlet {
 
                     stmt = virt_conn.prepareStatement(createTempGraph);
                     stmt.execute();
+
+                    SPARQLUtilities.createSPARQLUserNamedGraph(vSet.getConnection(), activeUser.getName(), grConf.getTargetTempGraph());
 
                 } catch (SQLException ex) {
                     LOG.trace("SQLException thrown");

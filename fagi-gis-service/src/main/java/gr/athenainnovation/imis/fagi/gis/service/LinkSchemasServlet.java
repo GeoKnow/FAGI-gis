@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.hp.hpl.jena.shared.JenaException;
+import gr.athenainnovation.imis.fusion.gis.core.FAGIUser;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.json.JSONLinkMatches;
@@ -79,6 +80,7 @@ public class LinkSchemasServlet extends HttpServlet {
         GraphConfig                     grConf;
         VirtGraph                       vSet = null;
         DBConfig                        dbConf;
+        FAGIUser                        activeUser = null;
         ObjectMapper                    mapper = new ObjectMapper();
         
         response.setContentType("application/json");
@@ -130,7 +132,7 @@ public class LinkSchemasServlet extends HttpServlet {
             System.out.println("Link : " + lp.getNodeA() + "    " + lp.getNodeB() );
             
             VirtuosoImporter virtImp = (VirtuosoImporter) sess.getAttribute("virt_imp");
-            SchemaMatchState sms = virtImp.scanProperties(3, lp.getNodeA(), lp.getNodeB(), (Boolean)sess.getAttribute("make-swap"));
+            SchemaMatchState sms = virtImp.scanProperties(3, lp.getNodeA(), lp.getNodeB(), (Boolean)sess.getAttribute("make-swap"), activeUser);
             matches.setFoundA( sms.foundA );
             matches.setFoundB( sms.foundB );
             
