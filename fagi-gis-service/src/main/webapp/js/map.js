@@ -2441,8 +2441,8 @@ function endDragA(feature, pixel) {
         //alert('End drag '+FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA.linls[0]));
         
         FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
-        alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
-        alert(FAGI.ActiveState.selectedGeomA.attributes.a);
+        //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
+        //alert(FAGI.ActiveState.selectedGeomA.attributes.a);
         $.ajax({
             // request type
             type: "POST",
@@ -2472,9 +2472,9 @@ function endDragA(feature, pixel) {
         });
     
         //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
-        FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        //FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
         //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
-        //FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+        FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
         //FAGI.ActiveState.selectedGeomA.state = OpenLayers.State.UPDATE;
         FAGI.ActiveState.selectedGeomA = null;
     }
@@ -2614,8 +2614,8 @@ function doDragB(feature, pixel) {
 function endDragB(feature, pixel) {
      if (FAGI.ActiveState.selectedGeomB != null) {
         FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
-        alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomB));
-        alert(FAGI.ActiveState.selectedGeomB.attributes.a);
+        //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomB));
+        //alert(FAGI.ActiveState.selectedGeomB.attributes.a);
         $.ajax({
             // request type
             type: "POST",
@@ -2645,9 +2645,9 @@ function endDragB(feature, pixel) {
         });
     
         //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
-        FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        //FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
         //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
-        //FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
+        FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
         FAGI.ActiveState.selectedGeomB = null;
     }
 }

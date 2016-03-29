@@ -2450,7 +2450,13 @@ function createUser()
     var values = $('#fg-user-div').serialize();
     FAGI.Utilities.enableSpinner();
     //alert( values.u_name );
-    alert(FAGI.Constants.EMAIL_CHECKER.test($("#fg-user-mail").val()));
+    //alert(FAGI.Constants.EMAIL_CHECKER.test($("#fg-user-mail").val()));
+
+    if ( FAGI.Constants.EMAIL_CHECKER.test($("#fg-user-mail").val()) == false ) {
+        alert("Please insert a valid e-mail address");
+        
+        return;
+    }
 
     $.ajax({
         // request type
