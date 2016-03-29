@@ -51,21 +51,21 @@ public class Utilities {
         DBConfig                        dbConf = new DBConfig("", "", "", "", "", "", "");
         Connection                      dbConn = null;
         
-        dbConf.setUsername(DEFAULT_VIRT_USER);
-        dbConf.setPassword(DEFAULT_VIRT_PASS);
+        dbConf.setUsername(Credentials.SERVICE_VIRTUOSO_USER);
+        dbConf.setPassword(Credentials.SERVICE_VIRTUOSO_PASS);
         dbConf.setDbURL(DEFAULT_VIRT_URL);
 
             //HttpAuthenticator authenticator = new SimpleAuthenticator(DEFAULT_VIRT_USER, DEFAULT_VIRT_PASS.toCharArray());
         //sess.setAttribute("fg-sparql-auth", authenticator);
         dbConf.setDbName(DEFAULT_POST_DB);
-        dbConf.setDbUsername(DEFAULT_POST_USER);
-        dbConf.setDbPassword(DEFAULT_POST_PASS);
+        dbConf.setDbUsername(Credentials.SERVICE_POSTGRES_USER);
+        dbConf.setDbPassword(Credentials.SERVICE_POSTGRES_PASS);
 
         // Try a dummy connection to Virtuoso
         try {
             vSet = new VirtGraph("jdbc:virtuoso://" + DEFAULT_VIRT_URL + "/CHARSET=UTF-8",
-                    DEFAULT_VIRT_USER,
-                    DEFAULT_VIRT_PASS);
+                    Credentials.SERVICE_POSTGRES_USER,
+                    Credentials.SERVICE_POSTGRES_PASS);
         } catch (JenaException connEx) {
             LOG.error("Virtgraph Create Exception", connEx);
 
