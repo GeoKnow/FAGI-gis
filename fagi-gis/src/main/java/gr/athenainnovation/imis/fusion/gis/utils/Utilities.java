@@ -37,11 +37,11 @@ public class Utilities {
 
     private static final Logger LOG = Log.getClassFAGILogger(Utilities.class);    
     
-    public static DBConfig setUpDefaultDatabase() {
+    public static DBConfig setUpDefaultDatabase(String name) {
         final String DEFAULT_VIRT_USER = "dba";
         final String DEFAULT_VIRT_PASS = "dba";
         final String DEFAULT_VIRT_URL = "localhost:1111";
-        final String DEFAULT_POST_DB = "fagi";
+        final String DEFAULT_POST_DB = "fagi_"+name;
         final String DEFAULT_POST_USER = "postgres";
         final String DEFAULT_POST_PASS = "1111";
         
