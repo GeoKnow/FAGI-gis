@@ -95,7 +95,7 @@ public class UserLoginServlet extends HttpServlet {
             System.out.println(dbConf);
             
             if ( dbConf == null ) {
-                dbConf = Utilities.setUpDefaultDatabase();
+                dbConf = Utilities.setUpDefaultDatabase(name);
                 sess.setAttribute("db_conf", dbConf);
             }
             
