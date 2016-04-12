@@ -102,6 +102,7 @@ function init() {
     $('#bboxTool').click(activateBBoxTool);
     $('#fetchTool').click(activateFecthUnlinked);
     $('#visibleSelect').click(activateVisibleSelect);
+    $('#fg-download-fused-tool').click(FAGI.Utilities.requestDatasetFile);
     $('#fg-links-queries-submit').click(linksSPARQLFilter);
     $('#fg-fetch-queries-submit').click(fetchSPARQLContained);
 
@@ -2452,9 +2453,9 @@ function createUser()
     //alert( values.u_name );
     //alert(FAGI.Constants.EMAIL_CHECKER.test($("#fg-user-mail").val()));
 
-    if ( FAGI.Constants.EMAIL_CHECKER.test($("#fg-user-mail").val()) == false ) {
+    if (FAGI.Constants.EMAIL_CHECKER.test($("#fg-user-mail").val()) == false) {
         alert("Please insert a valid e-mail address");
-        
+
         return;
     }
 

@@ -265,6 +265,7 @@
                                     <li><a id="fetchTool" href="#">fetch unlinked</a></li>
                                     <li><a id="clusteringTool" href="#">perform clustering</a></li>
                                     <li class="divider"></li>
+                                    <li><a id="fg-download-fused-tool"  href="#">download fused dataset</a></li>
                                     <li><a href="#">advanced search</a></li>
                                     <li><a href="#">sparql</a></li>
                                     <li class="divider"></li>
