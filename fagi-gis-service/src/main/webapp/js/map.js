@@ -162,6 +162,7 @@ FAGI.PanelsUI = {
         $("#clusteringPanel").hide();
         $("#fg-fetch-sparql-panel").hide();
         $("#fg-user-panel").hide();
+        $("#fg-user-selection-panel").hide();
         $("#previewPanel").hide();
         $("#mainPanel").hide();
         //$("#mainPanel").width("0%");
@@ -192,6 +193,7 @@ FAGI.PanelsUI = {
         $("#fusionPanel").currentlyOpened = false;
         $("#linksPanel").currentlyOpened = false;
         $("#fg-user-panel").currentlyOpened = false;
+        $("#fg-user-selection-panel").currentlyOpened = false;
 
         $(activePanel).currentlyOpened = false;
     },
@@ -1438,14 +1440,26 @@ function addSelected(event) {
     console.log($('#fg-info-popup').width());
     console.log($('#map').width());
 
-    $("#fg-info-label").html($("#fg-info-label").html() + '  ' + event.feature.attributes.la.attributes.a);
-    document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
-    document.getElementById("fg-info-popup").style.left = $('#map').width() - ($('#fg-info-popup').width() + 10);
+    //$("#fg-info-label").html($("#fg-info-label").html() + '  ' + event.feature.attributes.la.attributes.a);
+    //document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
+    //document.getElementById("fg-info-popup").style.left = $('#map').width() - ($('#fg-info-popup').width() + 10);
     //$("#fg-info-popup").width($('#map').width() - ($('#fg-info-popup').width()));
 
-    console.log($('#fg-info-popup').width());
-    console.log($('#map').width());
-    console.log(event.feature.attributes.la.attributes.a);
+    //console.log($('#fg-info-popup').width());
+    //console.log($('#map').width());
+    //console.log(event.feature.attributes.la.attributes.a);
+    
+    $selectedList = $("#fg-user-selection-list");
+    var node = document.createElement("li");
+    node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\"/>' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
+    $selectedList.append(node);
+
+    /*
+    node.onclick = function () {
+        alert(this);
+    };
+    */
+
     FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] = event.feature;
     FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] = event.feature;
 }
@@ -1506,6 +1520,8 @@ function activateMultipleTool() {
     //alert("multiple");
     //activeFeatureCluster = new Array();
     //alert($('#clusterSelector option[value="9999"]').length);
+
+    expandUserSelectionPanel();
 
     if (!$('#clusterSelector option[value="9999"]').length)
         $("#clusterSelector").append("<option value=\"" + 9999 + "\" >Custom Cluster </option>");
@@ -1819,6 +1835,55 @@ function expandUserPanel() {
 
             FAGI.PanelsUI.lastClickedMenu = $("#fg-user-panel");
             $("#fg-user-panel").data("opened", true);
+        }
+    }
+
+
+    FAGI.MapUI.map.updateSize();
+}
+
+function expandUserSelectionPanel() {
+    FAGI.PanelsUI.hideAllPanels();
+
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")))) {
+
+        $("#mainPanel").show();
+        $("#fg-user-selection-panel").show();
+        FAGI.PanelsUI.lastClickedMenu.data("opened", false);
+        $("#fg-user-selection-panel").data("opened", true);
+        FAGI.PanelsUI.lastClickedMenu = $("#fg-user-selection-panel");
+
+    } else {
+        if ($("#fg-user-selection-panel").data("opened")) {
+            $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
+            $("#mainPanel").width("0%");
+            $("#mainPanel").height("0%");
+            //$("#map").removeClass("split content");
+            //$("#fagi").removeClass("split split-horizontal");
+            //$("#pane").width("0%");
+            $('.gutter').remove();
+            $("#map").width("100%");
+
+            FAGI.PanelsUI.lastClickedMenu = null;
+            $("#fg-user-selection-panel").data("opened", false);
+        } else {
+            $("#mainPanel").show();
+            $("#mainPanel").width("100%");
+            $("#mainPanel").height("100%");
+
+            $("#fg-user-selection-panel").show();
+
+            Split(['#mainPanel', '#map'], {
+                gutterSize: 8,
+                sizes: [30, 70],
+                onDragEnd: function (event, ui) {
+                    FAGI.MapUI.map.updateSize();
+                },
+                cursor: 'col-resize'
+            });
+
+            FAGI.PanelsUI.lastClickedMenu = $("#fg-use-selection-panel");
+            $("#fg-user-selection-panel").data("opened", true);
         }
     }
 

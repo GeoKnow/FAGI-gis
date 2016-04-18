@@ -93,6 +93,7 @@ function init() {
     $('#matchingPanel').data("opened", false);
     $('#fusionPanel').data("opened", false);
     $('#fg-user-panel').data("opened", false);
+    $('#fg-user-selection-panel').data("opened", false);
     $('#userMenu').click(expandUserPanel);
     $('#clusteringPanel').data("opened", false);
     $('#fg-fetch-sparql-panel').data("opened", false);
