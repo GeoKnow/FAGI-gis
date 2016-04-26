@@ -1457,17 +1457,6 @@ function addSelected(event) {
     node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\"/>' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
     $selectedList.append(node);
 
-    //alert("Ludacris");
-    $l_SelectedListElements = $("#fg-user-selection-list li");
-    //alert($l_SelectedListElements);
-    //alert($l_SelectedListElements.length);
-    $l_SelectedListElements.each(function (index, element) {
-        //alert(index);
-        //alert($(element).find("input:checked").length);
-        //alert($(element).find("label").html());
-        //alert($(element).find("label").text());
-        //alert($(element).find("label").text().split("<-->"));
-    });
     /*
     node.onclick = function () {
         alert(this);
