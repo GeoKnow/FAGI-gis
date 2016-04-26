@@ -1302,6 +1302,8 @@ public final class VirtuosoImporter {
                     return null;
                 }
 
+                System.out.println(activeUser == null);
+                
                 SPARQLUtilities.createSPARQLUserNamedGraph(virt_conn, activeUser.getName(), gr_c.getMetadataGraphA());
                 SPARQLUtilities.createSPARQLUserNamedGraph(virt_conn, activeUser.getName(), gr_c.getMetadataGraphB());
 

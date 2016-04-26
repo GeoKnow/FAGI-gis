@@ -168,7 +168,7 @@ public class DatabaseInitialiser {
         System.out.println("\n\n\n\n\n\nClearing old database\n\n\n\n\n\n");
         try {
             Class.forName("org.postgresql.Driver");
-            final String url = Constants.DB_URL.concat(dbConfig.getDBName());
+            final String url = Constants.DB_URL.concat(dbName);
             db = DriverManager.getConnection(url, dbUsername, dbPassword);
             db.setAutoCommit(false);
             

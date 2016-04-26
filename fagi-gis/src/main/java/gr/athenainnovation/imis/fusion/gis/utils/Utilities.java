@@ -64,8 +64,8 @@ public class Utilities {
         // Try a dummy connection to Virtuoso
         try {
             vSet = new VirtGraph("jdbc:virtuoso://" + DEFAULT_VIRT_URL + "/CHARSET=UTF-8",
-                    Credentials.SERVICE_POSTGRES_USER,
-                    Credentials.SERVICE_POSTGRES_PASS);
+                    Credentials.SERVICE_VIRTUOSO_USER,
+                    Credentials.SERVICE_VIRTUOSO_PASS);
         } catch (JenaException connEx) {
             LOG.error("Virtgraph Create Exception", connEx);
 
