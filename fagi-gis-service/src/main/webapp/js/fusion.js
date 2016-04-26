@@ -1034,7 +1034,7 @@ function submitLinks(batchFusion) {
                             shiftValuesJSON.gOffsetBX = $('#offset-x-b').val();
                             shiftValuesJSON.gOffsetBY = $('#offset-y-b').val();
                         }
-                        //alert($( "#clusterSelector" ).val());
+                        alert($( "#clusterSelector" ).val());
                         if ($("#clusterSelector").val() > -1) {
                             //alert("Cluster chosen");
                             clusterJSON = createLinkCluster($("#clusterSelector").val());
@@ -1220,11 +1220,23 @@ function submitLinks(batchFusion) {
 function createLinkCluster(cluster) {
     var ret = new Array();
     if (cluster == 9999) {
-        $.each(FAGI.ActiveState.activeFeatureClusterA, function (index, element) {
+        /*$.each(FAGI.ActiveState.activeFeatureClusterA, function (index, element) {
             var clusterLink = new Object();
             clusterLink.nodeA = element.attributes.la.attributes.a;
             clusterLink.nodeB = element.attributes.lb.attributes.a;
             ret[ret.length] = clusterLink;
+        });*/
+        $l_SelectedListElements = $("#fg-user-selection-list li");
+        $l_SelectedListElements.each(function (index, element) {
+            //alert(index);
+            //alert($(element).find("input:checked").length);
+            if ( $(element).find("input:checked").length > 0 ) {
+                var clusterLink = new Object();
+                var l_ElementPair = $(element).find("label").text().split("<-->");
+                clusterLink.nodeA = l_ElementPair[0];
+                clusterLink.nodeB = l_ElementPair[1];
+                ret[ret.length] = clusterLink;
+            }
         });
     } else {
         $.each(FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
@@ -1261,8 +1273,13 @@ function batchFusionPreview(geomsJSON) {
 
     } else if (cluster == 9999) {
         $.each(FAGI.ActiveState.activeFeatureClusterA, function (index, element) {
-            toDelFeatures[toDelFeatures.length] = element;
             var geom = geomsJSON.fusedGeoms[element.attributes.a];
+            
+            if (typeof geom == 'undefined')
+                return true;
+            
+            //toDelFeatures[toDelFeatures.length] = element.attributes.links[0];
+            toDelFeatures[toDelFeatures.length] = element;
             addGeom(element, geom.geom);
             //console.log("In Custom cluster Got " + geom.nb + " with geom " + geom.geom);
         });
@@ -2476,6 +2493,8 @@ function createUser()
             FAGI.Utilities.disableSpinner();
             if (responseJson.statusCode == 0) {
                 $("#datasetMenu").trigger('click');
+            } else {
+                
             }
         },
         // code to run if the request fails; the raw request and
@@ -2524,6 +2543,8 @@ function loginUser()
                 $('#fg-fetch-sparql-panel').on();
                 //alert("Here");
                 $("#datasetMenu").trigger('click');
+            } else {
+                alert(responseJson.message);
             }
         },
         // code to run if the request fails; the raw request and

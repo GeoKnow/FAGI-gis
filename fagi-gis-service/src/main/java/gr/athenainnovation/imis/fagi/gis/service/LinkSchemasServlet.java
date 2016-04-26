@@ -111,6 +111,7 @@ public class LinkSchemasServlet extends HttpServlet {
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
             matches = new JSONLinkMatches();
+            activeUser = (FAGIUser)sess.getAttribute("logged_user");
             
             try {
                 vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",

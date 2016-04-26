@@ -69,7 +69,8 @@ public class DownloadDatasetServlet extends HttpServlet {
                 return;
             }
 
-            graphConf = new GraphConfig("", "", "", "");
+            //graphConf = new GraphConfig("", "", "", "");
+            graphConf = (GraphConfig)sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
             activeUser = (FAGIUser) sess.getAttribute("logged_user");
 
@@ -98,8 +99,10 @@ public class DownloadDatasetServlet extends HttpServlet {
     }
 
     private void StreamDataset(PrintWriter out, VirtGraph vSet, GraphConfig grConf) {
-        final String SELECT_ALL_URLS = "SPARQL SELECT * WHERE { GRAPH <" + "http://localhost:8890/DAV/wik_demo" + "> { ?s ?p ?o FILTER isURI(?o) } }";
-        final String SELECT_ALL_LITERALS = "SPARQL SELECT * WHERE { GRAPH <" + "http://localhost:8890/DAV/wik_demo" + "> { ?s ?p ?o FILTER isLiteral(?o) } }";
+        //final String SELECT_ALL_URLS = "SPARQL SELECT * WHERE { GRAPH <" + "http://localhost:8890/DAV/wik_demo" + "> { ?s ?p ?o FILTER isURI(?o) } }";
+        //final String SELECT_ALL_LITERALS = "SPARQL SELECT * WHERE { GRAPH <" + "http://localhost:8890/DAV/wik_demo" + "> { ?s ?p ?o FILTER isLiteral(?o) } }";
+        final String SELECT_ALL_URLS = "SPARQL SELECT * WHERE { GRAPH <" + grConf.getTargetGraph() + "> { ?s ?p ?o FILTER isURI(?o) } }";
+        final String SELECT_ALL_LITERALS = "SPARQL SELECT * WHERE { GRAPH <" + grConf.getTargetGraph() + "> { ?s ?p ?o FILTER isLiteral(?o) } }";
         final VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
         final StringBuilder sb = new StringBuilder();
         VirtuosoResultSet rs;

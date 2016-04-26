@@ -165,6 +165,9 @@ FAGI.PanelsUI = {
         $("#fg-user-selection-panel").hide();
         $("#previewPanel").hide();
         $("#mainPanel").hide();
+        
+        clearSelected();
+        
         //$("#mainPanel").width("0%");
         //$("#mainPanel").height("0%");
     },
@@ -436,7 +439,7 @@ FAGI.Utilities = {
         iframe.style.display = 'none';
         document.body.appendChild(iframe);
         iframe.src = url;
-        //callback();
+        callback();
     },
     
     
@@ -446,7 +449,7 @@ FAGI.Utilities = {
         //$("#popupLogin").popup("close");
         //$( "#popupClose" ).click();
         
-        FAGI.Utilities.downloadURL(url, function() {; $( "#popupLogin" ).popup( "close" ); });
+        FAGI.Utilities.downloadURL(url, function() { FAGI.Utilities.disableSpinner(); });
          
     }
 
@@ -1454,6 +1457,17 @@ function addSelected(event) {
     node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\"/>' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
     $selectedList.append(node);
 
+    //alert("Ludacris");
+    $l_SelectedListElements = $("#fg-user-selection-list li");
+    //alert($l_SelectedListElements);
+    //alert($l_SelectedListElements.length);
+    $l_SelectedListElements.each(function (index, element) {
+        //alert(index);
+        //alert($(element).find("input:checked").length);
+        //alert($(element).find("label").html());
+        //alert($(element).find("label").text());
+        //alert($(element).find("label").text().split("<-->"));
+    });
     /*
     node.onclick = function () {
         alert(this);
@@ -2487,6 +2501,10 @@ function endDragA(feature, pixel) {
         //alert('End drag '+FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA.linls[0]));
 
         FAGI.ActiveState.selectedGeomA.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        
+        if (typeof FAGI.ActiveState.activeFeatureClusterA[FAGI.ActiveState.selectedGeomA.attributes.links[0].attributes.a] != "undefined")
+            FAGI.ActiveState.activeFeatureClusterA[FAGI.ActiveState.selectedGeomA.attributes.links[0].attributes.a] = FAGI.ActiveState.selectedGeomA.attributes.links[0];
+    
         //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomA));
         //alert(FAGI.ActiveState.selectedGeomA.attributes.a);
         $.ajax({
@@ -2662,6 +2680,10 @@ function endDragB(feature, pixel) {
         FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
         //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomB));
         //alert(FAGI.ActiveState.selectedGeomB.attributes.a);
+        //alert('luda');
+        if (typeof FAGI.ActiveState.activeFeatureClusterA[FAGI.ActiveState.selectedGeomB.attributes.links[0].attributes.a] != "undefined")
+            FAGI.ActiveState.activeFeatureClusterA[FAGI.ActiveState.selectedGeomB.attributes.links[0].attributes.a] = FAGI.ActiveState.selectedGeomB.attributes.links[0];
+        
         $.ajax({
             // request type
             type: "POST",
@@ -2797,7 +2819,7 @@ function onFeatureSelect(event) {
         //clusterLink.nodeA = event.feature.attributes.links[0].attributes.la.attributes.a;
         //clusterLink.nodeB = event.feature.attributes.links[0].attributes.lb.attributes.a;
         //activeFeatureCluster[activeFeatureCluster.length] = clusterLink;
-        FAGI.ActiveState.FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.links[0].attributes.la.attributes.a] = event.feature.attributes.links[0];
+        FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.links[0].attributes.la.attributes.a] = event.feature.attributes.links[0];
         FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.links[0].attributes.lb.attributes.a] = event.feature.attributes.links[0];
 
         return;
@@ -3393,7 +3415,7 @@ function fusionPanel(event, val, node) {
         recommendation.owlClassB[recommendation.owlClassB.length] = element;
     });
     //alert(JSON.stringify(recommendation));
-
+    /*
     $.ajax({
         // request type
         type: "POST",
@@ -3428,7 +3450,7 @@ function fusionPanel(event, val, node) {
             //$('#connLabel').text("connected");
         }
     });
-
+    */
 
     var geom_typeA = val.geomsA[0].substring(0, val.geomsA[0].indexOf("("));
     var geom_typeB = val.geomsB[0].substring(0, val.geomsB[0].indexOf("("));
@@ -3598,7 +3620,7 @@ function performFusion() {
     var teach = $('#fuseButton').prop("recommendation");
     teach.fusionAction = geomFuse.action;
     //alert(JSON.stringify(teach));
-
+    /*
     $.ajax({
         // request type
         type: "POST",
@@ -3625,7 +3647,7 @@ function performFusion() {
             //$('#connLabel').text("connected");
         }
     });
-
+    */
     current_feature.attributes.la.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
     current_feature.attributes.lb.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
 

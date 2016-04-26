@@ -1257,7 +1257,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
+        //clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         // Find Least Common Prefix
         int lcpIndexB = 0;
@@ -1539,7 +1539,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
+        //clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
                 
         // Find Least Common Prefix
         int lcpIndex = 0;
@@ -1685,7 +1685,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
+        //clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         // Find Least Common Prefix
         int lcpIndex = 0;
@@ -1832,7 +1832,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
+        //clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         // Find Least Common Prefix
         int lcpIndex = 0;
@@ -2020,7 +2020,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
+        //clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         // Find Least Common Prefix
         int lcpIndex = 0;
@@ -2197,7 +2197,7 @@ public class FuseLinkServlet extends HttpServlet {
         for ( String s : rightPres )
             System.out.print(s + " ");
         
-        clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
+        //clearPrevious(leftPres, rightPres, grConf, nodeA, tGraph);
         
         for (String leftProp : leftPres) {
             String[] mainPattern = leftProp.split(",");
