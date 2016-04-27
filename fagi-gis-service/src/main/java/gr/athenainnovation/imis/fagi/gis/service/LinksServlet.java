@@ -247,6 +247,7 @@ public class LinksServlet extends HttpServlet {
             
             grConf = (GraphConfig) sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
+            
             for ( String s : QueryEngineHTTP.supportedSelectContentTypes) {
                 if ( s.contains("xml"))
                     sess.setAttribute("content-type", s);

@@ -136,6 +136,7 @@ public class SchemaMatchServlet extends HttpServlet {
             grConf = (GraphConfig)sess.getAttribute("gr_conf");
             
             String[] selectedLinks = request.getParameterValues("links[]");
+            
             List<Link> lst = new ArrayList<>();
             for(String s : selectedLinks) {
                 final String subs[] = s.split("<-->");
@@ -311,14 +312,14 @@ public class SchemaMatchServlet extends HttpServlet {
             matches.setMetaTransforms(sms.metaTransforms);
             
             List<String> lstProp = sms.getPropertyList("A");
-            System.out.println("\n\n\n\n\nPROPERTIES A\n\n\n\n\n\n\n");
+            //System.out.println("\n\n\n\n\nPROPERTIES A\n\n\n\n\n\n\n");
             for ( String prope : lstProp ) {
-                System.out.println(prope);
+                //System.out.println(prope);
             }
             lstProp = sms.getPropertyList("B");
-            System.out.println("\n\n\n\n\nPROPERTIES B\n\n\n\n\n\n\n");
+            //System.out.println("\n\n\n\n\nPROPERTIES B\n\n\n\n\n\n\n");
             for ( String prope : lstProp ) {
-                System.out.println(prope);
+                //System.out.println(prope);
             }
             sess.setAttribute("property_patternsA", sms.getPropertyList("A"));
             sess.setAttribute("property_patternsB", sms.getPropertyList("B"));
