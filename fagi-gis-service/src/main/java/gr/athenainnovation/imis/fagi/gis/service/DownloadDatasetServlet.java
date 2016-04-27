@@ -7,7 +7,6 @@ package gr.athenainnovation.imis.fagi.gis.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.hpl.jena.shared.JenaException;
-import gr.athenainnovation.imis.fusion.gis.core.FAGIUser;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
@@ -54,7 +53,6 @@ public class DownloadDatasetServlet extends HttpServlet {
         HttpSession sess;
         GraphConfig graphConf;
         DBConfig dbConf;
-        FAGIUser activeUser;
         VirtGraph vSet = null;
 
         try (PrintWriter out = response.getWriter()) {
@@ -72,7 +70,6 @@ public class DownloadDatasetServlet extends HttpServlet {
             //graphConf = new GraphConfig("", "", "", "");
             graphConf = (GraphConfig)sess.getAttribute("gr_conf");
             dbConf = (DBConfig) sess.getAttribute("db_conf");
-            activeUser = (FAGIUser) sess.getAttribute("logged_user");
 
             //response.setContentType(fileType);
             response.setHeader("Access-Control-Allow-Origin", "*");

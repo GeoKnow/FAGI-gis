@@ -187,6 +187,23 @@ FAGI.PanelsUI = {
             $('.gutter').remove();
             $("#map").width("100%");
         }
+        
+        if (FAGI.ActiveState.activeFeaturePreview != null ) {
+
+            FAGI.MapUI.Controls.selectControl.deactivate();
+            FAGI.MapUI.Controls.dragControlB.activate();
+            FAGI.MapUI.Controls.dragControlA.activate();
+            FAGI.MapUI.Controls.selectControl.activate();
+
+            FAGI.ActiveState.activeFeaturePreview.attributes.la.style = {display: 'none'};
+            FAGI.ActiveState.activeFeaturePreview.attributes.lb.style = {display: 'none'};
+
+            FAGI.MapUI.Layers.vectorsA.drawFeature(FAGI.ActiveState.activeFeaturePreview.attributes.la);
+            FAGI.MapUI.Layers.vectorsA.drawFeature(FAGI.ActiveState.activeFeaturePreview.attributes.lb);
+            
+            FAGI.ActiveState.activeFeaturePreview = null;
+        }
+        
         FAGI.MapUI.map.updateSize();
     },
     closeAllPanels: function (activePanel) {
