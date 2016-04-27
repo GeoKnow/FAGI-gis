@@ -49,7 +49,8 @@
 
                                             str = request.getParameter("dataset-a");
                                             if (str == null) {
-                                                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+                                                //request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+                                                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_sample");
                                             } //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
                                             else {
                                                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
@@ -57,7 +58,8 @@
 
                                             str = request.getParameter("dataset-b");
                                             if (str == null) {
-                                                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+                                                //request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+                                                request.setAttribute("dataset-b", "http://localhost:8890/wikimapia_sample");
                                             } //request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
                                             else {
                                                 request.setAttribute("dataset-b", request.getParameter("dataset-b"));
