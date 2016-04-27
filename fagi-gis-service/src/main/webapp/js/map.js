@@ -423,7 +423,6 @@ FAGI.Utilities = {
     
     // File Download
     requestDatasetFile: function () {
-        alert('DownloadDatasetServlet');
         FAGI.Utilities.enableSpinner();
         FAGI.Utilities.downloadResults();
         /*$.ajax({
