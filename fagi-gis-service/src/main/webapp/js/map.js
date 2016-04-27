@@ -1459,14 +1459,26 @@ function addSelected(event) {
     console.log($('#fg-info-popup').width());
     console.log($('#map').width());
 
-    $("#fg-info-label").html($("#fg-info-label").html() + '  ' + event.feature.attributes.la.attributes.a);
-    document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
-    document.getElementById("fg-info-popup").style.left = $('#map').width() - ($('#fg-info-popup').width() + 10);
+    //$("#fg-info-label").html($("#fg-info-label").html() + '  ' + event.feature.attributes.la.attributes.a);
+    //document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
+    //document.getElementById("fg-info-popup").style.left = $('#map').width() - ($('#fg-info-popup').width() + 10);
     //$("#fg-info-popup").width($('#map').width() - ($('#fg-info-popup').width()));
 
-    console.log($('#fg-info-popup').width());
-    console.log($('#map').width());
-    console.log(event.feature.attributes.la.attributes.a);
+    //console.log($('#fg-info-popup').width());
+    //console.log($('#map').width());
+    //console.log(event.feature.attributes.la.attributes.a);
+    
+    $selectedList = $("#fg-user-selection-list");
+    var node = document.createElement("li");
+    node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\"/>' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
+    $selectedList.append(node);
+    
+    /*
+    node.onclick = function () {
+        alert(this);
+    };
+    */
+
     FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] = event.feature;
     FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] = event.feature;
 }
