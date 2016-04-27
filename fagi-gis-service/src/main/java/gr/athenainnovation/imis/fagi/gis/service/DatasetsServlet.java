@@ -139,29 +139,6 @@ public class DatasetsServlet extends HttpServlet {
             graphConf.setTypeGraphA(typeGraphA);
             graphConf.setTypeGraphB(typeGraphB);
             
-            if ( Constants.FAAS ) {
-                // Try a dummy connection to Virtuoso
-                VirtGraph vSet = null;
-                try {
-                    vSet = new VirtGraph("jdbc:virtuoso://" + dbConf.getDBURL() + "/CHARSET=UTF-8",
-                            dbConf.getUsername(),
-                            dbConf.getPassword());
-                } catch (JenaException connEx) {
-                    LOG.error("Virtgraph Create Exception", connEx);
-                    vSet = null;
-                    //ret.setMessage("Connection to Virtuoso failed!");
-                    //ret.setStatusCode(-1);
-                    //System.out.println(connEx.getMessage());      
-                    out.println(mapper.writeValueAsString(ret));
-                    out.close();
-
-                    return;
-                }
-            
-                System.out.println("Creating User FAGI");
-                SPARQLUtilities.createSPARQLUser(vSet.getConnection(), "FAGI", "FAGI");
-                SPARQLUtilities.createSPARQLUserGraph(graphConf, vSet.getConnection(), "FAGI", "FAGI");
-            }
             
             /*
             int depthA = SPARQLUtilities.getGraphDepth(graphConf.getGraphA(), graphConf.getEndpointA());
