@@ -50,7 +50,7 @@
                                             str = request.getParameter("dataset-a");
                                             if (str == null) {
                                                 //request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
-                                                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_sample");
+                                                request.setAttribute("dataset-a", "http://localhost:8890/osm_sample");
                                             } //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
                                             else {
                                                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
