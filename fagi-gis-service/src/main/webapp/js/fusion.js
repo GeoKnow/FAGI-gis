@@ -1483,6 +1483,15 @@ function initBatchFusionTable(val) {
 }
 
 function schemaMatch() {
+    
+   // alert($("#fg-file-input"));
+   // alert($("#fg-file-input").val());
+    if ( $('#linksList input:checked').length == 0 ) {
+        alert("No links selected");
+        
+        return;
+    }
+    
     FAGI.Utilities.enableSpinner();
     var list = document.getElementById("linksList");
     var listItem = list.getElementsByTagName("li");
@@ -2421,8 +2430,23 @@ function filterLinksB( )
 function setConnection()
 {
     var values = $('#connDiv').serialize();
-    FAGI.Utilities.enableSpinner();
     //alert( values );
+    //alert( values.v_url );
+    var correctInput = true;
+    $("form#connDiv :input").each(function(){
+        var $input = $(this); // This is the jquery object of the input, do what you will
+        //alert($input.attr('id'));
+        if ( !$input.val().trim() ) {
+            alert("Please fill all fields");
+            correctInput = false;
+            return false;
+        }
+    });
+    
+    if ( !correctInput )
+        return;
+    
+    FAGI.Utilities.enableSpinner();
     $.ajax({
         // request type
         type: "POST",
@@ -2476,6 +2500,24 @@ function setDatasets()
     var values = $('#dataDiv').serialize();
     //alert( values );
     //alert($('#fg-fetch-fused-check').prop('checked'));
+    var correctInput = true;
+    $("form#dataDiv :input").each(function(){
+        var $input = $(this); // This is the jquery object of the input, do what you will
+        //alert($input.attr('id').indexOf("-l"));
+        if ( $input.attr('id').indexOf("-l") < 0 && $input.attr('id').indexOf("auth") < 0 ) {
+            if (!$input.val().trim()) {
+                alert("Please fill all fields");
+                correctInput = false;
+                return false;
+            }
+        } else {
+            //alert($input.attr('id'));
+        }
+    });
+    
+    if ( !correctInput )
+        return;
+    
     FAGI.Utilities.enableSpinner();
     $.ajax({
         // request type

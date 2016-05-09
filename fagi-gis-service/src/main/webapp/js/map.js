@@ -516,6 +516,13 @@ FAGI.NavigationUI.Callbacks = {
 
 FAGI.PanelsUI.Callbacks = {
     onUnfilterButtonPressed: function () {
+        
+        if (!$("#fg-file-input").val()) {
+            alert("No links loaded");
+
+            return;
+        }
+    
         //alert($('#typeListA').val());
         //alert($('#typeListA').text());
         //alert(send);

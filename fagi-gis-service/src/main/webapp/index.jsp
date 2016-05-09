@@ -493,7 +493,7 @@
                                                                                                 <form id="connDiv" name="conn_input"><p />
                                                                                                     <div class="form-group">
                                                                                                         <label for="fg-virt-url">Virtuoso URL:</label>
-                                                                                                        <input tid="fg-virt-url" ype="text" name="v_url" value="<% out.println(request.getAttribute("postgis-host") + ":" + request.getAttribute("postgis-port"));%>" class="form-control">
+                                                                                                        <input id="fg-virt-url" ype="text" name="v_url" value="<% out.println(request.getAttribute("postgis-host") + ":" + request.getAttribute("postgis-port"));%>" class="form-control">
                                                                                                     </div>
                                                                                                     <div class="form-group">
                                                                                                         <label for="fg-virt-name">Virtuoso Username:</label>
@@ -525,7 +525,7 @@
                                                                                                         <form id="linksDiv" enctype="multipart/form-data">
                                                                                                             <tr>
                                                                                                                 <td style="width:216; text-align: center;" align="left" valign="bottom">Links file:</td>
-                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom"> <input name="file" type="file" /></td>
+                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom"> <input id="fg-file-input" name="file" type="file" /></td>
                                                                                                                 <td>
                                                                                                                 </td>
                                                                                                                 <td style="width:216;  text-align: center;" align="left" valign="bottom"><input id="buttonL" type="button" value="Upload" /></td>

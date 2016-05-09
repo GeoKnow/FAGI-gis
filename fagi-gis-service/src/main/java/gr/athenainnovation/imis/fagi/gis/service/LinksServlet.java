@@ -101,6 +101,57 @@ public class LinksServlet extends HttpServlet {
 
     private static final Logger LOG = Log.getClassFAGILogger(LinksServlet.class);
     
+    private boolean validateInput(HttpSession sess, String lsub, String rsub, VirtGraph vSet, GraphConfig grConf) {
+        String checkLeftSubA = "SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + lsub + "> ?p ?o } }";
+        String checkLeftSubB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + lsub + "> ?p ?o } }";
+        String checkRightSubA = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + rsub + "> ?p ?o } }";
+        String checkRightSubB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + rsub + "> ?p ?o } }";
+        
+        int successsCount = 0;
+        
+        try ( QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointA(), QueryFactory.create(checkLeftSubA)); ) {
+            com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+            if (resultSet.hasNext()) {
+                successsCount++;
+            }
+        } catch (QueryException qex) {
+            LOG.trace("QueryException thrown during input validation");
+            LOG.debug("QueryException thrown during input validation : \n" + qex.getMessage());
+        }
+        
+        try ( QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointA(), QueryFactory.create(checkLeftSubB)); ) {
+            com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+            if (resultSet.hasNext()) {
+                successsCount++;
+            }
+        } catch (QueryException qex) {
+            LOG.trace("QueryException thrown during input validation");
+            LOG.debug("QueryException thrown during input validation : \n" + qex.getMessage());
+        }
+        
+        try ( QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointB(), QueryFactory.create(checkRightSubA)); ) {
+            com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+            if (resultSet.hasNext()) {
+                successsCount++;
+            }
+        } catch (QueryException qex) {
+            LOG.trace("QueryException thrown during input validation");
+            LOG.debug("QueryException thrown during input validation : \n" + qex.getMessage());
+        }
+        
+        try ( QueryEngineHTTP qeh = QueryExecutionFactory.createServiceRequest(grConf.getEndpointB(), QueryFactory.create(checkRightSubB)); ) {
+            com.hp.hpl.jena.query.ResultSet resultSet = qeh.execSelect();
+            if (resultSet.hasNext()) {
+                successsCount++;
+            }
+        } catch (QueryException qex) {
+            LOG.trace("QueryException thrown during input validation");
+            LOG.debug("QueryException thrown during input validation : \n" + qex.getMessage());
+        }
+        
+        return successsCount >= 2;
+    }
+    
     private Boolean validateLinking(HttpSession sess, String lsub, String rsub, VirtGraph vSet, GraphConfig grConf) {
         Connection virt_conn = vSet.getConnection();
 
@@ -324,6 +375,7 @@ public class LinksServlet extends HttpServlet {
             Model model = ModelFactory.createDefaultModel();
             RDFDataMgr.read(model, filecontent, "", Lang.NTRIPLES);
             StmtIterator iter = model.listStatements();
+            boolean isValidInput = true;
             while (iter.hasNext()) {
                 final Statement statement = iter.nextStatement();
                 String nodeA = statement.getSubject().getURI();
@@ -332,11 +384,29 @@ public class LinksServlet extends HttpServlet {
                 if (object.isResource()) {
                     nodeB = object.asResource().getURI();
                 }
+                
+                isValidInput = validateInput(sess, nodeA, nodeB, vSet, grConf);
+                
                 makeSwap = validateLinking(sess, nodeA, nodeB, vSet, grConf);
 
                 break;
             }
             iter.close();
+            
+            System.out.println("\n\n\n\n\n"+makeSwap+"\n\n\n\n\n");
+            
+            if ( isValidInput == false ) {
+                LOG.trace("NULL Datasets");
+                LOG.debug("NULL Datasets");
+                ret.getResult().setStatusCode(-1);
+                ret.getResult().setMessage("Linking information and datasets do not match");
+                
+                out.println(mapper.writeValueAsString(ret));
+            
+                out.close();
+                
+                return;
+            }
 
             sess.setAttribute("make-swap", makeSwap);
             
