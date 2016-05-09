@@ -267,24 +267,22 @@
                                                         <td><a id="matchingMenu" href="#fusion">matching</a></td>
                                                         <td>
                                                             <div class="dropdown"><a id="dLabel"
-                                                                                     data-target="#" 
-                                                                                     href="http://example.com" 
-                                                                                     data-toggle="dropdown" 
+                                                                                     href="javascript:;" 
                                                                                      aria-haspopup="true" 
                                                                                      role="button">
                                                                     tools
                                                                     <span class="caret"></span></a>
 
                                                                 <ul class="dropdown-menu" role="menu">
-                                                                    <li><a id="visibleSelect" href="#">visible select</a></li>
+                                                                    <!--<li><a id="visibleSelect" href="#">visible select</a></li>-->
                                                                     <li><a id="multipleTool" href="#">multiple select</a></li>
                                                                     <li><a id="bboxTool" href="#">bounding box select</a></li>
                                                                     <li><a id="fetchTool" href="#">fetch unlinked</a></li>
                                                                     <li><a id="clusteringTool" href="#">perform clustering</a></li>
                                                                     <li class="divider"></li>
-                                                                    <li><a id="fg-download-fused-tool"  href="#">download fused dataset</a></li>
-                                                                    <li><a href="#">advanced search</a></li>
-                                                                    <li><a href="#">sparql</a></li>
+                                                                    <li><a id="fg-download-fused-tool" href="javascript:;">download fused dataset</a></li>
+                                                                    <!--<li><a href="#">advanced search</a></li>
+                                                                    <li><a href="#">sparql</a></li>-->
                                                                     <li class="divider"></li>
                                                                     <li><a href="#">reset fagi</a></li>
                                                                 </ul>

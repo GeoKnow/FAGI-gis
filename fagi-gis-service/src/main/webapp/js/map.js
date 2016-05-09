@@ -467,8 +467,48 @@ FAGI.Utilities = {
         
         FAGI.Utilities.downloadURL(url, function() { FAGI.Utilities.disableSpinner(); });
          
-    }
+    },
 
+    disableDatasetDownload: function() {
+        $('#fg-download-fused-tool').css('color', 'gray');
+        $('#fg-download-fused-tool').click(FAGI.Utilities.disableAnchor);
+    },
+    
+    enableDatasetDownload: function() {
+        $('#fg-download-fused-tool').css('color', 'white');
+        $('#fg-download-fused-tool').click(FAGI.Utilities.requestDatasetFile);
+    },
+    
+    disableAnchor: function (e) {
+        e.preventDefault();
+        this.blur();
+    },
+    
+    enableToolbox: function () {
+        $(".dropdown-menu").mouseleave(function () {
+            $(".dropdown").removeClass("open");
+        });
+        $(".dropdown").mouseleave(function () {
+            $(".dropdown").removeClass("open");
+        });
+        $(".dropdown").mouseover(function () {
+            $(".dropdown").addClass("open");
+        });
+        $(".dropdown-menu").mouseover(function () {
+            $(".dropdown").addClass("open");
+        });
+    }, 
+    
+    disableToolbox: function () {
+        $(".dropdown-menu").mouseleave(function () {
+        });
+        $(".dropdown").mouseleave(function () {
+        });
+        $(".dropdown").mouseover(function () {
+        });
+        $(".dropdown-menu").mouseover(function () {
+        });
+    } 
 };
 
 FAGI.NavigationUI.Callbacks = {
@@ -817,7 +857,7 @@ $(document).ready(function () {
     // Dropdown menu for the Tools tab
     // Setting classes
     $(".dropdown-menu").css("background", "black");
-    $(".dropdown-menu").mouseleave(function () {
+    /*$(".dropdown-menu").mouseleave(function () {
         $(".dropdown").removeClass("open");
     });
     $(".dropdown").mouseleave(function () {
@@ -828,7 +868,10 @@ $(document).ready(function () {
     });
     $(".dropdown-menu").mouseover(function () {
         $(".dropdown").addClass("open");
-    });
+    });*/
+
+
+    FAGI.Utilities.enableToolbox();
 
     // Set up close buttons for each of the popups
     $("#close-findlink-menu-btn").click(function () {

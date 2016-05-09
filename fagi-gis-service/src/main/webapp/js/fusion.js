@@ -103,7 +103,8 @@ function init() {
     $('#bboxTool').click(activateBBoxTool);
     $('#fetchTool').click(activateFecthUnlinked);
     $('#visibleSelect').click(activateVisibleSelect);
-    $('#fg-download-fused-tool').click(FAGI.Utilities.requestDatasetFile);
+    //$('#fg-download-fused-tool').click(FAGI.Utilities.requestDatasetFile);
+    FAGI.Utilities.disableDatasetDownload();
     $('#fg-links-queries-submit').click(linksSPARQLFilter);
     $('#fg-fetch-queries-submit').click(fetchSPARQLContained);
 
@@ -262,7 +263,7 @@ function init() {
     $('#findLinkButton').click(FAGI.MapUI.Callbacks.Linking.onFindLinkButtonPressed);
 
     $('.dropdown').css("z-index", "700000");
-
+    //$(".dropdown").attr('disabled','disabled');
     var radSpinner = $("#radiusSpinner").spinner({step: 1,
         numberFormat: "n",
         min: 1,
