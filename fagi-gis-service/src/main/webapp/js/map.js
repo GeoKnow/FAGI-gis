@@ -58,7 +58,7 @@ FAGI.Constants = {
             '   GRAPH <fagi-gis:links> {\n' +
             '       ?subjectA \n' +
             '       ' + FAGI.PropertyConstants.SAME_AS_PROPERTY + '\n' +
-            '   ?subjectB \n' +
+            '       ?subjectB \n' +
             '   } .\n' +
             '   GRAPH <fagi-gis:metadata> {\n' +
             '       ?subjectA \n' +
@@ -78,6 +78,24 @@ FAGI.Constants = {
             '       ?type\n' +
             '   }\n' +
             '}',
+    DEFAULT_TYPE_QUERY_START_A: 'SELECT ?subjectA ?subjectB WHERE {\n' +
+            '   GRAPH <fagi-gis:links> {\n' +
+            '       ?subjectA \n' +
+            '       ' + FAGI.PropertyConstants.SAME_AS_PROPERTY + '\n' +
+            '       ?subjectB \n' +
+            '   } .\n' +
+            '   GRAPH <fagi-gis:metadata> {\n' +
+            '       ',
+    DEFAULT_TYPE_QUERY_END_A: ' }\n}',
+    DEFAULT_TYPE_QUERY_START_B: 'SELECT ?subjectA ?subjectB WHERE {\n' +
+            '   GRAPH <fagi-gis:links> {\n' +
+            '       ?subjectA \n' +
+            '       ' + FAGI.PropertyConstants.SAME_AS_PROPERTY + '\n' +
+            '       ?subjectB \n' +
+            '   } .\n' +
+            '   GRAPH <fagi-gis:metadata> {\n' +
+            '       ',
+    DEFAULT_TYPE_QUERY_END_B: ' }\n}',
     DEFAULT_QUERY: 'SELECT ?subjectA ?subjectB WHERE { \n' +
             'GRAPH <fagi-gis:links> { \n' +
             '   ?subjectA \n' +
@@ -173,6 +191,8 @@ FAGI.PanelsUI = {
     },
     closeOpenPanel: function () {
         FAGI.PanelsUI.hideAllPanels();
+        //alert("luda");
+        
         //alert("ole");
         if (FAGI.PanelsUI.lastClickedMenu != null) {
             FAGI.PanelsUI.lastClickedMenu.data("opened", false);
@@ -202,9 +222,21 @@ FAGI.PanelsUI = {
             FAGI.MapUI.Layers.vectorsA.drawFeature(FAGI.ActiveState.activeFeaturePreview.attributes.lb);
             
             FAGI.ActiveState.activeFeaturePreview = null;
+            
+            //FAGI.MapUI.Controls.selectControl.unselect(FAGI.ActiveState.activeFeaturePreview);
+            FAGI.MapUI.Controls.selectControl.unselectAll();
+
         }
         
         FAGI.MapUI.map.updateSize();
+        /*
+        alert("Clicked " + (FAGI.ActiveState.activeFeaturePreview == null));
+        alert("Clicked " + (FAGI.ActiveState.activeFeaturePreview === null));
+        if ( FAGI.ActiveState.activeFeaturePreview != null ) {
+            alert("Unselect fire");
+            FAGI.MapUI.Controls.selectControl.unselect(FAGI.ActiveState.activeFeaturePreview);
+        }
+        */
     },
     closeAllPanels: function (activePanel) {
         $("#connectionPanel").currentlyOpened = false;
@@ -223,6 +255,54 @@ FAGI.PanelsUI = {
 };
 
 FAGI.PanelsUI.Editors = {
+    
+    setSPARQLEditors: function () {
+        $("#fg-links-sparql-editor-a").html("");
+        $("#fg-links-sparql-editor-b").html("");
+        //if ($(FAGI.PanelsUI.lastClickedMenu).is($("#linksPanel"))) {
+        FAGI.PanelsUI.Editors.sparqlEditorA = CodeMirror($("#fg-links-sparql-editor-a").get(0), {
+            value: FAGI.ActiveState.activeQueryA,
+            styleActiveLine: true,
+            lineNumbers: true,
+            lineWrapping: true,
+            mode: "sparql",
+            matchBrackets: true
+        });
+        FAGI.PanelsUI.Editors.sparqlEditorB = CodeMirror($("#fg-links-sparql-editor-b").get(0), {
+            value: FAGI.ActiveState.activeQueryB,
+            styleActiveLine: true,
+            lineNumbers: true,
+            lineWrapping: true,
+            mode: "sparql",
+            matchBrackets: true
+        });
+        $(".CodeMirror-vscrollbar").css("overflow-y", "hidden");
+    },
+    
+    setSPARQLFetchEditors:       function() {
+        var feature = new OpenLayers.Feature.Vector(activeBBox.toGeometry());
+        feature.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
+        var wktRep = FAGI.MapUI.wkt.write(feature);
+        $("#fg-fetch-queries-submit").prop("bbox", wktRep);
+        FAGI.PanelsUI.Editors.sparqlFetchEditorA = CodeMirror($("#fg-fetch-sparql-editor-a").get(0), {
+            value: FAGI.Constants.BBOX_QUERY_START_A + wktRep + FAGI.Constants.BBOX_QUERY_END_A,
+            styleActiveLine: true,
+            lineNumbers: true,
+            lineWrapping: true,
+            mode: "sparql",
+            matchBrackets: true
+        });
+        FAGI.PanelsUI.Editors.sparqlFetchEditorB = CodeMirror($("#fg-fetch-sparql-editor-b").get(0), {
+            value: FAGI.Constants.BBOX_QUERY_START_B + wktRep + FAGI.Constants.BBOX_QUERY_END_B,
+            styleActiveLine: true,
+            lineNumbers: true,
+            lineWrapping: true,
+            mode: "sparql",
+            matchBrackets: true
+        });
+        $(".CodeMirror-vscrollbar").css("overflow-y", "hidden");
+    },
+    
     // SPARQL Editors
     sparqlEditorA: null,
     sparqlEditorB: null,
@@ -833,14 +913,22 @@ $(document).ready(function () {
 
     // On type select, change the query editor value
     $('#typeListA').change(function () {
-        var selection = $(this).find("option:selected").text();
-        var query = FAGI.Constants.DEFAULT_TYPE_QUERY_A.replace('?type', '<' + selection + '>');
+        var typeTriple = " ?subjectA <fagi-gis:type> ?type .\n";
+        var finalSearch = "";
+        $(this).find("option:selected").each(function (index, element) {
+            finalSearch += typeTriple.replace('?type', '<' + $(element).text() + '>');
+        });
+        var query = FAGI.Constants.DEFAULT_TYPE_QUERY_START_A + finalSearch + FAGI.Constants.DEFAULT_TYPE_QUERY_END_A;
         FAGI.PanelsUI.Editors.sparqlEditorA.setValue(query);
     });
 
     $('#typeListB').change(function () {
-        var selection = $(this).find("option:selected").text();
-        var query = FAGI.Constants.DEFAULT_TYPE_QUERY_B.replace('?type', '<' + selection + '>');
+        var typeTriple = " ?subjectA <fagi-gis:type> ?type .\n";
+        var finalSearch = "";
+        $(this).find("option:selected").each(function (index, element) {
+            finalSearch += typeTriple.replace('?type', '<' + $(element).text() + '>');
+        });
+        var query = FAGI.Constants.DEFAULT_TYPE_QUERY_START_B + finalSearch + FAGI.Constants.DEFAULT_TYPE_QUERY_END_B;
         FAGI.PanelsUI.Editors.sparqlEditorB.setValue(query);
     });
 
@@ -2108,6 +2196,8 @@ function expandSPARQLFetchPanel() {
         $("#fg-fetch-sparql-panel").data("opened", true);
         FAGI.PanelsUI.lastClickedMenu = $("#fg-fetch-sparql-panel");
 
+        FAGI.PanelsUI.Editors.setSPARQLFetchEditors();
+
     } else {
         if ($("#fg-fetch-sparql-panel").data("opened")) {
             $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
@@ -2139,6 +2229,9 @@ function expandSPARQLFetchPanel() {
 
             FAGI.PanelsUI.lastClickedMenu = $("#fg-fetch-sparql-panel");
             $("#fg-fetch-sparql-panel").data("opened", true);
+            
+            FAGI.PanelsUI.Editors.setSPARQLFetchEditors();
+            
         }
     }
 
@@ -2236,7 +2329,7 @@ function expandClusteringPanel() {
 
 function expandDatasetPanel() {
     FAGI.PanelsUI.hideAllPanels();
-
+    
     //alert(FAGI.PanelsUI.lastClickedMenu != null);
     //alert($(FAGI.PanelsUI.lastClickedMenu).is($("#datasetPanel")));
     //alert($("#datasetPanel").data("opened"));
@@ -2315,7 +2408,9 @@ function expandLinksPanel() {
         FAGI.PanelsUI.lastClickedMenu.data("opened", false);
         $("#linksPanel").data("opened", true);
         FAGI.PanelsUI.lastClickedMenu = $("#linksPanel");
-
+        
+        FAGI.PanelsUI.Editors.setSPARQLEditors();
+        
     } else {
         if ($("#linksPanel").data("opened")) {
             $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
@@ -2347,6 +2442,9 @@ function expandLinksPanel() {
 
             FAGI.PanelsUI.lastClickedMenu = $("#linksPanel");
             $("#linksPanel").data("opened", true);
+            
+            FAGI.PanelsUI.Editors.setSPARQLEditors();
+            
         }
     }
 
@@ -2835,7 +2933,7 @@ function onFeatureOver2(event) {
 function onFeatureUnselect(event) {
     FAGI.ActiveState.transType = FAGI.Constants.MOVE_TRANS;
 
-    console.log("Unselect");
+    //console.log("Unselect");
 
     document.getElementById("popupTransformMenu").style.opacity = 0.0;
     document.getElementById("popupTransformMenu").style.display = 'none';
@@ -2966,6 +3064,7 @@ function previewTriples(data) {
 }
 
 function onFusedSelect(event) {
+    //alert("Select");
     $.ajax({
         // request type
         type: "POST",
@@ -3031,10 +3130,15 @@ function onFusedSelect(event) {
 }
 
 function onFusedUnselect(event) {
-    expandPreviewPanel();
-
-    FAGI.ActiveState.activeFeaturePreview = null;
-
+    //alert("UnSelect " + event);
+    //alert("UnSelect " + (FAGI.ActiveState.activeFeaturePreview != null));
+    
+    // Someone else has closed the Panel for us so skip this step
+    if ( FAGI.ActiveState.activeFeaturePreview != null ) {
+        expandPreviewPanel();
+        FAGI.ActiveState.activeFeaturePreview = null;
+    }
+    
     FAGI.MapUI.Controls.selectControl.deactivate();
     FAGI.MapUI.Controls.dragControlB.activate();
     FAGI.MapUI.Controls.dragControlA.activate();

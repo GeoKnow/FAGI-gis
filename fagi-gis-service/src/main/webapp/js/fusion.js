@@ -942,7 +942,7 @@ function loadLinkedEntities(formData) {
                 typesA.innerHTML = responseJson.filtersListAHTML;
                 typesB.innerHTML = responseJson.filtersListBHTML;
             } else {
-                //alert(responseJson.result.message);
+                alert(responseJson.result.message);
                 $("#buttonL").prop('disabled', false);
             }
             FAGI.Utilities.disableSpinner();
