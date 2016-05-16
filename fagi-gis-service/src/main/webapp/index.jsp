@@ -625,9 +625,9 @@
                                                                                                 <table border="1">
                                                                                                     <tbody>
                                                                                                         <tr>
-                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
-                                                                                                            <td id="legendLinkSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
                                                                                                             <td style="width:26; background-color: green; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
+                                                                                                            <td id="legendLinkSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
+                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                             <td id="legendLinkSetB" style="text-align: center;" align="left" valign="bottom">Dataset B Layer</td>
                                                                                                             <td style="width:26; background-color: red; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                             <td id="legendSetL" style="text-align: center;" align="left" valign="bottom">Link Layer</td>
@@ -689,9 +689,9 @@
                                                                                                 <table border="1">
                                                                                                     <tbody>
                                                                                                         <tr>
-                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
-                                                                                                            <td id="legendSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
                                                                                                             <td style="width:26; background-color: green; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
+                                                                                                            <td id="legendSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
+                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                             <td id="legendSetB" style="text-align: center;" align="left" valign="bottom">Dataset B Layer</td>
                                                                                                             <td style="width:26; background-color: red; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                             <td id="legendSetL" style="text-align: center;" align="left" valign="bottom">Link Layer</td>
