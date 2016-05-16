@@ -157,9 +157,33 @@ FAGI.MapUI = {
         return true;
     },
     resetMultipleSelect: function () {
+        if (FAGI.ActiveState.multipleEnabled) {
+            //alert('multiple end');
+            //setSingleMapControls();
+            FAGI.ActiveState.multipleEnabled = false;
+            
+            FAGI.MapUI.Controls.multipleSelector.deactivate();
+            FAGI.MapUI.Controls.selectControl.activate();
+
+            // register multiple feature callbacks
+            FAGI.MapUI.Layers.vectorsLinks.events.un({
+                'featureselected': addSelected,
+                'featureunselected': clearSelected,
+                scope: FAGI.MapUI.Layers.vectorsLinks
+            });
+
+            FAGI.MapUI.Layers.vectorsLinks.events.on({
+                'featureselected': onLinkFeatureSelect,
+                'featureunselected': onLinkFeatureUnselect,
+                scope: FAGI.MapUI.Layers.vectorsLinks
+            });
+            FAGI.ActiveState.mselectActive = false;
+            FAGI.MapUI.Controls.multipleSelector.unselectAll();
+        }
         FAGI.ActiveState.mselectActive = false;
     },
     resetMapControl: function () {
+        //alert("Luda");
         FAGI.MapUI.resetAllPopups();
         FAGI.MapUI.resetMultipleSelect();
     },
@@ -1702,7 +1726,7 @@ function activateMultipleTool() {
 }
 
 function activateBBoxTool() {
-    //alert("multiple");
+    //alert("multiple bbox");
     //activeFeatureCluster = new Array();
     //alert($('#clusterSelector option[value="9999"]').length);
 
@@ -2002,6 +2026,10 @@ function expandUserPanel() {
 function expandUserSelectionPanel() {
     FAGI.PanelsUI.hideAllPanels();
 
+    if ($("#fg-user-selection-panel").data("opened")) {
+        return;
+    }
+    
     if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")))) {
 
         $("#mainPanel").show();
@@ -2529,7 +2557,7 @@ function startDragA(feature, pixel) {
         //clusterLink.nodeA = event.feature.attributes.links[0].attributes.la.attributes.a;
         //clusterLink.nodeB = event.feature.attributes.links[0].attributes.lb.attributes.a;
         //activeFeatureCluster[activeFeatureCluster.length] = clusterLink;
-        FAGI.ActiveState.FAGI.ActiveState.activeFeatureClusterA[feature.attributes.links[0].attributes.la.attributes.a] = feature.attributes.links[0];
+        FAGI.ActiveState.activeFeatureClusterA[feature.attributes.links[0].attributes.la.attributes.a] = feature.attributes.links[0];
         FAGI.ActiveState.activeFeatureClusterB[feature.attributes.links[0].attributes.lb.attributes.a] = feature.attributes.links[0];
 
         return;
