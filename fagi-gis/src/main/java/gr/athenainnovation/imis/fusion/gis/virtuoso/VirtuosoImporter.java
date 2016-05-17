@@ -99,6 +99,7 @@ public final class VirtuosoImporter {
 
     private static final Logger LOG = Log.getClassFAGILogger(VirtuosoImporter.class);
 
+    
     private final TripleHandler trh;
 
     private String transformationID;
@@ -790,6 +791,7 @@ public final class VirtuosoImporter {
 
             LOG.info("Uploading B lasted " + Utilities.nanoToSeconds(endTime - startTime));
 
+            
             //endtime = System.nanoTime();
             //LOG.info("Metadata main parsed in " + (endtime - starttime) / 1000000000f);
             i += Constants.BATCH_SIZE;
@@ -862,6 +864,7 @@ public final class VirtuosoImporter {
          System.out.println("B " + chain + " " + sche.predicate + " Size " + sche.indexes.size());
          }
          */
+        
         List<SchemaMatcher> matchers = new ArrayList<>();
         int countA;
         int countB;
@@ -1438,6 +1441,7 @@ public final class VirtuosoImporter {
 
                 //System.out.println("DEPTH: " + i);
                 //System.out.println("QUERY FOR PREDICATES : " + query.toString());
+                
                 try (PreparedStatement fetchProperties = virt_conn.prepareStatement(query.toString());
                         ResultSet propertiesRS = fetchProperties.executeQuery()) {
 
@@ -1514,6 +1518,7 @@ public final class VirtuosoImporter {
                 propertiesB.clear();
 
                         //propertiesRS.close();
+                   
                 //fetchProperties.close();
             }
         } else {
@@ -1591,6 +1596,7 @@ public final class VirtuosoImporter {
                 isEndpointALocal = isURLToLocalInstance(gr_c.getEndpointA()); //"localhost" for localhost
 
                 isEndpointBLocal = isURLToLocalInstance(gr_c.getEndpointB()); //"localhost" for localhost
+
 
                 getFromA.append("SPARQL INSERT\n");
                 getFromA.append("  { GRAPH <").append(gr_c.getMetadataGraphA()).append("> {\n");
@@ -1838,6 +1844,7 @@ public final class VirtuosoImporter {
 
                     //System.out.println("Chain A "+chainA);
                         //System.out.println("Chain B "+chainB);
+                        
                         scanChain(propertiesA, chainA, objectChainA);
                         scanChain(propertiesB, chainB, objectChainB);
 
@@ -1938,6 +1945,7 @@ public final class VirtuosoImporter {
         //    System.out.println(key);
         //}
         //System.out.println("Found A");
+        
         /*
          Iterator iter = foundA.entrySet().iterator();
          while (iter.hasNext()) {
@@ -1959,6 +1967,7 @@ public final class VirtuosoImporter {
          //}
          }
          */
+        
         return new SchemaMatchState(foundA, foundB, domOntologyA, domOntologyB, nonMatchedPropertiesA, nonMatchedPropertiesB);
     }
 
@@ -2352,6 +2361,7 @@ public final class VirtuosoImporter {
         success = SPARQLInsertLinksBatch(lst, nextIndex);
 
         //System.out.println("THE BOOL OUT IS " + success);
+
         return success;
     }
 

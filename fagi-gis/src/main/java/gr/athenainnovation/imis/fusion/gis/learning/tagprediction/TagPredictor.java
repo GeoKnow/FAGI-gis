@@ -65,7 +65,6 @@ public class TagPredictor {
             //System.out.println("default tag prediction: " + 850);
         }
         
-        
         //testing multiple class
         Feature[] testInstance1 = mapPair.getFinalFeaturesA();
         
