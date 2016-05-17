@@ -103,21 +103,12 @@ function init() {
     $('#bboxTool').click(activateBBoxTool);
     $('#fetchTool').click(activateFecthUnlinked);
     $('#visibleSelect').click(activateVisibleSelect);
-    $('#fg-download-fused-tool').click(FAGI.Utilities.requestDatasetFile);
+    //$('#fg-download-fused-tool').click(FAGI.Utilities.requestDatasetFile);
+    FAGI.Utilities.disableDatasetDownload();
     $('#fg-links-queries-submit').click(linksSPARQLFilter);
     $('#fg-fetch-queries-submit').click(fetchSPARQLContained);
 
     $('#connectionCell').hide();
-    //$('#datasetMenu').off();
-    //$('#linksMenu').off();
-    //$('#matchingMenu').off();
-    //$('#clusteringPanel').off();
-    //$('#fg-fetch-sparql-panel').off();
-    //$('#datasetMenu').disable();
-    //$('#linksMenu').disable();
-    //$('#matchingMenu').disable();
-    //$('#clusteringPanel').disable();
-    //$('#fg-fetch-sparql-panel').disable();
 
 
     // Reload all links
@@ -270,7 +261,7 @@ function init() {
     $('#findLinkButton').click(FAGI.MapUI.Callbacks.Linking.onFindLinkButtonPressed);
 
     $('.dropdown').css("z-index", "700000");
-
+    //$(".dropdown").attr('disabled','disabled');
     var radSpinner = $("#radiusSpinner").spinner({step: 1,
         numberFormat: "n",
         min: 1,
@@ -949,7 +940,7 @@ function loadLinkedEntities(formData) {
                 typesA.innerHTML = responseJson.filtersListAHTML;
                 typesB.innerHTML = responseJson.filtersListBHTML;
             } else {
-                //alert(responseJson.result.message);
+                alert(responseJson.result.message);
                 $("#buttonL").prop('disabled', false);
             }
             FAGI.Utilities.disableSpinner();
@@ -1034,7 +1025,7 @@ function submitLinks(batchFusion) {
                             shiftValuesJSON.gOffsetBX = $('#offset-x-b').val();
                             shiftValuesJSON.gOffsetBY = $('#offset-y-b').val();
                         }
-                        alert($( "#clusterSelector" ).val());
+                        //alert($( "#clusterSelector" ).val());
                         if ($("#clusterSelector").val() > -1) {
                             //alert("Cluster chosen");
                             clusterJSON = createLinkCluster($("#clusterSelector").val());
@@ -1490,6 +1481,15 @@ function initBatchFusionTable(val) {
 }
 
 function schemaMatch() {
+    
+   // alert($("#fg-file-input"));
+   // alert($("#fg-file-input").val());
+    if ( $('#linksList input:checked').length == 0 ) {
+        alert("No links selected");
+        
+        return;
+    }
+    
     FAGI.Utilities.enableSpinner();
     var list = document.getElementById("linksList");
     var listItem = list.getElementsByTagName("li");
@@ -2428,8 +2428,23 @@ function filterLinksB( )
 function setConnection()
 {
     var values = $('#connDiv').serialize();
-    FAGI.Utilities.enableSpinner();
     //alert( values );
+    //alert( values.v_url );
+    var correctInput = true;
+    $("form#connDiv :input").each(function(){
+        var $input = $(this); // This is the jquery object of the input, do what you will
+        //alert($input.attr('id'));
+        if ( !$input.val().trim() ) {
+            alert("Please fill all fields");
+            correctInput = false;
+            return false;
+        }
+    });
+    
+    if ( !correctInput )
+        return;
+    
+    FAGI.Utilities.enableSpinner();
     $.ajax({
         // request type
         type: "POST",
@@ -2572,6 +2587,24 @@ function setDatasets()
     var values = $('#dataDiv').serialize();
     //alert( values );
     //alert($('#fg-fetch-fused-check').prop('checked'));
+    var correctInput = true;
+    $("form#dataDiv :input").each(function(){
+        var $input = $(this); // This is the jquery object of the input, do what you will
+        //alert($input.attr('id').indexOf("-l"));
+        if ( $input.attr('id').indexOf("-l") < 0 && $input.attr('id').indexOf("auth") < 0 ) {
+            if (!$input.val().trim()) {
+                alert("Please fill all fields");
+                correctInput = false;
+                return false;
+            }
+        } else {
+            //alert($input.attr('id'));
+        }
+    });
+    
+    if ( !correctInput )
+        return;
+    
     FAGI.Utilities.enableSpinner();
     $.ajax({
         // request type

@@ -14,6 +14,7 @@ import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import gr.athenainnovation.imis.fusion.gis.json.JSONFilteredLinks;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
+import static gr.athenainnovation.imis.fusion.gis.utils.Utilities.isURLToLocalInstance;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -135,14 +136,26 @@ public class FilterServlet extends HttpServlet {
 
                 return;
             }
+            
+            boolean isEndpointALocal = isURLToLocalInstance(grConf.getEndpointA()); //"localhost" for localhost
+            boolean isEndpointBLocal = isURLToLocalInstance(grConf.getEndpointB()); //"localhost" for localhost
+
             Connection virt_conn = vSet.getConnection();
             if (set.equals("A")) {
                 for (String filter : filters) {
                     String filterSelectA = "";
-                    if (grConf.isDominantA()) {
-                        filterSelectA = "SPARQL SELECT distinct(?s) ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                    if (isEndpointALocal) {
+                        if (grConf.isDominantA()) {
+                            filterSelectA = "SPARQL SELECT distinct(?s) ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                        } else {
+                            filterSelectA = "SPARQL SELECT distinct(?s) ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                        }
                     } else {
-                        filterSelectA = "SPARQL SELECT distinct(?s) ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                        if (grConf.isDominantA()) {
+                            filterSelectA = "SPARQL SELECT distinct(?s) ?o WHERE { SERVICE <" + grConf.getEndpointA() + "> { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } } }";
+                        } else {
+                            filterSelectA = "SPARQL SELECT distinct(?s) ?o WHERE { SERVICE <" + grConf.getEndpointA() + "> { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getGraphA() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } } }";
+                        }
                     }
                     System.out.println(filterSelectA);
                     try (PreparedStatement filtersStmt = virt_conn.prepareStatement(filterSelectA)) {
@@ -175,12 +188,19 @@ public class FilterServlet extends HttpServlet {
             } else {
                 for (String filter : filters) {
                     String filterSelectB = "";
+                    if (isEndpointBLocal) {
                     if (grConf.isDominantA()) {
-                        filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                            filterSelectB = "SPARQL SELECT distinct(?s) ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
                     } else {
-                        filterSelectB = "sparql select distinct(?s) ?o where { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getMetadataGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
+                            filterSelectB = "SPARQL SELECT distinct(?s) ?o WHERE { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } }";
                     }
-                    
+                    } else {
+                        if (grConf.isDominantA()) {
+                            filterSelectB = "SPARQL SELECT distinct(?s) ?o WHERE { SERVICE <" + grConf.getEndpointB() + "> { GRAPH <" + grConf.getAllLinksGraph() + "> { ?s <http://www.w3.org/2002/07/owl#sameAs> ?o } . GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } } }";
+                        } else {
+                            filterSelectB = "SPARQL SELECT distinct(?s) ?o WHERE { SERVICE <" + grConf.getEndpointB() + "> { GRAPH <" + grConf.getAllLinksGraph() + "> { ?o <http://www.w3.org/2002/07/owl#sameAs> ?s } . GRAPH <" + grConf.getGraphB() + "> { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + filter + "> } } }";
+                        }
+                    }
                     try (PreparedStatement filtersStmt = virt_conn.prepareStatement(filterSelectB)) {
                         ResultSet rs = filtersStmt.executeQuery();
                         System.out.println(filterSelectB);

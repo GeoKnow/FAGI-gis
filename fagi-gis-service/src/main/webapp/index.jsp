@@ -28,7 +28,8 @@
                                         <%
                                             String str = request.getParameter("dataset-l");
                                             if (str == null) {
-                                                request.setAttribute("dataset-l", "http://localhost:8890/DAV/test_links");
+                                                request.setAttribute("dataset-l", "");
+                                                //request.setAttribute("dataset-l", "http://localhost:8890/DAV/test_links");
                                             } //request.setAttribute("dataset-l", "http://localhost:8890/DAV/links_postgis1");
                                             //request.setAttribute("dataset-l", "http://generator.geoknow.eu/resource/RdfImport_1441965089653");
                                             else {
@@ -37,7 +38,8 @@
 
                                             str = request.getParameter("endpoint-l");
                                             if (str == null) {
-                                                request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
+                                                request.setAttribute("endpoint-l", "");
+                                                //request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
                                             } //request.setAttribute("endpoint-l", "http://localhost:8890/sparql");
                                             //request.setAttribute("endpoint-l", "http://178.63.95.211:8080/generator/rest/session/be19b030-63f4-457a-b02c-32b2180aa59c");
                                             //request.setAttribute("endpoint-l", "http://fagi.guests.ipsyp.dom:8891/sparql");
@@ -98,7 +100,8 @@
 
                                             str = request.getParameter("postgis-database");
                                             if (str == null) {
-                                                request.setAttribute("postgis-database", "postgis1");
+                                                request.setAttribute("postgis-database", "fagi");
+                                                //request.setAttribute("postgis-database", "postgis1");
                                             } //request.setAttribute("postgis-database", "fagi");
                                             else {
                                                 request.setAttribute("postgis-database", request.getParameter("postgis-database"));
@@ -262,24 +265,22 @@
                                                         <td><a id="matchingMenu" href="#fusion">matching</a></td>
                                                         <td>
                                                             <div class="dropdown"><a id="dLabel"
-                                                                                     data-target="#" 
-                                                                                     href="http://example.com" 
-                                                                                     data-toggle="dropdown" 
+                                                                                     href="javascript:;" 
                                                                                      aria-haspopup="true" 
                                                                                      role="button">
                                                                     tools
                                                                     <span class="caret"></span></a>
 
                                                                 <ul class="dropdown-menu" role="menu">
-                                                                    <li><a id="visibleSelect" href="#">visible select</a></li>
+                                                                    <!--<li><a id="visibleSelect" href="#">visible select</a></li>-->
                                                                     <li><a id="multipleTool" href="#">multiple select</a></li>
                                                                     <li><a id="bboxTool" href="#">bounding box select</a></li>
                                                                     <li><a id="fetchTool" href="#">fetch unlinked</a></li>
                                                                     <li><a id="clusteringTool" href="#">perform clustering</a></li>
                                                                     <li class="divider"></li>
-                                                                    <li><a id="fg-download-fused-tool"  href="#">download fused dataset</a></li>
-                                                                    <li><a href="#">advanced search</a></li>
-                                                                    <li><a href="#">sparql</a></li>
+                                                                    <li><a id="fg-download-fused-tool" href="javascript:;">download fused dataset</a></li>
+                                                                    <!--<li><a href="#">advanced search</a></li>
+                                                                    <li><a href="#">sparql</a></li>-->
                                                                     <li class="divider"></li>
                                                                     <li><a href="#">reset fagi</a></li>
                                                                 </ul>

@@ -277,6 +277,9 @@ display: table-cell;
     margin: auto;
 }
 
+#fg-download-fused-tool {
+    color:gray;
+}
 
 .dropdown-menu a:link, .dropdown-menu a:visited {
     font-weight: bold;
