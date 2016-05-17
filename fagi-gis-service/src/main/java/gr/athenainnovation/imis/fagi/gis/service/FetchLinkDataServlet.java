@@ -14,6 +14,7 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import gr.athenainnovation.imis.fusion.gis.clustering.GeoClusterer;
+import gr.athenainnovation.imis.fusion.gis.core.FAGIUser;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.GraphConfig;
 import java.io.IOException;
@@ -116,6 +117,7 @@ public class FetchLinkDataServlet extends HttpServlet {
         JSONTriples ret;
         String subject;
         VirtGraph vSet = null;
+        FAGIUser                    activeUser;
         
         try (PrintWriter out = response.getWriter()) {
             
@@ -131,7 +133,8 @@ public class FetchLinkDataServlet extends HttpServlet {
             dbConf = (DBConfig) sess.getAttribute("db_conf");
             ret = new JSONTriples();
             subject = request.getParameter("subject");
-        
+            activeUser = (FAGIUser)sess.getAttribute("logged_user");
+            
             /* TODO output your page here. You may use following sample code. */
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
@@ -154,17 +157,24 @@ public class FetchLinkDataServlet extends HttpServlet {
 
             final String selectAll = "SELECT * where "
                     + "{ GRAPH <" + grConf.getTargetGraph() + "> { "
+                    //+ "{ GRAPH <" + grConf.getTargetTempGraph()+ "> { "
                     + "<" + subject + "> ?p ?o ."
                     + " OPTIONAL { ?o ?p1 ?o1 ."
                     + " OPTIONAL { ?o1 ?p2 ?o2 ."
                     + " OPTIONAL { ?o2 ?p3 ?o3 . } } } } }";
-            HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
+            HttpAuthenticator authenticator = new SimpleAuthenticator(activeUser.getName(), activeUser.getName().toCharArray());
             //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
-            QueryEngineHTTP qeh = new QueryEngineHTTP(grConf.getEndpointT(), selectAll, authenticator);
-            qeh.addDefaultGraph((String) sess.getAttribute("t_graph"));
+            QueryEngineHTTP qeh = null;
+            if ( "http://localhost:8890/sparql".equals(grConf.getEndpointT()))
+                qeh = new QueryEngineHTTP("http://pluto.imis.athena-innovation.gr:10381", selectAll, authenticator);
+            else
+                qeh = new QueryEngineHTTP(grConf.getEndpointT(), selectAll, authenticator);
+            //qeh.addDefaultGraph((String) sess.getAttribute("t_graph"));
             QueryExecution queryExecution = qeh;
             final com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
 
+            System.out.println("Query for fused data " + selectAll);
+            
             //geomColl.append("GEOMETRYCOLLECTION(");
             while (resultSet.hasNext()) {
                 final QuerySolution querySolution = resultSet.next();

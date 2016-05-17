@@ -83,8 +83,15 @@ public class UserCreationServlet extends HttpServlet {
             //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             ret = new JSONRequestResult();
 
+            sess = request.getSession(false);
+            if (sess != null) {
+                //sess.invalidate();
+            } else {
+                sess = request.getSession(true);
+            }
+            
             // The only time we need a session if one does not exist
-            sess = request.getSession(true);
+            //sess = request.getSession(true);
 
             String name = request.getParameter("u_name");
             String pass = request.getParameter("u_pass");

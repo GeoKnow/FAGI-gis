@@ -6,11 +6,16 @@
 package gr.athenainnovation.imis.fagi.gis.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hp.hpl.jena.query.QueryExecution;
+import com.hp.hpl.jena.query.QuerySolution;
+import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 import gr.athenainnovation.imis.fusion.gis.core.FAGIUser;
 import gr.athenainnovation.imis.fusion.gis.gui.workers.DBConfig;
 import gr.athenainnovation.imis.fusion.gis.json.JSONRequestResult;
 import gr.athenainnovation.imis.fusion.gis.postgis.DatabaseInitialiser;
 import gr.athenainnovation.imis.fusion.gis.utils.Constants;
+import gr.athenainnovation.imis.fusion.gis.utils.Credentials;
 import gr.athenainnovation.imis.fusion.gis.utils.Log;
 import gr.athenainnovation.imis.fusion.gis.utils.Utilities;
 import java.io.IOException;
@@ -29,6 +34,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import org.apache.jena.atlas.web.auth.HttpAuthenticator;
+import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
 import virtuoso.jena.driver.VirtGraph;
 
 /**
@@ -67,6 +74,51 @@ public class UserLoginServlet extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
 
+        /*
+        String querys = "SELECT * where { GRAPH <http://localhost:8890/fused_dataset> { <http://linkedgeodata.org/triplify/way113430594> ?p ?o . OPTIONAL { ?o ?p1 ?o1 . OPTIONAL { ?o1 ?p2 ?o2 . OPTIONAL { ?o2 ?p3 ?o3 . } } } } }";
+        
+        HttpAuthenticator authenticator = new SimpleAuthenticator("dba", Credentials.SERVICE_VIRTUOSO_PASS.toCharArray());
+            //QueryExecution queryExecution = QueryExecutionFactory.sparqlService(service, query, graph, authenticator);
+            //QueryEngineHTTP qeh = new QueryEngineHTTP("http://pluto.imis.athena-innovation.gr:10381", querys, authenticator);
+            QueryEngineHTTP qeh = new QueryEngineHTTP("http://localhost:8890/sparql", querys, authenticator);
+            //qeh.addDefaultGraph((String) sess.getAttribute("t_graph"));
+            QueryExecution queryExecution = qeh;
+            
+            System.out.println("Query for fused data " + querys);
+
+            
+            final com.hp.hpl.jena.query.ResultSet resultSet = queryExecution.execSelect();
+
+            System.out.println("Query for fused data " + querys);
+            
+            //geomColl.append("GEOMETRYCOLLECTION(");
+            while (resultSet.hasNext()) {
+                final QuerySolution querySolution = resultSet.next();
+                //final String predicate = querySolution.getResource("?p").getURI();
+                RDFNode p, o, p1, o1, p2, o2, p3, o3;
+                o = querySolution.get("?o");
+                p = querySolution.get("?p");
+                o1 = querySolution.get("?o1");
+                o2 = querySolution.get("?o2");
+                o3 = querySolution.get("?o3");
+                p3 = querySolution.get("?p3");
+                p2 = querySolution.get("?p2");
+                p1 = querySolution.get("?p1");
+
+                //ret.getTriples().add(new FetchLinkDataServlet.JSONTriple(subject, p.toString(), o.toString()));
+                
+                if ( o1 != null )
+                    System.out.println(o1.toString());
+                
+                if ( o2 != null )
+                    System.out.println(o2.toString());
+                
+                if ( o3 != null )
+                    System.out.println(o3.toString());
+                
+            }
+                       
+        */                
         HttpSession sess;
         VirtGraph vSet = null;
         DBConfig dbConf = null;
@@ -82,8 +134,15 @@ public class UserLoginServlet extends HttpServlet {
             //mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             ret = new JSONRequestResult();
 
+            sess = request.getSession(false);
+            if (sess != null) {
+                //sess.invalidate();
+            } else {
+                sess = request.getSession(true);
+            }
+
             // The only time we need a session if one does not exist
-            sess = request.getSession(true);
+            //sess = request.getSession(true);
 
             String name = request.getParameter("u_name");
             String pass = request.getParameter("u_pass");
