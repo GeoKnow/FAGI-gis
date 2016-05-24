@@ -186,6 +186,12 @@ FAGI.MapUI = {
         //alert("Luda");
         FAGI.MapUI.resetAllPopups();
         FAGI.MapUI.resetMultipleSelect();
+        
+        //event.preventDefault();
+        //event.stopPropagation();
+        
+        return true;
+        //return false;
     },
     periodicMapUpdate: function () {
         FAGI.MapUI.map.updateSize();
@@ -217,7 +223,7 @@ FAGI.PanelsUI = {
         FAGI.PanelsUI.hideAllPanels();
         //alert("luda");
         
-        if ( current_feature.attributes.currently_selected ) {
+        if ( typeof current_feature != "undefined" && current_feature.attributes.currently_selected ) {
             //current_feature.attributes.currently_selected = false;
             FAGI.MapUI.Controls.selectControl.unselect(current_feature);
         }
@@ -1634,6 +1640,10 @@ function clearSelected(event) {
 }
 
 function addSelected(event) {
+    
+    //alert(window.event.ctrlKey);
+    //alert(window.event.shiftKey);
+    
     if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined")
         return;
 
@@ -1662,6 +1672,8 @@ function addSelected(event) {
         alert(this);
     };
     */
+
+    event.feature.attributes.currently_selected = true;
 
     FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] = event.feature;
     FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] = event.feature;
@@ -1724,8 +1736,28 @@ function activateMultipleTool() {
     //activeFeatureCluster = new Array();
     //alert($('#clusterSelector option[value="9999"]').length);
 
-    expandUserSelectionPanel();
-
+    //alert(FAGI.PanelsUI.lastClickedMenu);
+    //alert(FAGI.ActiveState.multipleEnabled);
+    //alert($(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")));
+    
+    if ( !FAGI.ActiveState.multipleEnabled && !$(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")) ) {
+        alert(1);
+        expandUserSelectionPanel();
+    } else if ( FAGI.ActiveState.multipleEnabled && $(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")) )  {
+        alert(2);
+        expandUserSelectionPanel();
+        
+        return;
+     } else if ( FAGI.ActiveState.multipleEnabled && $(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")) )  {
+        alert(2);
+        expandUserSelectionPanel();
+        
+        return;
+     } else {
+        //alert(3);
+        //return;
+    }
+    
     if (!$('#clusterSelector option[value="9999"]').length)
         $("#clusterSelector").append("<option value=\"" + 9999 + "\" >Custom Cluster </option>");
 
@@ -2048,9 +2080,11 @@ function expandUserPanel() {
 function expandUserSelectionPanel() {
     FAGI.PanelsUI.hideAllPanels();
 
-    if ($("#fg-user-selection-panel").data("opened")) {
-        return;
-    }
+    alert("Here");
+
+    //if ($("#fg-user-selection-panel").data("opened")) {
+    //    return;
+    //}
     
     if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")))) {
 
@@ -2089,12 +2123,14 @@ function expandUserSelectionPanel() {
                 cursor: 'col-resize'
             });
 
-            FAGI.PanelsUI.lastClickedMenu = $("#fg-use-selection-panel");
+            FAGI.PanelsUI.lastClickedMenu = $("#fg-user-selection-panel");
+            //alert("Is it " + ($(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel").get(0))));
+            //alert("Is it " + FAGI.PanelsUI.lastClickedMenu);
             $("#fg-user-selection-panel").data("opened", true);
         }
     }
 
-
+    
     FAGI.MapUI.map.updateSize();
 }
 
