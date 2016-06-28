@@ -300,7 +300,7 @@ public class SchemaMatchServlet extends HttpServlet {
                 return;
             }
             
-            System.out.println("Dom A "+sms.domOntoA+" Dom B "+sms.domOntoB);
+            //System.out.println("Dom A "+sms.domOntoA+" Dom B "+sms.domOntoB);
             sess.setAttribute("domA", sms.domOntoA);
             sess.setAttribute("domB", sms.domOntoB);
             

@@ -357,7 +357,7 @@ public class BatchFusionServlet extends HttpServlet {
                                          dbConf.getUsername(), 
                                          dbConf.getPassword());
             } catch (JenaException connEx) {
-                System.out.println(connEx.getMessage());      
+                //System.out.println(connEx.getMessage());      
                 out.println("Connection to virtuoso failed");
                 out.close();
             
@@ -367,7 +367,7 @@ public class BatchFusionServlet extends HttpServlet {
             try{
                 Class.forName("org.postgresql.Driver");     
             } catch (ClassNotFoundException ex) {
-                System.out.println(ex.getMessage());      
+                //System.out.println(ex.getMessage());      
                 out.println("Class of postgis failed");
                 out.close();
             
@@ -379,7 +379,7 @@ public class BatchFusionServlet extends HttpServlet {
                 dbConn = DriverManager.getConnection(url, dbConf.getDBUsername(), dbConf.getDBPassword());
                 dbConn.setAutoCommit(false);
             } catch(SQLException sqlex) {
-                System.out.println(sqlex.getMessage());      
+                //System.out.println(sqlex.getMessage());      
                 out.println("Connection to postgis failed");
                 out.close();
             
@@ -399,7 +399,7 @@ public class BatchFusionServlet extends HttpServlet {
                 domSub = nodeA;
                 dom = domA;
             }
-            System.out.println("Dom A "+domA+" Dom B "+domB);
+            //System.out.println("Dom A "+domA+" Dom B "+domB);
             
             JsonFactory factory = mapper.getJsonFactory(); // since 2.1 use mapper.getFactory() instead
             JsonParser jp = factory.createJsonParser(propsJSON);
@@ -412,7 +412,7 @@ public class BatchFusionServlet extends HttpServlet {
             if ( activeCluster > -1 ) {
                 JsonParser jpCluster = factory.createJsonParser(clusterJSON);
                 clusterLinks = mapper.readValue(jpCluster, JSONClusterLink[].class );
-                System.out.println("Cluster size "+ clusterLinks.length);
+                //System.out.println("Cluster size "+ clusterLinks.length);
                 
                 activeLinkTable = "cluster";
                 loadClusterLinks(clusterLinks, dbConn);
@@ -423,7 +423,7 @@ public class BatchFusionServlet extends HttpServlet {
                 }
             }
             
-            System.out.println(selectedFusions[0].preL);
+            //System.out.println(selectedFusions[0].preL);
             
             AbstractFusionTransformation trans = null;
             boolean skipFusion = false;
@@ -442,10 +442,10 @@ public class BatchFusionServlet extends HttpServlet {
                 }
                 
                 if ( trans instanceof KeepLeftTransformation) {
-                    System.out.println(sFactors.getgOffsetAX());
-                    System.out.println(sFactors.getgOffsetAY());
-                    System.out.println(sFactors.getgOffsetBX());
-                    System.out.println(sFactors.getgOffsetBY());
+                    //System.out.println(sFactors.getgOffsetAX());
+                    //System.out.println(sFactors.getgOffsetAY());
+                    //System.out.println(sFactors.getgOffsetBX());
+                    //System.out.println(sFactors.getgOffsetBY());
                     
                     if (Math.abs(sFactors.getgOffsetAX()) > OFFSET_EPSILON
                             || Math.abs(sFactors.getgOffsetAY()) > OFFSET_EPSILON) {
@@ -456,10 +456,10 @@ public class BatchFusionServlet extends HttpServlet {
                 }
                 
                 if ( trans instanceof KeepRightTransformation) {
-                    System.out.println(sFactors.getgOffsetAX());
-                    System.out.println(sFactors.getgOffsetAY());
-                    System.out.println(sFactors.getgOffsetBX());
-                    System.out.println(sFactors.getgOffsetBY());
+                    //System.out.println(sFactors.getgOffsetAX());
+                    //System.out.println(sFactors.getgOffsetAY());
+                    //System.out.println(sFactors.getgOffsetBX());
+                    //System.out.println(sFactors.getgOffsetBY());
                     
                     if (Math.abs(sFactors.getgOffsetBX()) > OFFSET_EPSILON
                             || Math.abs(sFactors.getgOffsetBY()) > OFFSET_EPSILON) {
@@ -470,10 +470,10 @@ public class BatchFusionServlet extends HttpServlet {
                 }
                 
                 if ( trans instanceof KeepBothTransformation) {
-                    System.out.println(sFactors.getgOffsetAX());
-                    System.out.println(sFactors.getgOffsetAY());
-                    System.out.println(sFactors.getgOffsetBX());
-                    System.out.println(sFactors.getgOffsetBY());
+                    //System.out.println(sFactors.getgOffsetAX());
+                    //System.out.println(sFactors.getgOffsetAY());
+                    //System.out.println(sFactors.getgOffsetBX());
+                    //System.out.println(sFactors.getgOffsetBY());
                     
                     if (Math.abs(sFactors.getgOffsetBX()) > OFFSET_EPSILON
                             || Math.abs(sFactors.getgOffsetBY()) > OFFSET_EPSILON
@@ -485,7 +485,7 @@ public class BatchFusionServlet extends HttpServlet {
                         skipFusion = true;
                     }
                 }
-                System.out.println(trans == null);
+                //System.out.println(trans == null);
                 
                 if (!skipFusion) {
                     if (activeCluster > -1) {
@@ -523,7 +523,7 @@ public class BatchFusionServlet extends HttpServlet {
                         final String subA = rs.getString(1);
                         final String subB = rs.getString(2);
                         
-                        System.out.println("GEOMETRY   :   "+geomStr);
+                        //System.out.println("GEOMETRY   :   "+geomStr);
                         StringBuilder geom;
                         
                         if ( ret.getFusedGeoms().containsKey(subA) ) {
@@ -532,7 +532,7 @@ public class BatchFusionServlet extends HttpServlet {
                         } else {
                             geom = new StringBuilder(geomStr+"|");
                         }
-                        System.out.println("GEOMETRY   :   "+geom.toString());
+                        //System.out.println("GEOMETRY   :   "+geom.toString());
                         JSONFusionResult res = new JSONFusionResult(geom, subB);
                         ret.getFusedGeoms().put(rs.getString(1), res);
                     }
@@ -600,7 +600,7 @@ public class BatchFusionServlet extends HttpServlet {
                   
             int lastIndex = 0;
             do {
-                System.out.println("Running link creation loop " + linkList.size());
+                //System.out.println("Running link creation loop " + linkList.size());
                 if ( activeCluster > -1 ) 
                     lastIndex = SPARQLUtilities.createClusterGraph(clusterLinks, lastIndex, grConf, vSet);
                 else 
@@ -612,7 +612,7 @@ public class BatchFusionServlet extends HttpServlet {
                 }
                 
                 for (int i = 1; i < selectedFusions.length; i++) {
-                    System.out.println("Rest Action ===== " + restAction);
+                    //System.out.println("Rest Action ===== " + restAction);
                     if (Constants.LATE_FETCH) {
                         fetchRemaining(restAction, grConf, vSet, activeCluster);
                         lateFetchData(i, tGraph, sess, grConf, vSet, selectedFusions, activeCluster);
@@ -629,12 +629,12 @@ public class BatchFusionServlet extends HttpServlet {
                         
             SPARQLUtilities.clearFusedLinks(grConf, activeCluster, vSet.getConnection());
             
-            System.out.println(mapper.writeValueAsString(ret));
+            //System.out.println(mapper.writeValueAsString(ret));
             
             // Update destinATION GRAPH
-            System.out.println("\n\n\n\n\nPreparing to update remote endpoint\n\n\n");
+            //System.out.println("\n\n\n\n\nPreparing to update remote endpoint\n\n\n");
             SPARQLUtilities.UpdateRemoteEndpoint(grConf, vSet);
-            System.out.println("\n\n\n\n\nFiniished updating remote endpoint\n\n\n");
+            //System.out.println("\n\n\n\n\nFiniished updating remote endpoint\n\n\n");
             out.println(mapper.writeValueAsString(ret));
             
         } finally {
@@ -665,7 +665,7 @@ public class BatchFusionServlet extends HttpServlet {
                 || restAction.equalsIgnoreCase("Keep A")) {
             try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(addNewTriplesA)) {
                 vstmt.executeUpdate();
-                System.out.println("\n\n\n\n\n\nKeeping A\n\n\n\n\n");
+                //System.out.println("\n\n\n\n\n\nKeeping A\n\n\n\n\n");
             } catch (VirtuosoException ex) {
                 LOG.trace("VirtuosoException on remote failed");
                 LOG.debug("VirtuosoException on remote failed : " + ex.getMessage());
@@ -939,7 +939,7 @@ public class BatchFusionServlet extends HttpServlet {
 
                 StringBuilder q = new StringBuilder();
                 String prev_s = "";
-                System.out.println("Patterns " + patterns);
+                //System.out.println("Patterns " + patterns);
 
                 for (String pattern : patterns) {
                     q.setLength(0);
@@ -957,7 +957,7 @@ public class BatchFusionServlet extends HttpServlet {
                         prev_s = "?o" + i;
                     }
                     q.append(clearSelectedPropsBEnd);
-                    System.out.println("Long gone B " + q.toString());
+                    //System.out.println("Long gone B " + q.toString());
                     try (PreparedStatement clearStmt = virt_conn.prepareStatement(q.toString())) {
 
                         clearStmt.execute();
@@ -982,7 +982,7 @@ public class BatchFusionServlet extends HttpServlet {
 
                 StringBuilder q = new StringBuilder();
                 String prev_s = "";
-                System.out.println("Patterns " + patterns);
+                //System.out.println("Patterns " + patterns);
 
                 for (String pattern : patterns) {
                     q.setLength(0);
@@ -999,7 +999,7 @@ public class BatchFusionServlet extends HttpServlet {
                         prev_s = "?o" + i;
                     }
                     q.append(clearSelectedPropsAEnd);
-                    System.out.println("Long gone A " + q.toString());
+                    //System.out.println("Long gone A " + q.toString());
                     try (PreparedStatement clearStmt = virt_conn.prepareStatement(q.toString())) {
 
                         clearStmt.execute();
@@ -1047,7 +1047,7 @@ public class BatchFusionServlet extends HttpServlet {
             newPred = newPredTokes[0];
         }
         newPred = newPred.replaceAll(",", "_");
-        System.out.println("Long name : " + longName);
+        //System.out.println("Long name : " + longName);
         String[] predicates = longName.split(Constants.PROPERTY_SEPARATOR);
         String leftPre = predicates[0];
         String rightPre = predicates[1];
@@ -1055,11 +1055,11 @@ public class BatchFusionServlet extends HttpServlet {
         rightPre = StringUtils.removeEnd(rightPre, "|");
         String[] leftPres = leftPre.split("\\|");
         String[] rightPres = rightPre.split("\\|");
-        System.out.println("Left pres " + leftPre);
+        //System.out.println("Left pres " + leftPre);
         for (String s : leftPres) {
             System.out.print(s + " ");
         }
-        System.out.println();
+        //System.out.println();
         System.out.println("Right pres " + rightPre);
         for (String s : rightPres) {
             System.out.print(s + " ");

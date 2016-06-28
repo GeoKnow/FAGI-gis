@@ -217,7 +217,7 @@ public class LinksServlet extends HttpServlet {
             return null;
         }
         String q = "SELECT * WHERE { GRAPH <"+g+"> { ?s ?p ?o } }";
-        System.out.println("\n\n\n\nSubject " + q);
+        //System.out.println("\n\n\n\nSubject " + q);
         try {
             final Query query = QueryFactory.create(q);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
@@ -230,7 +230,7 @@ public class LinksServlet extends HttpServlet {
                 final RDFNode subject = querySolution.get("?s");
                 final RDFNode objectNode1 = querySolution.get("?p"); //lat
                 final RDFNode objectNode2 = querySolution.get("?o"); //long
-                System.out.println("Subject " + subject);
+                //System.out.println("Subject " + subject);
                 sb.append("<" + subject + ">");
                 sb.append(" ");
                 sb.append("<" + Constants.SAME_AS + ">");
@@ -393,7 +393,7 @@ public class LinksServlet extends HttpServlet {
             }
             iter.close();
             
-            System.out.println("\n\n\n\n\n"+makeSwap+"\n\n\n\n\n");
+            //System.out.println("\n\n\n\n\n"+makeSwap+"\n\n\n\n\n");
             
             if ( isValidInput == false ) {
                 LOG.trace("NULL Datasets");
@@ -696,10 +696,10 @@ public class LinksServlet extends HttpServlet {
                 }
             }
             
-            System.out.println("Fetch from graph A : "+fetchFiltersA);
-            System.out.println("Fetch from graph B : " + fetchFiltersB);
-            System.out.println("Graph A : " + grConf.getGraphA());
-            System.out.println("Graph B : " + grConf.getGraphB());
+            //System.out.println("Fetch from graph A : "+fetchFiltersA);
+            //System.out.println("Fetch from graph B : " + fetchFiltersB);
+            //System.out.println("Graph A : " + grConf.getGraphA());
+            //System.out.println("Graph B : " + grConf.getGraphB());
 
             PreparedStatement filtersStmt = null;
             ResultSet rs = null;
@@ -722,7 +722,7 @@ public class LinksServlet extends HttpServlet {
                         while (rs.next()) {
                             prop = rs.getString(1);
                             htmlCode.append("<option value=\"" + prop + "\">" + prop + "</option>");
-                            System.out.println(prop);
+                            //System.out.println(prop);
                         }
                     }
                 }
@@ -747,7 +747,7 @@ public class LinksServlet extends HttpServlet {
                         while (rs.next()) {
                             prop = rs.getString(1);
                             htmlCode.append("<option value=\"" + prop + "\">" + prop + "</option>");
-                            System.out.println(prop);
+                            //System.out.println(prop);
                         }
                     }
                 }
@@ -832,17 +832,17 @@ public class LinksServlet extends HttpServlet {
         //dir = dir.replace("\\", "/");
         //dir = "/"+dir;
         //dir = dir.replace(":","");
-        System.out.println("Seps " + dir + " " + File.separator + " " + File.separatorChar);
+        //System.out.println("Seps " + dir + " " + File.separator + " " + File.separatorChar);
         String ret = dir;
         int lastSlash = dir.lastIndexOf(File.separator);
         if (lastSlash != (dir.length() - 1)) {
-            System.out.println("Isxuei");
+            //System.out.println("Isxuei");
             ret = dir.concat(File.separator);
         }
-        System.out.println("Seps " + ret + " " + File.separator + " " + File.separatorChar);
+        //System.out.println("Seps " + ret + " " + File.separator + " " + File.separatorChar);
         File file = new File(ret);
         if (!file.exists()) {
-            System.out.println("creating directory: " + ret);
+            //System.out.println("creating directory: " + ret);
             boolean result = false;
 
             try {
@@ -852,13 +852,13 @@ public class LinksServlet extends HttpServlet {
                 //handle it
             }
             if (result) {
-                System.out.println("DIR created");
+                //System.out.println("DIR created");
             }
         }
 
         file = new File(ret + "bulk_inserts/");
         if (!file.exists()) {
-            System.out.println("creating directory: " + ret);
+            //System.out.println("creating directory: " + ret);
             boolean result = false;
 
             try {
@@ -868,7 +868,7 @@ public class LinksServlet extends HttpServlet {
                 //handle it
             }
             if (result) {
-                System.out.println("DIR created");
+                //System.out.println("DIR created");
             }
         }
         return ret;
