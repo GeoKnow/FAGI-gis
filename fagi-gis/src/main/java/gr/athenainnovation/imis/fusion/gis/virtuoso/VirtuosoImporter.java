@@ -159,7 +159,7 @@ public final class VirtuosoImporter {
                 String[] vals = prop.split(":");
                 vals[1].trim();
                 vals[0].trim();
-                System.out.println(vals[0] + " " + vals[1]);
+                //System.out.println(vals[0] + " " + vals[1]);
                 if (vals[0].equals("wordnet-depth")) {
                     wordnetDepth = Integer.parseInt(vals[1]);
                 } else if (vals[0].equals("max-parent")) {
@@ -482,7 +482,7 @@ public final class VirtuosoImporter {
 
         Statement stmt = null;
         Connection connection = null;
-        System.out.println("Upload of geometries about to commence");
+        //System.out.println("Upload of geometries about to commence");
         try {
             connection = DriverManager.getConnection(Constants.DB_URL + db_c.getDBName(), db_c.getDBUsername(), db_c.getDBPassword());
             //String deleteQuery;
@@ -637,8 +637,8 @@ public final class VirtuosoImporter {
 
         //gr_c.setLocalA(isEndpointALocal);
         //gr_c.setLocalB(isEndpointBLocal);
-        System.out.println("is it " + isEndpointALocal);
-        System.out.println(isEndpointBLocal);
+        //System.out.println("is it " + isEndpointALocal);
+        //System.out.println(isEndpointBLocal);
 
         starttime = System.nanoTime();
         getFromA.append("sparql INSERT\n");
@@ -708,7 +708,7 @@ public final class VirtuosoImporter {
         getFromB.append("}");
 
         System.out.println("GET FROM B \n" + getFromB);
-        System.out.println("GET FROM B \n" + getFromA);
+        System.out.println("GET FROM A \n" + getFromA);
 
         int count = 0;
         int i = 0;
@@ -795,7 +795,7 @@ public final class VirtuosoImporter {
             count++;
         }
 
-        System.out.println("THE BOOL IS " + success);
+        //System.out.println("THE BOOL IS " + success);
         return success;
 
         //endtime =  System.nanoTime();
@@ -1337,7 +1337,7 @@ public final class VirtuosoImporter {
                 getFromB.append("}");
 
                 System.out.println("GET FROM B \n" + getFromB);
-                System.out.println("GET FROM B \n" + getFromA);
+                System.out.println("GET FROM A \n" + getFromA);
              
                 // Populate with data from the Sample Liink set
                 try (PreparedStatement populateDataA = virt_conn.prepareStatement(getFromA.toString());
@@ -1530,15 +1530,15 @@ public final class VirtuosoImporter {
                     PreparedStatement createMetaAStmt = virt_conn.prepareStatement(createMetaAGraph);
                     PreparedStatement createMetaBStmt = virt_conn.prepareStatement(createMetaBGraph) ) {
                     
-                    System.out.println("INSIDE META CREATION");
+                    //System.out.println("INSIDE META CREATION");
                     dropMetaAStmt.execute();
-                    System.out.println("INSIDE META CREATION 1");
+                    //System.out.println("INSIDE META CREATION 1");
                     dropMetaBStmt.execute();
-                    System.out.println("INSIDE META CREATION 2");
+                    //System.out.println("INSIDE META CREATION 2");
                     createMetaAStmt.execute();
-                    System.out.println("INSIDE META CREATION 3");
+                    //System.out.println("INSIDE META CREATION 3");
                     createMetaBStmt.execute();
-                    System.out.println("OUTSIDE META CREATION");
+                    //System.out.println("OUTSIDE META CREATION");
                     
                 } catch (SQLException ex) {
 
