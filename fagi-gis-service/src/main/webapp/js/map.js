@@ -2717,6 +2717,7 @@ function doDragA(feature, pixel) {
             for (i = 0; i < FAGI.ActiveState.selectedGeomA.attributes.links.length; i++) {
                 var validated = FAGI.ActiveState.selectedGeomA.attributes.links[i].validated;
                 var otherEnd = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb;
+                var currently_selected = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.currently_selected;
                 var otherEndLinkIdx;
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
                     if (otherEnd.attributes.links[j] == FAGI.ActiveState.selectedGeomA.attributes.links[i]) {
@@ -2760,6 +2761,8 @@ function doDragA(feature, pixel) {
                     'opacity': FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.opacity};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
+                linkFeature.attributes.currently_selected = currently_selected;
+               
                 if (!validated) {
                     linkFeature.jIndex = FAGI.ActiveState.selectedGeomA.attributes.links[i].jIndex;
                     linkFeature.dist = FAGI.ActiveState.selectedGeomA.attributes.links[i].dist;
@@ -2895,7 +2898,7 @@ function doDragB(feature, pixel) {
                 var validated = FAGI.ActiveState.selectedGeomB.attributes.links[i].validated;
                 var otherEnd = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la;
                 var otherEndLinkIdx = 0;
-
+                var currently_selected = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.currently_selected;
 
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
                     if (otherEnd.attributes.links[j] == FAGI.ActiveState.selectedGeomB.attributes.links[i]) {
@@ -2942,6 +2945,8 @@ function doDragB(feature, pixel) {
                     'cluster': FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.cluster};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
+                linkFeature.attributes.currently_selected = currently_selected;
+                
                 if (!validated) {
                     linkFeature.jIndex = FAGI.ActiveState.selectedGeomB.attributes.links[i].jIndex;
                     linkFeature.dist = FAGI.ActiveState.selectedGeomB.attributes.links[i].dist;
