@@ -1643,15 +1643,15 @@ function addSelected(event) {
     
     //alert(window.event.ctrlKey);
     //alert(window.event.shiftKey);
-    
+     
     if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined")
         return;
 
     if (typeof FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] != "undefined")
         return;
 
-    console.log($('#fg-info-popup').width());
-    console.log($('#map').width());
+    //console.log($('#fg-info-popup').width());
+    //console.log($('#map').width());
 
     //$("#fg-info-label").html($("#fg-info-label").html() + '  ' + event.feature.attributes.la.attributes.a);
     //document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
@@ -1664,7 +1664,7 @@ function addSelected(event) {
     
     $selectedList = $("#fg-user-selection-list");
     var node = document.createElement("li");
-    node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\"/>' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
+    node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\" checked=\"true\" />' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
     $selectedList.append(node);
     
     /*
