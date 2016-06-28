@@ -1662,9 +1662,24 @@ function addSelected(event) {
     //console.log($('#map').width());
     //console.log(event.feature.attributes.la.attributes.a);
     
+    event.feature.attributes.currently_selected = true;
+    
     $selectedList = $("#fg-user-selection-list");
     var node = document.createElement("li");
     node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\" checked=\"true\" />' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
+    node.link = event.feature.attributes.la;
+    $(node).on('change', function (e) {
+        //alert(this.link.attributes.a);
+        //alert(this.link.attributes.links[0].attributes.currently_selected);
+        //alert(this.link.attributes.links[0].attributes.currently_selected);
+        
+        if ( this.link.attributes.links[0].attributes.currently_selected == true )
+            this.link.attributes.links[0].attributes.currently_selected = false;
+        else
+            this.link.attributes.links[0].attributes.currently_selected = true;
+        
+        //alert(this.link.attributes.links[0].attributes.currently_selected);
+    });
     $selectedList.append(node);
     
     /*
@@ -1672,8 +1687,6 @@ function addSelected(event) {
         alert(this);
     };
     */
-
-    event.feature.attributes.currently_selected = true;
 
     FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] = event.feature;
     FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] = event.feature;
