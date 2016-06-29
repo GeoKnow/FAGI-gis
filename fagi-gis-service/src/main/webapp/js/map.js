@@ -1433,8 +1433,8 @@ $(document).ready(function () {
      polygonFeatureW.attributes = {'a': 'tomaras2', 'links': links, 'cluster': 'Unset', 'opacity': 0.3};
      //FAGI.MapUI.Layers.vectorsLinks.addFeatures([linkFeature]);
      //window.setInterval(function() {rotateFeature(polygonFeature, 360 / 20, polygonFeature.geometry.getCentroid(true));}, 100);
-     FAGI.MapUI.Layers.vectorsB.addFeatures([polygonFeatureW]);
-     FAGI.MapUI.Layers.vectorsA.addFeatures([polygonFeature, polygonFeatureT, polygonFeatureT1]);
+     //FAGI.MapUI.Layers.vectorsB.addFeatures([polygonFeatureW]);
+     //FAGI.MapUI.Layers.vectorsA.addFeatures([polygonFeature, polygonFeatureT, polygonFeatureT1]);
     
 
     FAGI.MapUI.map.zoomToMaxExtent();
@@ -1754,15 +1754,15 @@ function activateMultipleTool() {
     //alert($(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")));
     
     if ( !FAGI.ActiveState.multipleEnabled && !$(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")) ) {
-        alert(1);
+        //alert(1);
         expandUserSelectionPanel();
     } else if ( FAGI.ActiveState.multipleEnabled && $(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")) )  {
-        alert(2);
+        //alert(2);
         expandUserSelectionPanel();
         
         return;
      } else if ( FAGI.ActiveState.multipleEnabled && $(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")) )  {
-        alert(2);
+        //alert(2);
         expandUserSelectionPanel();
         
         return;
@@ -2093,7 +2093,7 @@ function expandUserPanel() {
 function expandUserSelectionPanel() {
     FAGI.PanelsUI.hideAllPanels();
 
-    alert("Here");
+    //alert("Here");
 
     //if ($("#fg-user-selection-panel").data("opened")) {
     //    return;
