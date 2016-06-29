@@ -665,7 +665,7 @@ public class BatchFusionServlet extends HttpServlet {
                 || restAction.equalsIgnoreCase("Keep A")) {
             try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(addNewTriplesA)) {
                 vstmt.executeUpdate();
-                //System.out.println("\n\n\n\n\n\nKeeping A\n\n\n\n\n");
+                System.out.println("\n\n\n\n\n\nKeeping A\n\n\n\n\n");
             } catch (VirtuosoException ex) {
                 LOG.trace("VirtuosoException on remote failed");
                 LOG.debug("VirtuosoException on remote failed : " + ex.getMessage());

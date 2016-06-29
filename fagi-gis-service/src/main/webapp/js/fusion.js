@@ -1079,6 +1079,7 @@ function submitLinks(batchFusion) {
                                 //$('#connLabel').text(responseJson);
                                 FAGI.Utilities.disableSpinner();
                                 batchFusionPreview(responseJson);
+                                FAGI.Utilities.enableDatasetDownload();
                                 //previewLinkedGeom(responseJson);
                                 //fusionPanel(event, responseJson);
                             },
@@ -1191,6 +1192,7 @@ function submitLinks(batchFusion) {
                     //previewLinkedGeom(responseJson);
                     //fusionPanel(event, responseJson);
                     FAGI.Utilities.disableSpinner();
+                    FAGI.Utilities.enableDatasetDownload();
                 },
                 // code to run if the request fails; the raw request and
                 // status codes are passed to the function
