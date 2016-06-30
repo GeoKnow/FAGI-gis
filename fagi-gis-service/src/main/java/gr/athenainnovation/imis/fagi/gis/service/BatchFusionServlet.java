@@ -605,7 +605,8 @@ public class BatchFusionServlet extends HttpServlet {
                     lastIndex = SPARQLUtilities.createClusterGraph(clusterLinks, lastIndex, grConf, vSet);
                 else 
                     lastIndex = SPARQLUtilities.createLinksGraphBatch(linkList, lastIndex, grConf, vSet);
-                                
+                               
+                System.out.println("Rest Action : " + restAction);
                 // Perform Metadata Fusion
                 if ( selectedFusions.length == 1 && !restAction.equalsIgnoreCase("None") ) {
                     fetchRemaining(restAction, grConf, vSet, activeCluster);
@@ -653,9 +654,16 @@ public class BatchFusionServlet extends HttpServlet {
     private boolean insertRemaining(String restAction, GraphConfig grConf, VirtGraph vSet) {
         boolean success = true;
 
+        System.out.println("Rest Action : " + restAction);
+        System.out.println("Rest Action : " + restAction.equalsIgnoreCase("Keep A"));
+        System.out.println("Rest Action : " + restAction.equalsIgnoreCase("Keep B"));
+        
+        
         if ( restAction.equalsIgnoreCase("None") ) {
             return success;
         }
+        
+        
         
         final String addNewTriplesA = "SPARQL ADD GRAPH <" + grConf.getMetadataGraphA()+ "> TO GRAPH <" + grConf.getTargetTempGraph()+ ">";
         final String addNewTriplesB = "SPARQL ADD GRAPH <" + grConf.getMetadataGraphB()+ "> TO GRAPH <" + grConf.getTargetTempGraph()+ ">";
@@ -675,8 +683,13 @@ public class BatchFusionServlet extends HttpServlet {
             }
         }
         
+        System.out.println("Rest Action : " + restAction);
+        System.out.println("Rest Action : " + restAction.equalsIgnoreCase("Keep A"));
+        System.out.println("Rest Action : " + restAction.equalsIgnoreCase("Keep B"));
+        
+        
         if (restAction.equalsIgnoreCase("Keep Both")
-                || restAction.equalsIgnoreCase("Keep Β")) {
+                || restAction.equalsIgnoreCase("Keep B")) {
             try (VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(addNewTriplesB )) {
                 vstmt.executeUpdate();
                 System.out.println("\n\n\n\n\n\nKeeping B\n\n\n\n\n");
@@ -696,6 +709,11 @@ public class BatchFusionServlet extends HttpServlet {
         if ( restAction.equalsIgnoreCase("None") ) {
             return;
         }
+        
+        System.out.println("Rest Action : " + restAction);
+        System.out.println("Rest Action : " + restAction.equalsIgnoreCase("Keep A"));
+        System.out.println("Rest Action : " + restAction.equalsIgnoreCase("Keep B"));
+        
         final Connection virt_conn = vSet.getConnection();
         StringBuilder getFromB = new StringBuilder();
         StringBuilder getFromA = new StringBuilder();        
