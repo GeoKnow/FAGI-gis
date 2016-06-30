@@ -1644,11 +1644,17 @@ function addSelected(event) {
     //alert(window.event.ctrlKey);
     //alert(window.event.shiftKey);
      
-    if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined")
+    if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined") {
+        event.feature.attributes.currently_selected = false;
+        $(event.feature.attributes.multiListNode).remove();
         return;
+    }
 
-    if (typeof FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] != "undefined")
+    if (typeof FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] != "undefined") {
+        event.feature.attributes.currently_selected = false;
+        $(event.feature.attributes.multiListNode).remove();
         return;
+    }
 
     //console.log($('#fg-info-popup').width());
     //console.log($('#map').width());
@@ -1668,6 +1674,7 @@ function addSelected(event) {
     var node = document.createElement("li");
     node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\" checked=\"true\" />' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
     node.link = event.feature.attributes.la;
+    event.feature.attributes.multiListNode = node;
     $(node).on('change', function (e) {
         //alert(this.link.attributes.a);
         //alert(this.link.attributes.links[0].attributes.currently_selected);
