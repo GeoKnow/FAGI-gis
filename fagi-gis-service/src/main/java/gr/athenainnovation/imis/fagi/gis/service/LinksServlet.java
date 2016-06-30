@@ -104,7 +104,7 @@ public class LinksServlet extends HttpServlet {
     private boolean validateInput(HttpSession sess, String lsub, String rsub, VirtGraph vSet, GraphConfig grConf) {
         String checkLeftSubA = "SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + lsub + "> ?p ?o } }";
         String checkLeftSubB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + lsub + "> ?p ?o } }";
-        String checkRightSubA = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + rsub + "> ?p ?o } }";
+        String checkRightSubA = "SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + rsub + "> ?p ?o } }";
         String checkRightSubB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + rsub + "> ?p ?o } }";
         
         int successsCount = 0;
@@ -148,7 +148,7 @@ public class LinksServlet extends HttpServlet {
             LOG.trace("QueryException thrown during input validation");
             LOG.debug("QueryException thrown during input validation : \n" + qex.getMessage());
         }
-        
+        System.out.println("Nodes " + successsCount);
         return successsCount >= 2;
     }
     
@@ -376,6 +376,7 @@ public class LinksServlet extends HttpServlet {
             RDFDataMgr.read(model, filecontent, "", Lang.NTRIPLES);
             StmtIterator iter = model.listStatements();
             boolean isValidInput = true;
+            int checks = 0;
             while (iter.hasNext()) {
                 final Statement statement = iter.nextStatement();
                 String nodeA = statement.getSubject().getURI();
@@ -385,11 +386,13 @@ public class LinksServlet extends HttpServlet {
                     nodeB = object.asResource().getURI();
                 }
                 
+                System.out.println("Nodes " + nodeA + "  " + nodeB);
                 isValidInput = validateInput(sess, nodeA, nodeB, vSet, grConf);
                 
                 makeSwap = validateLinking(sess, nodeA, nodeB, vSet, grConf);
 
-                break;
+                if ( checks++ == 5 )
+                     break;
             }
             iter.close();
             
