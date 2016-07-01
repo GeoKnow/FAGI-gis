@@ -1143,11 +1143,13 @@ $(document).ready(function () {
 // Add an instance of the Click control that listens to various click events:
     var oClick = new OpenLayers.Control.Click({eventMethods: {
             'rightclick': function (e) {
+                alert("Ludacris");
+
                 if (FAGI.ActiveState.lastPo != null) {
                     FAGI.MapUI.Layers.vectorsLinksTemp.destroyFeatures();
                     FAGI.ActiveState.lastPo = null;
                     FAGI.ActiveState.nowPo = null;
-
+                    
                     document.getElementById("popupTransformMenu").style.opacity = 0;
                     document.getElementById("popupTransformMenu").style.display = 'none';
 
@@ -1156,6 +1158,12 @@ $(document).ready(function () {
 
                     //return;
                 }
+            },
+            'click': function (e) {
+                alert("Ludacris");
+
+                FAGI.MapUI.resetMapControl();
+                
             }
         }});
     FAGI.MapUI.map.addControl(oClick);
@@ -1240,7 +1248,7 @@ $(document).ready(function () {
         //else do nothing and map wont zoom
     };
     // On map click, close any open popup
-    FAGI.MapUI.map.events.register("click", FAGI.MapUI.map, FAGI.MapUI.resetMapControl);
+    //FAGI.MapUI.map.events.register("click", FAGI.MapUI.map, FAGI.MapUI.resetMapControl);
 
     OpenLayers.Control.MouseWheel = OpenLayers.Class(OpenLayers.Control, {
         defaultHandlerOptions: {
@@ -1611,7 +1619,7 @@ function clearSelected(event) {
     if (FAGI.ActiveState.multipleEnabled) {
         //alert('multiple end');
         //setSingleMapControls();
-        FAGI.ActiveState.multipleEnabled = false;
+        /*FAGI.ActiveState.multipleEnabled = false;
         FAGI.MapUI.Controls.multipleSelector.unselectAll();
 
         FAGI.MapUI.Controls.multipleSelector.deactivate();
@@ -1629,7 +1637,7 @@ function clearSelected(event) {
             'featureunselected': onLinkFeatureUnselect,
             scope: FAGI.MapUI.Layers.vectorsLinks
         });
-
+        */
         //alert(JSON.stringify(FAGI.ActiveState.activeFeatureClusterA));
         //if ( activeFeatureCluster.length === 0 ) {
 
@@ -1641,9 +1649,13 @@ function clearSelected(event) {
 
 function addSelected(event) {
     
+    //alert(JSON.stringify(FAGI.ActiveState.activeFeatureClusterA));
+    
     //alert(window.event.ctrlKey);
     //alert(window.event.shiftKey);
     //alert(event.feature.oid);
+        
+    FAGI.MapUI.Controls.multipleSelector.unselectAll();
         
     if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined") {
         if (window.event.ctrlKey) {
