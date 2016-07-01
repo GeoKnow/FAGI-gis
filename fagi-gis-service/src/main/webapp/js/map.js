@@ -859,8 +859,8 @@ FAGI.ActiveState = {
     // Btach Mode
     batchMode: false,
     // Clusters created during multiple selection
-    activeFeatureClusterA: {},
-    activeFeatureClusterB: {},
+    activeFeatureClusterA: [],
+    activeFeatureClusterB: [],
     activeFeaturePreview: null,
     // Constantly updated with the mouse position
     mouse: {x: 0, y: 0},
@@ -1643,16 +1643,25 @@ function addSelected(event) {
     
     //alert(window.event.ctrlKey);
     //alert(window.event.shiftKey);
-     
+    //alert(event.feature.oid);
+        
     if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined") {
-        event.feature.attributes.currently_selected = false;
-        $(event.feature.attributes.multiListNode).remove();
+        if (window.event.ctrlKey) {
+            event.feature.attributes.currently_selected = false;
+            $(event.feature.attributes.multiListNode).remove();
+            
+            FAGI.MapUI.Layers.vectorsLinks.drawFeature(event.feature);
+        }
         return;
     }
 
     if (typeof FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] != "undefined") {
-        event.feature.attributes.currently_selected = false;
-        $(event.feature.attributes.multiListNode).remove();
+        if (window.event.ctrlKey) {
+            event.feature.attributes.currently_selected = false;
+            $(event.feature.attributes.multiListNode).remove();
+            
+            FAGI.MapUI.Layers.vectorsLinks.drawFeature(event.feature);
+        }
         return;
     }
 
@@ -1697,6 +1706,8 @@ function addSelected(event) {
 
     FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] = event.feature;
     FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] = event.feature;
+
+    FAGI.MapUI.Layers.vectorsLinks.drawFeature(event.feature);
 }
 
 function setMultipleMapControls() {
