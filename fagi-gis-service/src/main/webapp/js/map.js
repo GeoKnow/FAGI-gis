@@ -859,8 +859,8 @@ FAGI.ActiveState = {
     // Btach Mode
     batchMode: false,
     // Clusters created during multiple selection
-    activeFeatureClusterA: [],
-    activeFeatureClusterB: [],
+    activeFeatureClusterA: {},
+    activeFeatureClusterB: {},
     activeFeaturePreview: null,
     // Constantly updated with the mouse position
     mouse: {x: 0, y: 0},
