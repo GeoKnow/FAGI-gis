@@ -1077,6 +1077,7 @@ function submitLinks(batchFusion) {
                                 //$('#connLabel').text(responseJson);
                                 FAGI.Utilities.disableSpinner();
                                 batchFusionPreview(responseJson);
+                                FAGI.Utilities.enableDatasetDownload();
                                 //previewLinkedGeom(responseJson);
                                 //fusionPanel(event, responseJson);
                             },
@@ -1189,6 +1190,7 @@ function submitLinks(batchFusion) {
                     //previewLinkedGeom(responseJson);
                     //fusionPanel(event, responseJson);
                     FAGI.Utilities.disableSpinner();
+                    FAGI.Utilities.enableDatasetDownload();
                 },
                 // code to run if the request fails; the raw request and
                 // status codes are passed to the function
@@ -1311,7 +1313,12 @@ function addGeom(feat, geom) {
             //alert('Array');
             for (var i = 0; i < linkFeature.length; i++) {
                 linkFeature[i].geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
-                linkFeature[i].attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
+                //linkFeature[i].attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
+                if ($('#domA').is(":checked")) {
+                    linkFeature[i].attributes = {'a': feat.attributes.la.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
+                } else {
+                    linkFeature[i].attributes = {'a': feat.attributes.lb.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
+                }
                 linkFeature[i].validated = true;
                 linkFeature[i].prev_fused = true;
 
@@ -1323,7 +1330,11 @@ function addGeom(feat, geom) {
             //alert('reached');
             linkFeature.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
             linkFeature.attributes = {'a': feat.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
-
+            if ($('#domA').is(":checked")) {
+                linkFeature.attributes = {'a': feat.attributes.la.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
+            } else {
+                linkFeature.attributes = {'a': feat.attributes.lb.attributes.a, 'la': feat.attributes.la, 'lb': feat.attributes.lb, 'cluster': feat.attributes.cluster};
+            }
             linkFeature.prev_fused = true;
             linkFeature.validated = true;
             FAGI.MapUI.Layers.vectorsFused.addFeatures([linkFeature]);
