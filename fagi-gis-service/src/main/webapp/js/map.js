@@ -219,6 +219,7 @@ FAGI.PanelsUI = {
         //$("#mainPanel").width("0%");
         //$("#mainPanel").height("0%");
     },
+    
     closeOpenPanel: function () {
         FAGI.PanelsUI.hideAllPanels();
         //alert("luda");
@@ -487,12 +488,33 @@ FAGI.MapUI.Styles = {
 
 };
 
+FAGI.MapUI.Listeners = {
+    clickListeners : {
+        featureclick: function (evt) {
+            //log(this.name + " clicked: " + evt.feature.id);
+        },
+        nofeatureclick: function () {
+            //log("no " + this.name + "s clicked")
+            alert("Nothing clicked");
+            
+            FAGI.MapUI.resetMapControl();
+
+        },
+        featureover: function (evt) {
+            //log(this.name + " over: " + evt.feature.id);
+        },
+        featureout: function (evt) {
+            //log(this.name + " out: " + evt.feature.id);
+        }
+    }
+};
+
 FAGI.MapUI.Layers = {
     // MAp Dynamic Layers
     vectorsA: new OpenLayers.Layer.Vector('Dataset A Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleA)}),
     vectorsB: new OpenLayers.Layer.Vector('Dataset B Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleB)}),
     vectorsFused: new OpenLayers.Layer.Vector('Fused Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleFused)}),
-    vectorsLinks: new OpenLayers.Layer.Vector('Links Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleLinks)}),
+    vectorsLinks: new OpenLayers.Layer.Vector('Links Layer', {isBaseLayer: false, eventListeners: OpenLayers.Util.extend({}, FAGI.MapUI.Listeners.clickListeners), styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleLinks)}),
     vectorsLinksTemp: new OpenLayers.Layer.Vector('Links Layer Temp', {isBaseLayer: false, style: FAGI.MapUI.Styles.styleLinks}),
     bboxLayer: new OpenLayers.Layer.Vector('BBox Layer', {isBaseLayer: false, style: FAGI.MapUI.Styles.styleBBox}),
     // Map Base Layers
@@ -1143,7 +1165,7 @@ $(document).ready(function () {
 // Add an instance of the Click control that listens to various click events:
     var oClick = new OpenLayers.Control.Click({eventMethods: {
             'rightclick': function (e) {
-                alert("Ludacris");
+                //alert("Ludacris");
 
                 if (FAGI.ActiveState.lastPo != null) {
                     FAGI.MapUI.Layers.vectorsLinksTemp.destroyFeatures();
@@ -1160,7 +1182,7 @@ $(document).ready(function () {
                 }
             },
             'click': function (e) {
-                alert("Ludacris");
+                //alert("Ludacris");
 
                 FAGI.MapUI.resetMapControl();
                 
@@ -1448,7 +1470,16 @@ $(document).ready(function () {
     FAGI.MapUI.map.zoomToMaxExtent();
     FAGI.MapUI.map.updateSize();
     FAGI.MapUI.map.render('map');
+    
+    
+    window.onclick = myFunction;
+
 });
+
+// If the user clicks in the window, set the background color of <body> to yellow
+function myFunction() {
+    //alert("Something");
+}
 
 function newPolygonAdded(a, b) {
     //alert("clicked");
@@ -1616,6 +1647,7 @@ function drawBox(bounds) {
 }
 
 function clearSelected(event) {
+    //alert("a");
     if (FAGI.ActiveState.multipleEnabled) {
         //alert('multiple end');
         //setSingleMapControls();
@@ -1657,12 +1689,16 @@ function addSelected(event) {
         
     FAGI.MapUI.Controls.multipleSelector.unselectAll();
         
+    alert((typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined"));
     if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined") {
         if (window.event.ctrlKey) {
             event.feature.attributes.currently_selected = false;
             $(event.feature.attributes.multiListNode).remove();
             
             FAGI.MapUI.Layers.vectorsLinks.drawFeature(event.feature);
+            
+            delete FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a];
+            delete FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a];
         }
         return;
     }
@@ -1673,6 +1709,8 @@ function addSelected(event) {
             $(event.feature.attributes.multiListNode).remove();
             
             FAGI.MapUI.Layers.vectorsLinks.drawFeature(event.feature);
+            
+            delete FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a];
         }
         return;
     }
