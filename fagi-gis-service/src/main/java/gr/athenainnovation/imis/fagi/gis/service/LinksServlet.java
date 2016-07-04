@@ -105,7 +105,7 @@ public class LinksServlet extends HttpServlet {
     private boolean validateInput(HttpSession sess, String lsub, String rsub, VirtGraph vSet, GraphConfig grConf) {
         String checkLeftSubA = "SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + lsub + "> ?p ?o } }";
         String checkLeftSubB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + lsub + "> ?p ?o } }";
-        String checkRightSubA = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + rsub + "> ?p ?o } }";
+        String checkRightSubA = "SELECT * WHERE { GRAPH <" + grConf.getGraphA() + "> {<" + rsub + "> ?p ?o } }";
         String checkRightSubB = "SELECT * WHERE { GRAPH <" + grConf.getGraphB() + "> {<" + rsub + "> ?p ?o } }";
         
         int successsCount = 0;
@@ -149,7 +149,7 @@ public class LinksServlet extends HttpServlet {
             LOG.trace("QueryException thrown during input validation");
             LOG.debug("QueryException thrown during input validation : \n" + qex.getMessage());
         }
-        
+        System.out.println("Nodes " + successsCount);
         return successsCount >= 2;
     }
     
@@ -218,7 +218,7 @@ public class LinksServlet extends HttpServlet {
             return null;
         }
         String q = "SELECT * WHERE { GRAPH <"+g+"> { ?s ?p ?o } }";
-        System.out.println("\n\n\n\nSubject " + q);
+        //System.out.println("\n\n\n\nSubject " + q);
         try {
             final Query query = QueryFactory.create(q);
             HttpAuthenticator authenticator = new SimpleAuthenticator("dba", "dba".toCharArray());
@@ -231,7 +231,7 @@ public class LinksServlet extends HttpServlet {
                 final RDFNode subject = querySolution.get("?s");
                 final RDFNode objectNode1 = querySolution.get("?p"); //lat
                 final RDFNode objectNode2 = querySolution.get("?o"); //long
-                System.out.println("Subject " + subject);
+                //System.out.println("Subject " + subject);
                 sb.append("<" + subject + ">");
                 sb.append(" ");
                 sb.append("<" + Constants.SAME_AS + ">");
@@ -379,6 +379,7 @@ public class LinksServlet extends HttpServlet {
             RDFDataMgr.read(model, filecontent, "", Lang.NTRIPLES);
             StmtIterator iter = model.listStatements();
             boolean isValidInput = true;
+            int checks = 0;
             while (iter.hasNext()) {
                 final Statement statement = iter.nextStatement();
                 String nodeA = statement.getSubject().getURI();
@@ -388,15 +389,17 @@ public class LinksServlet extends HttpServlet {
                     nodeB = object.asResource().getURI();
                 }
                 
+                System.out.println("Nodes " + nodeA + "  " + nodeB);
                 isValidInput = validateInput(sess, nodeA, nodeB, vSet, grConf);
                 
                 makeSwap = validateLinking(sess, nodeA, nodeB, vSet, grConf);
 
+                if ( checks++ == 5 )
                 break;
             }
             iter.close();
 
-            System.out.println("\n\n\n\n\n"+makeSwap+"\n\n\n\n\n");
+            //System.out.println("\n\n\n\n\n"+makeSwap+"\n\n\n\n\n");
             
             if ( isValidInput == false ) {
                 LOG.trace("NULL Datasets");
@@ -705,10 +708,10 @@ public class LinksServlet extends HttpServlet {
                 }
             }
             
-            System.out.println("Fetch from graph A : "+fetchFiltersA);
-            System.out.println("Fetch from graph B : " + fetchFiltersB);
-            System.out.println("Graph A : " + grConf.getGraphA());
-            System.out.println("Graph B : " + grConf.getGraphB());
+            //System.out.println("Fetch from graph A : "+fetchFiltersA);
+            //System.out.println("Fetch from graph B : " + fetchFiltersB);
+            //System.out.println("Graph A : " + grConf.getGraphA());
+            //System.out.println("Graph B : " + grConf.getGraphB());
 
             PreparedStatement filtersStmt = null;
             ResultSet rs = null;
@@ -731,7 +734,7 @@ public class LinksServlet extends HttpServlet {
                         while (rs.next()) {
                             prop = rs.getString(1);
                             htmlCode.append("<option value=\"" + prop + "\">" + prop + "</option>");
-                            System.out.println(prop);
+                            //System.out.println(prop);
                         }
                     }
                 }
@@ -756,7 +759,7 @@ public class LinksServlet extends HttpServlet {
                         while (rs.next()) {
                             prop = rs.getString(1);
                             htmlCode.append("<option value=\"" + prop + "\">" + prop + "</option>");
-                            System.out.println(prop);
+                            //System.out.println(prop);
                         }
                     }
                 }
@@ -845,13 +848,13 @@ public class LinksServlet extends HttpServlet {
         String ret = dir;
         int lastSlash = dir.lastIndexOf(File.separator);
         if (lastSlash != (dir.length() - 1)) {
-            System.out.println("Isxuei");
+            //System.out.println("Isxuei");
             ret = dir.concat(File.separator);
         }
-        System.out.println("Seps " + ret + " " + File.separator + " " + File.separatorChar);
+        //System.out.println("Seps " + ret + " " + File.separator + " " + File.separatorChar);
         File file = new File(ret);
         if (!file.exists()) {
-            System.out.println("creating directory: " + ret);
+            //System.out.println("creating directory: " + ret);
             boolean result = false;
 
             try {
@@ -861,13 +864,13 @@ public class LinksServlet extends HttpServlet {
                 //handle it
             }
             if (result) {
-                System.out.println("DIR created");
+                //System.out.println("DIR created");
             }
         }
 
         file = new File(ret + "bulk_inserts/");
         if (!file.exists()) {
-            System.out.println("creating directory: " + ret);
+            //System.out.println("creating directory: " + ret);
             boolean result = false;
 
             try {
@@ -877,7 +880,7 @@ public class LinksServlet extends HttpServlet {
                 //handle it
             }
             if (result) {
-                System.out.println("DIR created");
+                //System.out.println("DIR created");
             }
         }
         return ret;

@@ -50,6 +50,7 @@
                                             str = request.getParameter("dataset-a");
                                             if (str == null) {
                                                 request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+                                                //request.setAttribute("dataset-a", "http://localhost:8890/osm_sample");
                                             } //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
                                             else {
                                                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
@@ -58,6 +59,7 @@
                                             str = request.getParameter("dataset-b");
                                             if (str == null) {
                                                 request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+                                                //request.setAttribute("dataset-b", "http://localhost:8890/wikimapia_sample");
                                             } //request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
                                             else {
                                                 request.setAttribute("dataset-b", request.getParameter("dataset-b"));
@@ -494,7 +496,7 @@
                                                                                                         <form id="linksDiv" enctype="multipart/form-data">
                                                                                                             <tr>
                                                                                                                 <td style="width:216; text-align: center;" align="left" valign="bottom">Links file:</td>
-                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom"> <input name="file" type="file" /></td>
+                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom"> <input id="fg-file-input" name="file" type="file" /></td>
                                                                                                                 <td>
                                                                                                                 </td>
                                                                                                                 <td style="width:216;  text-align: center;" align="left" valign="bottom"><input id="buttonL" type="button" value="Upload" /></td>
@@ -594,9 +596,9 @@
                                                                                                 <table border="1">
                                                                                                     <tbody>
                                                                                                         <tr>
-                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
-                                                                                                            <td id="legendLinkSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
                                                                                                             <td style="width:26; background-color: green; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
+                                                                                                            <td id="legendLinkSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
+                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                             <td id="legendLinkSetB" style="text-align: center;" align="left" valign="bottom">Dataset B Layer</td>
                                                                                                             <td style="width:26; background-color: red; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                             <td id="legendSetL" style="text-align: center;" align="left" valign="bottom">Link Layer</td>
@@ -658,9 +660,9 @@
                                                                                                 <table border="1">
                                                                                                     <tbody>
                                                                                                         <tr>
-                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
-                                                                                                            <td id="legendSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
                                                                                                             <td style="width:26; background-color: green; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
+                                                                                                            <td id="legendSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
+                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                             <td id="legendSetB" style="text-align: center;" align="left" valign="bottom">Dataset B Layer</td>
                                                                                                             <td style="width:26; background-color: red; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                             <td id="legendSetL" style="text-align: center;" align="left" valign="bottom">Link Layer</td>
