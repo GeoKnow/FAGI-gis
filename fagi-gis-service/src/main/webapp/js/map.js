@@ -495,7 +495,7 @@ FAGI.MapUI.Listeners = {
         },
         nofeatureclick: function () {
             //log("no " + this.name + "s clicked")
-            alert("Nothing clicked");
+            //alert("Nothing clicked");
             
             FAGI.MapUI.resetMapControl();
 
@@ -1689,7 +1689,7 @@ function addSelected(event) {
         
     FAGI.MapUI.Controls.multipleSelector.unselectAll();
         
-    alert((typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined"));
+    //alert((typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined"));
     if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined") {
         if (window.event.ctrlKey) {
             event.feature.attributes.currently_selected = false;
@@ -2283,8 +2283,8 @@ function expandMatchingPanel() {
 
 function expandFusionPanel() {
     FAGI.PanelsUI.hideAllPanels();
-
-if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fusionPanel")))) {
+    //alert("this");
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fusionPanel")))) {
 
         $("#mainPanel").show();
         $("#fusionPanel").show();
@@ -2325,7 +2325,7 @@ if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu
             $("#fusionPanel").data("opened", true);
         }
     }
-    
+
     FAGI.MapUI.map.updateSize();
 }
 
