@@ -186,6 +186,12 @@ FAGI.MapUI = {
         //alert("Luda");
         FAGI.MapUI.resetAllPopups();
         FAGI.MapUI.resetMultipleSelect();
+        
+        //event.preventDefault();
+        //event.stopPropagation();
+        
+        return true;
+        //return false;
     },
     periodicMapUpdate: function () {
         FAGI.MapUI.map.updateSize();
@@ -213,9 +219,15 @@ FAGI.PanelsUI = {
         //$("#mainPanel").width("0%");
         //$("#mainPanel").height("0%");
     },
+    
     closeOpenPanel: function () {
         FAGI.PanelsUI.hideAllPanels();
         //alert("luda");
+        
+        if ( typeof current_feature != "undefined" && current_feature.attributes.currently_selected ) {
+            //current_feature.attributes.currently_selected = false;
+            FAGI.MapUI.Controls.selectControl.unselect(current_feature);
+        }
         
         //alert("ole");
         if (FAGI.PanelsUI.lastClickedMenu != null) {
@@ -378,6 +390,12 @@ FAGI.MapUI.Contexts = {
         getSubject: function (feature) {
             return feature.attributes.a;
         },
+        getStrokeWidth: function (feature) {
+            if ( feature.attributes.currently_selected )
+                return 6;
+            else 
+                return 3;
+        },
         getTitle: function (feature) {
             return "Name : " + feature.attributes.a + "\nCluster : " + feature.attributes.cluster;
         },
@@ -411,7 +429,7 @@ FAGI.MapUI.Styles = {
         strokeColor: "${getColor}",
         strokeWidth: 3,
         pointRadius: 1,
-        cursor: "pointer",
+        cursor: "jamd",
         fillColor: "${getColor}",
         fillOpacity: "${getOpacity}",
         title: "${getTitle}"
@@ -420,7 +438,7 @@ FAGI.MapUI.Styles = {
         strokeColor: "${getColor}",
         strokeWidth: 3,
         pointRadius: 1,
-        cursor: "pointer",
+        cursor: "hand",
         fillColor: "${getColor}",
         fillOpacity: "${getOpacity}",
         title: "${getTitle}"
@@ -432,7 +450,18 @@ FAGI.MapUI.Styles = {
         fillOpacity: "${getOpacity}",
         pointRadius: 1,
         strokeOpacity: "${getOpacity}",
-        strokeWidth: 3,
+        strokeWidth: "${getStrokeWidth}",
+        strokeDashstyle: "${getLineStyle}",
+        title: '${getTitle}'
+    }, {context: FAGI.MapUI.Contexts.contextLink}),
+    styleLinksSelected: new OpenLayers.Style({
+        strokeColor: "${getColor}",
+        cursor: "pointer",
+        fillColor: "${getColor}",
+        fillOpacity: "${getOpacity}",
+        pointRadius: 1,
+        strokeOpacity: "${getOpacity}",
+        strokeWidth: 6,
         strokeDashstyle: "${getLineStyle}",
         title: '${getTitle}'
     }, {context: FAGI.MapUI.Contexts.contextLink}),
@@ -459,12 +488,33 @@ FAGI.MapUI.Styles = {
 
 };
 
+FAGI.MapUI.Listeners = {
+    clickListeners : {
+        featureclick: function (evt) {
+            //log(this.name + " clicked: " + evt.feature.id);
+        },
+        nofeatureclick: function () {
+            //log("no " + this.name + "s clicked")
+            //alert("Nothing clicked");
+            
+            FAGI.MapUI.resetMapControl();
+
+        },
+        featureover: function (evt) {
+            //log(this.name + " over: " + evt.feature.id);
+        },
+        featureout: function (evt) {
+            //log(this.name + " out: " + evt.feature.id);
+        }
+    }
+};
+
 FAGI.MapUI.Layers = {
     // MAp Dynamic Layers
     vectorsA: new OpenLayers.Layer.Vector('Dataset A Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleA)}),
     vectorsB: new OpenLayers.Layer.Vector('Dataset B Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleB)}),
     vectorsFused: new OpenLayers.Layer.Vector('Fused Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleFused)}),
-    vectorsLinks: new OpenLayers.Layer.Vector('Links Layer', {isBaseLayer: false, styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleLinks)}),
+    vectorsLinks: new OpenLayers.Layer.Vector('Links Layer', {isBaseLayer: false, eventListeners: OpenLayers.Util.extend({}, FAGI.MapUI.Listeners.clickListeners), styleMap: new OpenLayers.StyleMap(FAGI.MapUI.Styles.styleLinks)}),
     vectorsLinksTemp: new OpenLayers.Layer.Vector('Links Layer Temp', {isBaseLayer: false, style: FAGI.MapUI.Styles.styleLinks}),
     bboxLayer: new OpenLayers.Layer.Vector('BBox Layer', {isBaseLayer: false, style: FAGI.MapUI.Styles.styleBBox}),
     // Map Base Layers
@@ -1115,6 +1165,8 @@ $(document).ready(function () {
 // Add an instance of the Click control that listens to various click events:
     var oClick = new OpenLayers.Control.Click({eventMethods: {
             'rightclick': function (e) {
+                //alert("Ludacris");
+
                 if (FAGI.ActiveState.lastPo != null) {
                     FAGI.MapUI.Layers.vectorsLinksTemp.destroyFeatures();
                     FAGI.ActiveState.lastPo = null;
@@ -1128,6 +1180,12 @@ $(document).ready(function () {
 
                     //return;
                 }
+            },
+            'click': function (e) {
+                //alert("Ludacris");
+
+                FAGI.MapUI.resetMapControl();
+                
             }
         }});
     FAGI.MapUI.map.addControl(oClick);
@@ -1212,7 +1270,7 @@ $(document).ready(function () {
         //else do nothing and map wont zoom
     };
     // On map click, close any open popup
-    FAGI.MapUI.map.events.register("click", FAGI.MapUI.map, FAGI.MapUI.resetMapControl);
+    //FAGI.MapUI.map.events.register("click", FAGI.MapUI.map, FAGI.MapUI.resetMapControl);
 
     OpenLayers.Control.MouseWheel = OpenLayers.Class(OpenLayers.Control, {
         defaultHandlerOptions: {
@@ -1374,7 +1432,7 @@ $(document).ready(function () {
     });
 
     // Debug code for testing rendering on mao
-    /*
+    
      //var polygonFeature = FAGI.MapUI.wkt.read("POLYGON(15.37412 51.32847,15.374159 51.328592,15.374441 51.328552,15.374586 51.328532,15.374659 51.328521,15.37462 51.328399,15.37412 51.32847)");
      polygonFeature = FAGI.MapUI.wkt.read("POLYGON((20 37, 20 39, 22 39, 22 37, 20 37))");
      //polygonFeatureT1 = FAGI.MapUI.wkt.read("POLYGON((-74.0085826803402 40.7421376304449,-74.0084536803402 40.7420846304449,-74.0086146803402 40.7418666304449,-74.0086036803402 40.7418596304449,-74.0086136803402 40.7418486304449,-74.0086386803402 40.7418596304449,-74.0085826803402 40.7421376304449))");
@@ -1407,12 +1465,21 @@ $(document).ready(function () {
      //window.setInterval(function() {rotateFeature(polygonFeature, 360 / 20, polygonFeature.geometry.getCentroid(true));}, 100);
      //FAGI.MapUI.Layers.vectorsB.addFeatures([polygonFeatureW]);
      //FAGI.MapUI.Layers.vectorsA.addFeatures([polygonFeature, polygonFeatureT, polygonFeatureT1]);
-     */
+
 
     FAGI.MapUI.map.zoomToMaxExtent();
     FAGI.MapUI.map.updateSize();
     FAGI.MapUI.map.render('map');
+    
+    
+    window.onclick = myFunction;
+
 });
+
+// If the user clicks in the window, set the background color of <body> to yellow
+function myFunction() {
+    //alert("Something");
+}
 
 function newPolygonAdded(a, b) {
     //alert("clicked");
@@ -1580,10 +1647,11 @@ function drawBox(bounds) {
 }
 
 function clearSelected(event) {
+    //alert("a");
     if (FAGI.ActiveState.multipleEnabled) {
         //alert('multiple end');
         //setSingleMapControls();
-        FAGI.ActiveState.multipleEnabled = false;
+        /*FAGI.ActiveState.multipleEnabled = false;
         FAGI.MapUI.Controls.multipleSelector.unselectAll();
 
         FAGI.MapUI.Controls.multipleSelector.deactivate();
@@ -1601,7 +1669,7 @@ function clearSelected(event) {
             'featureunselected': onLinkFeatureUnselect,
             scope: FAGI.MapUI.Layers.vectorsLinks
         });
-
+        */
         //alert(JSON.stringify(FAGI.ActiveState.activeFeatureClusterA));
         //if ( activeFeatureCluster.length === 0 ) {
 
@@ -1612,14 +1680,43 @@ function clearSelected(event) {
 }
 
 function addSelected(event) {
-    if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined")
+    
+    //alert(JSON.stringify(FAGI.ActiveState.activeFeatureClusterA));
+    
+    //alert(window.event.ctrlKey);
+    //alert(window.event.shiftKey);
+    //alert(event.feature.oid);
+        
+    FAGI.MapUI.Controls.multipleSelector.unselectAll();
+        
+    //alert((typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined"));
+    if (typeof FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] != "undefined") {
+        if (window.event.ctrlKey) {
+            event.feature.attributes.currently_selected = false;
+            $(event.feature.attributes.multiListNode).remove();
+            
+            FAGI.MapUI.Layers.vectorsLinks.drawFeature(event.feature);
+            
+            delete FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a];
+            delete FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a];
+        }
         return;
+    }
 
-    if (typeof FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] != "undefined")
+    if (typeof FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] != "undefined") {
+        if (window.event.ctrlKey) {
+            event.feature.attributes.currently_selected = false;
+            $(event.feature.attributes.multiListNode).remove();
+            
+            FAGI.MapUI.Layers.vectorsLinks.drawFeature(event.feature);
+            
+            delete FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a];
+        }
         return;
+    }
 
-    console.log($('#fg-info-popup').width());
-    console.log($('#map').width());
+    //console.log($('#fg-info-popup').width());
+    //console.log($('#map').width());
 
     //$("#fg-info-label").html($("#fg-info-label").html() + '  ' + event.feature.attributes.la.attributes.a);
     //document.getElementById("fg-info-popup").style.top = $('#map').height() - $('#map').height() * 0.95;
@@ -1630,9 +1727,25 @@ function addSelected(event) {
     //console.log($('#map').width());
     //console.log(event.feature.attributes.la.attributes.a);
     
+    event.feature.attributes.currently_selected = true;
+    
     $selectedList = $("#fg-user-selection-list");
     var node = document.createElement("li");
-    node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\"/>' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
+    node.innerHTML = '<div><label><input type=\"checkbox\" value=\"\" checked=\"true\" />' + event.feature.attributes.la.attributes.a + '<-->' + event.feature.attributes.lb.attributes.a + '</label></div>'
+    node.link = event.feature.attributes.la;
+    event.feature.attributes.multiListNode = node;
+    $(node).on('change', function (e) {
+        //alert(this.link.attributes.a);
+        //alert(this.link.attributes.links[0].attributes.currently_selected);
+        //alert(this.link.attributes.links[0].attributes.currently_selected);
+        
+        if ( this.link.attributes.links[0].attributes.currently_selected == true )
+            this.link.attributes.links[0].attributes.currently_selected = false;
+        else
+            this.link.attributes.links[0].attributes.currently_selected = true;
+        
+        //alert(this.link.attributes.links[0].attributes.currently_selected);
+    });
     $selectedList.append(node);
 
     /*
@@ -1643,6 +1756,8 @@ function addSelected(event) {
 
     FAGI.ActiveState.activeFeatureClusterA[event.feature.attributes.la.attributes.a] = event.feature;
     FAGI.ActiveState.activeFeatureClusterB[event.feature.attributes.lb.attributes.a] = event.feature;
+
+    FAGI.MapUI.Layers.vectorsLinks.drawFeature(event.feature);
 }
 
 function setMultipleMapControls() {
@@ -1702,8 +1817,28 @@ function activateMultipleTool() {
     //activeFeatureCluster = new Array();
     //alert($('#clusterSelector option[value="9999"]').length);
 
-    expandUserSelectionPanel();
+    //alert(FAGI.PanelsUI.lastClickedMenu);
+    //alert(FAGI.ActiveState.multipleEnabled);
+    //alert($(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")));
+    
+    if ( !FAGI.ActiveState.multipleEnabled && !$(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")) ) {
+        //alert(1);
+        expandUserSelectionPanel();
+    } else if ( FAGI.ActiveState.multipleEnabled && $(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")) )  {
+        //alert(2);
+        expandUserSelectionPanel();
 
+        return;
+     } else if ( FAGI.ActiveState.multipleEnabled && $(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")) )  {
+        //alert(2);
+        expandUserSelectionPanel();
+
+        return;
+    } else {
+        //alert(3);
+        //return;
+    }
+    
     if (!$('#clusterSelector option[value="9999"]').length)
         $("#clusterSelector").append("<option value=\"" + 9999 + "\" >Custom Cluster </option>");
 
@@ -2026,9 +2161,11 @@ function expandUserPanel() {
 function expandUserSelectionPanel() {
     FAGI.PanelsUI.hideAllPanels();
 
-    if ($("#fg-user-selection-panel").data("opened")) {
-        return;
-    }
+    //alert("Here");
+    
+    //if ($("#fg-user-selection-panel").data("opened")) {
+    //    return;
+    //}
     
     if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel")))) {
 
@@ -2067,7 +2204,9 @@ function expandUserSelectionPanel() {
                 cursor: 'col-resize'
             });
 
-            FAGI.PanelsUI.lastClickedMenu = $("#fg-use-selection-panel");
+            FAGI.PanelsUI.lastClickedMenu = $("#fg-user-selection-panel");
+            //alert("Is it " + ($(FAGI.PanelsUI.lastClickedMenu).is($("#fg-user-selection-panel").get(0))));
+            //alert("Is it " + FAGI.PanelsUI.lastClickedMenu);
             $("#fg-user-selection-panel").data("opened", true);
         }
     }
@@ -2140,6 +2279,54 @@ function expandMatchingPanel() {
      $("#matchingPanel").data("opened", true);
      }
      */
+}
+
+function expandFusionPanel() {
+    FAGI.PanelsUI.hideAllPanels();
+    //alert("this");
+    if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fusionPanel")))) {
+
+        $("#mainPanel").show();
+        $("#fusionPanel").show();
+        FAGI.PanelsUI.lastClickedMenu.data("opened", false);
+        $("#fusionPanel").data("opened", true);
+        FAGI.PanelsUI.lastClickedMenu = $("#fusionPanel");
+
+    } else {
+        if ($("#fusionPanel").data("opened")) {
+            $(FAGI.PanelsUI.lastClickedMenu).data("opened", false);
+            $("#mainPanel").width("0%");
+            $("#mainPanel").height("0%");
+            //$("#map").removeClass("split content");
+            //$("#fagi").removeClass("split split-horizontal");
+            //$("#pane").width("0%");
+            $('.gutter').remove();
+            $("#map").width("100%");
+
+            FAGI.PanelsUI.lastClickedMenu = null;
+            $("#fusionPanel").data("opened", false);
+        } else {
+            $("#mainPanel").show();
+            $("#mainPanel").width("100%");
+            $("#mainPanel").height("100%");
+
+            $("#fusionPanel").show();
+
+            Split(['#mainPanel', '#map'], {
+                gutterSize: 8,
+                sizes: [70, 30],
+                onDragEnd: function (event, ui) {
+                    FAGI.MapUI.map.updateSize();
+                },
+                cursor: 'col-resize'
+            });
+
+            FAGI.PanelsUI.lastClickedMenu = $("#fusionPanel");
+            $("#fusionPanel").data("opened", true);
+        }
+    }
+
+    FAGI.MapUI.map.updateSize();
 }
 
 function expandPreviewPanel() {
@@ -2654,6 +2841,8 @@ function doDragA(feature, pixel) {
                     'opacity': FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.opacity};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
+                linkFeature.attributes.currently_selected = currently_selected;
+               
                 if (!validated) {
                     linkFeature.jIndex = FAGI.ActiveState.selectedGeomA.attributes.links[i].jIndex;
                     linkFeature.dist = FAGI.ActiveState.selectedGeomA.attributes.links[i].dist;
@@ -2789,7 +2978,7 @@ function doDragB(feature, pixel) {
                 var validated = FAGI.ActiveState.selectedGeomB.attributes.links[i].validated;
                 var otherEnd = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.la;
                 var otherEndLinkIdx = 0;
-
+                var currently_selected = FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.currently_selected;
 
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
                     if (otherEnd.attributes.links[j] == FAGI.ActiveState.selectedGeomB.attributes.links[i]) {
@@ -2836,6 +3025,8 @@ function doDragB(feature, pixel) {
                     'cluster': FAGI.ActiveState.selectedGeomB.attributes.links[i].attributes.cluster};
                 linkFeature.prev_fused = false;
                 linkFeature.validated = validated;
+                linkFeature.attributes.currently_selected = currently_selected;
+                
                 if (!validated) {
                     linkFeature.jIndex = FAGI.ActiveState.selectedGeomB.attributes.links[i].jIndex;
                     linkFeature.dist = FAGI.ActiveState.selectedGeomB.attributes.links[i].dist;
@@ -2861,7 +3052,7 @@ function endDragB(feature, pixel) {
         FAGI.ActiveState.selectedGeomB.geometry.transform(FAGI.MapUI.map.getProjectionObject(), FAGI.Constants.WGS84);
         //alert(FAGI.MapUI.wkt.write(FAGI.ActiveState.selectedGeomB));
         //alert(FAGI.ActiveState.selectedGeomB.attributes.a);
-        //alert('luda');
+        //alert("luda");
         if (typeof FAGI.ActiveState.activeFeatureClusterA[FAGI.ActiveState.selectedGeomB.attributes.links[0].attributes.a] != "undefined")
             FAGI.ActiveState.activeFeatureClusterA[FAGI.ActiveState.selectedGeomB.attributes.links[0].attributes.a] = FAGI.ActiveState.selectedGeomB.attributes.links[0];
         
@@ -3157,6 +3348,8 @@ function onFusedSelect(event) {
     expandPreviewPanel();
 }
 
+
+
 function onFusedUnselect(event) {
     //alert("UnSelect " + event);
     //alert("UnSelect " + (FAGI.ActiveState.activeFeaturePreview != null));
@@ -3186,6 +3379,9 @@ function onLinkFeatureSelect(event) {
     //alert(event.feature.prev_fused);
     if (FAGI.ActiveState.multipleEnabled === true)
         return;
+
+    FAGI.MapUI.Controls.dragControlA.deactivate();
+    FAGI.MapUI.Controls.dragControlB.deactivate();
 
     if (!event.feature.validated) {
 
@@ -3234,8 +3430,6 @@ function onLinkFeatureSelect(event) {
 
         expandPreviewPanel();
 
-        alert('hu');
-
         var originalA = FAGI.MapUI.wkt.read(event.feature.attributes.la.attributes.oGeom);
         var originalB = FAGI.MapUI.wkt.read(event.feature.attributes.lb.attributes.oGeom);
 
@@ -3267,9 +3461,17 @@ function onLinkFeatureSelect(event) {
     //alert("Feature "+event.feature.attributes.la);
     current_feature = event.feature;
 
-    //alert('tom');
+    //current_feature.style = FAGI.MapUI.Styles.styleLinksSelected;
+    //current_feature.style = {display: 'none'};
+    //current_feature.layer.drawFeature(current_feature);
+    
+    current_feature.attributes.currently_selected = true;
+    
     FAGI.PanelsUI.hideAllPanels();
 
+    expandFusionPanel();
+    
+    /*
     if ((FAGI.PanelsUI.lastClickedMenu != null) && (!$(FAGI.PanelsUI.lastClickedMenu).is($("#fusionPanel")))) {
 
         $("#mainPanel").show();
@@ -3311,6 +3513,7 @@ function onLinkFeatureSelect(event) {
             $("#fusionPanel").data("opened", true);
         }
     }
+    */
 
     FAGI.MapUI.map.updateSize();
     /*$("#fusionPanel").show();
@@ -3410,7 +3613,7 @@ function onLinkFeatureSelect(event) {
             var schemaListA = document.getElementById("linkSchemasA");
             schemaListA.innerHTML = "";
             $.each(responseJson.p.propsFullA, function (index, element) {
-                console.log(element.short_rep);
+                //console.log(element.short_rep);
                 if (element.short_rep.indexOf("posSeq") >= 0) {
                     //return;
                 }
@@ -3528,7 +3731,7 @@ function updateBFusionTable(node) {
 }
 
 function updateFusionTable(node) {
-    //console.log(current_feature == null);
+    //alert(current_feature == null);
     if (current_feature != null) {
         var sendData = new Array();
         sendData[sendData.length] = current_feature.attributes.a;
@@ -3544,7 +3747,7 @@ function updateFusionTable(node) {
             var inputItem = listItem[i].getElementsByTagName("input");
             sendData[sendData.length] = inputItem[0].value;
             sendData[sendData.length] = listItem[i].long_name;
-            console.log("Long name : " + listItem[i].long_name);
+            //console.log("Long name : " + listItem[i].long_name);
         }
         //alert(event.feature.attributes.a);
         //alert("done");
@@ -3602,7 +3805,7 @@ function fusionPanel(event, val, node) {
         recommendation.owlClassB[recommendation.owlClassB.length] = element;
     });
     //alert(JSON.stringify(recommendation));
-    /*
+
     $.ajax({
         // request type
         type: "POST",
@@ -3627,7 +3830,7 @@ function fusionPanel(event, val, node) {
         // code to run if the request fails; the raw request and
         // status codes are passed to the function
         error: function (xhr, status, errorThrown) {
-            alert("Sorry, there was a problem with the second AJAX");
+            //alert("Sorry, there was a problem with the second AJAX");
             console.log("Error: " + errorThrown);
             console.log("Status: " + status);
             console.dir(xhr);
@@ -3637,7 +3840,6 @@ function fusionPanel(event, val, node) {
             //$('#connLabel').text("connected");
         }
     });
-    */
 
 
     var geom_typeA = val.geomsA[0].substring(0, val.geomsA[0].indexOf("("));
@@ -3703,7 +3905,7 @@ function fusionPanel(event, val, node) {
         $.each(val.properties, function (index1, element1) {
             var opt = document.createElement("tr");
             opt.long_name = element1.propertyLong;
-            console.log("Long name" + opt.long_name);
+            //console.log("Long name" + opt.long_name);
             if (opt.long_name == node.long_name) {
                 node.rowIndex = $("#fusionTable").find("tr").length;
             }
@@ -3808,7 +4010,7 @@ function performFusion() {
     var teach = $('#fuseButton').prop("recommendation");
     teach.fusionAction = geomFuse.action;
     //alert(JSON.stringify(teach));
-    /*
+
     $.ajax({
         // request type
         type: "POST",
@@ -3825,7 +4027,7 @@ function performFusion() {
         // code to run if the request fails; the raw request and
         // status codes are passed to the function
         error: function (xhr, status, errorThrown) {
-            alert("Sorry, there was a problem with the second AJAX");
+            //alert("Sorry, there was a problem with the second AJAX");
             console.log("Error: " + errorThrown);
             console.log("Status: " + status);
             console.dir(xhr);
@@ -3835,7 +4037,7 @@ function performFusion() {
             //$('#connLabel').text("connected");
         }
     });
-    */
+
     current_feature.attributes.la.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
     current_feature.attributes.lb.geometry.transform(FAGI.Constants.WGS84, FAGI.MapUI.map.getProjectionObject());
 
@@ -4005,6 +4207,21 @@ function previewLinkedGeom(resp) {
 function onLinkFeatureUnselect(event) {
     if (FAGI.ActiveState.multipleEnabled === true)
         return;
+    
+    if ( current_feature.attributes.currently_selected ) {
+        current_feature.attributes.currently_selected = false;
+    }
+    
+    FAGI.MapUI.Controls.selectControl.deactivate();
+    FAGI.MapUI.Controls.dragControlB.activate();
+    FAGI.MapUI.Controls.dragControlA.activate();
+    FAGI.MapUI.Controls.selectControl.activate();
+    
+    if ($(FAGI.PanelsUI.lastClickedMenu).is($("#fusionPanel"))) {
+        //expandLinksPanel();
+        expandFusionPanel();
+    }
+    
     //document.getElementById("link_tooltip").style.opacity = 0;
     feature_is_selected = false;
     //alert('a');
