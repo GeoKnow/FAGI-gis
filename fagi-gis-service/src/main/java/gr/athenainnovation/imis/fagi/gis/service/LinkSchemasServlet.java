@@ -236,7 +236,7 @@ public class LinkSchemasServlet extends HttpServlet {
 
                         }
 
-                        System.out.println("Chain A " + chainA);
+                        //System.out.println("Chain A " + chainA);
 
                         if (chainA.length() > 0) {
                             int new_len = chainA.length() - 1;

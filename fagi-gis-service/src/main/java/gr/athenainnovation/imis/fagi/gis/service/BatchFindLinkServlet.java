@@ -355,10 +355,10 @@ public class BatchFindLinkServlet extends HttpServlet {
             StringBuilder geoQuery = new StringBuilder();
             final float X_MAX = 180f;
             final float Y_MAX = 85.05f;
-            System.out.println(BBox.getRight());
-            System.out.println(BBox.getLeft());
-            System.out.println(BBox.getTop());
-            System.out.println(BBox.getBottom());
+            //System.out.println(BBox.getRight());
+            //System.out.println(BBox.getLeft());
+            //System.out.println(BBox.getTop());
+            //System.out.println(BBox.getBottom());
             
             grConf.scanGeoProperties();
             
@@ -430,7 +430,7 @@ public class BatchFindLinkServlet extends HttpServlet {
             qeh.setSelectContentType((String)sess.getAttribute("content-type"));
             final com.hp.hpl.jena.query.ResultSet resultSetGeomsA = qeh.execSelect();
             
-            System.out.println("Fetched already: " + fetchedGeomsA.size());
+            //System.out.println("Fetched already: " + fetchedGeomsA.size());
 
             while (resultSetGeomsA.hasNext()) {
                 final QuerySolution querySolution = resultSetGeomsA.next();
@@ -453,7 +453,7 @@ public class BatchFindLinkServlet extends HttpServlet {
             
             qeh.close();
             
-            System.out.println("Count from A : " + countA);
+            //System.out.println("Count from A : " + countA);
             
             geoQuery.setLength(0);
             p = geoPropsB.get(0);
@@ -522,12 +522,12 @@ public class BatchFindLinkServlet extends HttpServlet {
             qeh.close();
             
             countB = geomsB.size();
-            System.out.println("Count from B : " + countB);
+            //System.out.println("Count from B : " + countB);
             
             if ( countB < countA && countB > 0) {
-                System.out.println("Fetching from B");
+                //System.out.println("Fetching from B");
             } else {
-                System.out.println("Fetching from A");
+                //System.out.println("Fetching from A");
             }
             
             HashMap<String, Geometry> geomsRef = geomsA;

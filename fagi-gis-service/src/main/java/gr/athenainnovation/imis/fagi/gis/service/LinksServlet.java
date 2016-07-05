@@ -844,7 +844,7 @@ public class LinksServlet extends HttpServlet {
         //dir = dir.replace("\\", "/");
         //dir = "/"+dir;
         //dir = dir.replace(":","");
-        System.out.println("Seps " + dir + " " + File.separator + " " + File.separatorChar);
+        //System.out.println("Seps " + dir + " " + File.separator + " " + File.separatorChar);
         String ret = dir;
         int lastSlash = dir.lastIndexOf(File.separator);
         if (lastSlash != (dir.length() - 1)) {
