@@ -231,14 +231,14 @@ public class UserCreationServlet extends HttpServlet {
             ResultSet rs = stmtCheck.executeQuery();
 
             if (rs.next()) {
-                System.out.println(rs.getString(1));
-                System.out.println(rs.getString(2));
-                System.out.println(rs.getString(3));
-                System.out.println(rs.getString(4));
-                System.out.println("Name found");
+                //System.out.println(rs.getString(1));
+                //System.out.println(rs.getString(2));
+                //System.out.println(rs.getString(3));
+                //System.out.println(rs.getString(4));
+                //System.out.println("Name found");
                 found = true;
             } else {
-                System.out.println("Name not found");
+                //System.out.println("Name not found");
                 found = false;
             }
 

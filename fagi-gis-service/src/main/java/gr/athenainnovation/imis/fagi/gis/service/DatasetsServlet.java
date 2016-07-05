@@ -134,7 +134,8 @@ public class DatasetsServlet extends HttpServlet {
             //System.out.println(graphConf.getGraphB());
             
             // [FAGI_TODOs] add checks 
-            graphConf.setTargetGraph(targetGraph);
+            //graphConf.setTargetGraph(targetGraph);
+            graphConf.setTargetGraph(targetTempGraph);
             graphConf.setTargetTempGraph(targetTempGraph);
             graphConf.setAllLinksGraph(allLinksGraph);
             graphConf.setLinksGraph(linksGraph);
