@@ -632,9 +632,9 @@ public class BatchFusionServlet extends HttpServlet {
             //System.out.println(mapper.writeValueAsString(ret));
             
             // Update destinATION GRAPH
-            //System.out.println("\n\n\n\n\nPreparing to update remote endpoint\n\n\n");
+            System.out.println("\n\n\n\n\nPreparing to update remote endpoint\n\n\n");
             SPARQLUtilities.UpdateRemoteEndpoint(grConf, vSet);
-            //System.out.println("\n\n\n\n\nFiniished updating remote endpoint\n\n\n");
+            System.out.println("\n\n\n\n\nFiniished updating remote endpoint\n\n\n");
             out.println(mapper.writeValueAsString(ret));
             
         } finally {

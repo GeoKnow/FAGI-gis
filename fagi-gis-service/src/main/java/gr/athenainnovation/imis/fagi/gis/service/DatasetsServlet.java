@@ -183,7 +183,8 @@ public class DatasetsServlet extends HttpServlet {
             */
             
             sess.setAttribute("gr_conf", graphConf);
-            sess.setAttribute("t_graph", targetGraph);
+            //sess.setAttribute("t_graph", targetGraph);
+            sess.setAttribute("t_graph", targetTempGraph);
             sess.setAttribute("t_end", request.getParameter("t_end"));
             sess.setAttribute("bulk", request.getParameter("bulk"));
             sess.setAttribute("dom", graphConf.isDominantA());
