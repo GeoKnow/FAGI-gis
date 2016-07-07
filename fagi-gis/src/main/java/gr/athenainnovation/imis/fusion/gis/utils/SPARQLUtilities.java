@@ -424,14 +424,14 @@ public class SPARQLUtilities {
        boolean isTargetEndpointLocal = Utilities.isURLToLocalInstance(grConf.getTargetGraph());
 
         if ( isTargetEndpointLocal ) {
-            System.out.println("\n\n\n\nSPARQL");
+            System.out.println("\n\n\n\nSPARQL Local");
             LocalUpdateGraphs(grConf, vSet);
         } else {
-            System.out.println("\n\n\n\nSPARQL");
+            System.out.println("\n\n\n\nSPARQL Remote");
             SPARQLUpdateRemoteEndpoint(grConf, vSet);
         }
         
-        clearGraph(grConf.getTargetTempGraph(), vSet);
+        //clearGraph(grConf.getTargetTempGraph(), vSet);
         
         return true;
     }
@@ -443,6 +443,12 @@ public class SPARQLUtilities {
      * @return success
      */
     public static boolean LocalUpdateGraphs(GraphConfig grConf, VirtGraph vSet) {
+        
+        if ( grConf.getTargetTempGraph().equals(grConf.getTargetTempGraph()) ) {
+            System.out.println("No need to move graphs");
+            return true; 
+        }
+        
         String addNewTriples = "SPARQL ADD GRAPH <" + grConf.getTargetTempGraph() + "> TO GRAPH <" + grConf.getTargetGraph()+ ">";
         VirtuosoConnection conn = (VirtuosoConnection) vSet.getConnection();
         boolean success = true;
