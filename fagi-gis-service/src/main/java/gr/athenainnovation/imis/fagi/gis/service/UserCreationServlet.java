@@ -105,7 +105,7 @@ public class UserCreationServlet extends HttpServlet {
             System.out.println(dbConf);
 
             if (dbConf == null) {
-                dbConf = Utilities.setUpDefaultDatabase(name);
+                dbConf = Utilities.setUpDefaultDatabase(name, mail);
                 sess.setAttribute("db_conf", dbConf);
             }
             

@@ -548,6 +548,8 @@ public class LinksServlet extends HttpServlet {
                 return;
             }
             
+            SPARQLUtilities.updateLastAccess(grConf.getAllLinksGraph(), vSet.getConnection());
+            
             SPARQLUtilities.createSPARQLUserNamedGraph(vSet.getConnection(), activeUser.getName(), grConf.getAllLinksGraph());
             //SPARQLUtilities.createSPARQLUserGraph(graphConf, vSet.getConnection(), activeUser.getName(), activeUser.getPass());
 
