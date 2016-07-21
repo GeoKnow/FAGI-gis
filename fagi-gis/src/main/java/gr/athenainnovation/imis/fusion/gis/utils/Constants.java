@@ -17,7 +17,7 @@ public class Constants {
     
     // Whether to use Late Fetching
     public static final boolean                 LATE_FETCH = true;
-    public static final boolean              MAP_STREAM = false;
+    public static final boolean                 MAP_STREAM = false;
     
     //Postgres URL
     public static final String                  DB_URL = "jdbc:postgresql:";
@@ -47,6 +47,9 @@ public class Constants {
 
     // This is the FAGI-gis REQUIRED link predicate
     public static final String                  SAME_AS = "http://www.w3.org/2002/07/owl#sameAs";
+    
+    // Last access Predicate
+    public static final String                  LAST_ACCESS = "http://www.w3.org/2002/07/owl#lastAccess";
 
     // Batch Size refers to the MAX size of the links graph
     // That a SPARQL query can handle

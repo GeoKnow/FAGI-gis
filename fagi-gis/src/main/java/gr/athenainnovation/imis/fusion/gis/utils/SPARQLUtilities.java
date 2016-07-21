@@ -12,6 +12,7 @@ import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.shared.JenaException;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
+import com.hp.hpl.jena.update.UpdateException;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
 import com.hp.hpl.jena.update.UpdateProcessor;
 import com.hp.hpl.jena.update.UpdateRequest;
@@ -30,6 +31,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.apache.jena.atlas.web.HttpException;
 import org.apache.jena.atlas.web.auth.HttpAuthenticator;
@@ -275,8 +277,52 @@ public class SPARQLUtilities {
     }
     
     public static boolean updateLastAccess(String graph, Connection virt_conn) {
-    
-        return true;
+        boolean success = true;
+        StringBuilder sb = new StringBuilder();
+        
+        
+        long l_CurrentAcess = System.currentTimeMillis();
+        /*    
+            System.out.println(String.format("%02d:%02d:%02d", 
+                    TimeUnit.MILLISECONDS.toHours(l_Time), 
+                    TimeUnit.MILLISECONDS.toMinutes(l_Time) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(l_Time)),
+                    TimeUnit.MILLISECONDS.toSeconds(l_Time) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(l_Time))));
+        */  
+            
+        VirtuosoConnection conn = (VirtuosoConnection) virt_conn;
+        sb.append("SPARQL WITH <" +graph + "> DELETE {");
+        sb.append("?s <" + Constants.LAST_ACCESS + "> ?o . } ");
+        sb.append("INSERT {`iri(??)` <" + Constants.LAST_ACCESS + "> "+l_CurrentAcess+" . } ");
+        //sb.append("WHERE {?s <" + Constants.LAST_ACCESS + "> ?o . } ");
+        try ( VirtuosoPreparedStatement vstmt = (VirtuosoPreparedStatement) conn.prepareStatement(sb.toString());) {
+            System.out.println("Statement 2 " + sb.toString());
+
+            vstmt.setString(1, graph);
+            //vstmt.setLong(2, l_CurrentAcess);
+            /*vstmt.setString(2, String.format("%02d:%02d:%02d", 
+                    TimeUnit.MILLISECONDS.toHours(l_Time), 
+                    TimeUnit.MILLISECONDS.toMinutes(l_Time) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(l_Time)),
+                    TimeUnit.MILLISECONDS.toSeconds(l_Time) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(l_Time))));
+            */
+            
+            vstmt.executeUpdate();
+            
+        } catch (VirtuosoException ex) {
+            LOG.trace("VirtuosoException on "+graph+" failed");
+            LOG.debug("VirtuosoException on "+graph+" failed : " + ex.getMessage());
+            LOG.debug("VirtuosoException on "+graph+" failed : " + ex.getSQLState());
+            
+            success = false;
+            return success;
+        } catch (UpdateException ex) {
+            LOG.trace("BatchUpdateException on "+graph+" failed");
+            LOG.debug("BatchUpdateException on "+graph+" failed : " + ex.getMessage());
+            
+            success = false;
+            return success;
+        }
+        
+        return success;
     }
     
     public static boolean createLinksGraph(List<Link> lst, String linkGraph, Connection virt_conn, GraphConfig grConf, String bulkInsertDir) {
