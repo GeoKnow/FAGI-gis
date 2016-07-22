@@ -66,6 +66,38 @@ public class SPARQLUtilities {
         return "WITH <" + tGraph + "> INSERT { <" + subject +"> <" + predicate +"> " + object +" }";
     }
     
+    public static boolean checkpoint(Connection virt_conn) {
+        boolean success = true;
+        final String queryCheckpoint = "exec('checkpoint')";
+
+        try (PreparedStatement checkpointStmt = virt_conn.prepareStatement(queryCheckpoint)) {
+
+            virt_conn.setAutoCommit(false);
+            
+            checkpointStmt.execute();
+            
+            virt_conn.commit();
+            virt_conn.setAutoCommit(true);
+            
+        } catch (SQLException ex) {
+            LOG.trace("Creating user failed");
+            LOG.debug("Creating user failed : " + ex.getMessage());
+            
+            success = false;
+        }
+
+        if ( !success ) {
+            try {
+                virt_conn.rollback();
+            } catch (SQLException ex) {
+                LOG.trace("Rollback user creation failed");
+                LOG.debug("Rollback user failed : " + ex.getMessage());
+            }
+        }
+        
+        return success;
+    }
+    
     public static boolean createSPARQLUser(Connection virt_conn, String name, String pass) {
         boolean success = true;
         final String queryCreateUser = "DB.DBA.USER_CREATE ('"+name+"', '"+pass+"')";
