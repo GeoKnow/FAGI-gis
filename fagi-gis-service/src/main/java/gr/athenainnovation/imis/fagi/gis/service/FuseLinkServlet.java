@@ -392,6 +392,8 @@ public class FuseLinkServlet extends HttpServlet {
             // Update destinATION GRAPH
             System.out.println("\n\n\n\n\nPreparing to update remote endpoint\n\n\n");
             SPARQLUtilities.UpdateRemoteEndpoint(grConf, vSet);
+            
+            SPARQLUtilities.checkpoint(vSet.getConnection());
             //System.out.println("JSON Geometry "+mapper.writeValueAsString(ret));
             out.println(mapper.writeValueAsString(ret));
        } catch (java.lang.OutOfMemoryError oome) {

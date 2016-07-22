@@ -4103,8 +4103,17 @@ function performFusion() {
         // the response is passed to the function
         success: function (responseJson) {
             //$('#connLabel').text(responseJson);
-            //alert(responseJson);
+            
+            FAGI.MapUI.Controls.selectControl.deactivate();
+            FAGI.MapUI.Controls.dragControlB.activate();
+            FAGI.MapUI.Controls.dragControlA.activate();
+            FAGI.MapUI.Controls.selectControl.activate();
+    
+            expandFusionPanel();
             previewLinkedGeom(responseJson);
+            
+            FAGI.Utilities.enableDatasetDownload();
+
             //fusionPanel(event, responseJson);
         },
         // code to run if the request fails; the raw request and
