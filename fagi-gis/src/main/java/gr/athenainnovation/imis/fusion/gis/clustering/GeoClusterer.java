@@ -233,12 +233,12 @@ public class GeoClusterer {
             JSONClusteringResults ret = new JSONClusteringResults();
             for (int i = 0; i < data.size(); i++) {
                 int ass_cluster = clusterer.clusterInstance(data.get(i));
-                System.out.println("Assignement "+orderedAttrList.get(i).nodeA+" : "+ass_cluster);
+                //System.out.println("Assignement "+orderedAttrList.get(i).nodeA+" : "+ass_cluster);
                 //System.out.println("Assignement "+orderedAttrList.get(i).nodeA+" : "+clusterer.getAssignments()[i]);
                 JSONClusteringResult res = new JSONClusteringResult(ass_cluster);
                 ret.getResults().put(orderedAttrList.get(i).nodeA, res);
             }
-            ret.setNumOfClusters(clusterer.getNumClusters());
+            ret.setNumOfClusters(clusterer.numberOfClusters());
             System.out.println("Clustering done.....");
             System.out.println(mapper.writeValueAsString(ret));
             
