@@ -524,21 +524,21 @@
                                                                                                         <!-- <form action="/LinksServlet" method="post" enctype="multipart/form-data"> -->
                                                                                                         <form id="linksDiv" enctype="multipart/form-data">
                                                                                                             <tr>
-                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom">Links file:</td>
-                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom"> <input id="fg-file-input" name="file" type="file" /></td>
+                                                                                                                <td style="text-align: center;" align="left" valign="bottom">Links file:</td>
+                                                                                                                <td style="text-align: center;" align="left" valign="bottom"> <input id="fg-file-input" name="file" type="file" /></td>
                                                                                                                 <td>
                                                                                                                 </td>
-                                                                                                                <td style="width:216;  text-align: center;" align="left" valign="bottom"><input id="buttonL" type="button" value="Upload" /></td>
+                                                                                                                <td style="text-align: center;" align="left" valign="bottom"><input id="buttonL" type="button" value="Upload" /></td>
                                                                                                             </tr></form>
                                                                                                         <form id="filterLinksADiv" style="float:right" >
                                                                                                             <tr>
-                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom">Filtering Options A:</td>
-                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom">
+                                                                                                                <td style="text-align: center;" align="left" valign="bottom">Filtering Options A:</td>
+                                                                                                                <td style="text-align: center;" align="left" valign="bottom">
                                                                                                                     <select multiple="multiple" id="typeListA" style="width: 100%">
                                                                                                                     </select></td>
                                                                                                                 <td>
                                                                                                                 </td>
-                                                                                                                <td style="width:100; text-align: center;" align="left" valign="bottom"><input style="width: 100%" id="buttonFilterLinksA" type="button" value="Filter" /></td>
+                                                                                                                <td style="text-align: center;" align="left" valign="bottom"><input style="width: 100%" id="buttonFilterLinksA" type="button" value="Filter" /></td>
                                                                                                             </tr></form>
                                                                                                         <form id="filterLinksBDiv" style="float:right" >
                                                                                                             <tr>
@@ -655,18 +655,18 @@
                                                                                                                     <td align="left" valign="bottom">Selected</td>
                                                                                                                 </tr>
                                                                                                                 <tr>
-                                                                                                                    <td>
+                                                                                                                    <td style="width: 30%">
                                                                                                                         <div class="horscroll">
                                                                                                                             <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
                                                                                                                             <ul id="schemasA" class="schemaList"></ul>
                                                                                                                         </div>
                                                                                                                     </td>
-                                                                                                                    <td>
+                                                                                                                    <td style="width: 30%">
                                                                                                                         <div class="horscroll">
                                                                                                                             <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
                                                                                                                             <ul id="schemasB" class="schemaList"></ul>
                                                                                                                         </div>                                    </td>
-                                                                                                                    <td>
+                                                                                                                    <td style="width: 10%">
                                                                                                                         <table align="center" border="0" width="100%"> 
                                                                                                                             <tbody><tr>
                                                                                                                                     <td class="complex_selector_buttons">
@@ -680,7 +680,7 @@
                                                                                                                                 </tr>
                                                                                                                             </tbody></table> 
                                                                                                                     </td>
-                                                                                                                    <td>
+                                                                                                                    <td style="width: 30%">
                                                                                                                         <ul id="matchList" class="righted">
                                                                                                                         </ul>
                                                                                                                     </td>
