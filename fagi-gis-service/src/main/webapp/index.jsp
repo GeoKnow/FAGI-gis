@@ -49,8 +49,8 @@
 
                                             str = request.getParameter("dataset-a");
                                             if (str == null) {
-                                                //request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
-                                                request.setAttribute("dataset-a", "http://localhost:8890/osm_sample");
+                                                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+                                                //request.setAttribute("dataset-a", "http://localhost:8890/osm_sample");
                                             } //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
                                             else {
                                                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
@@ -58,8 +58,8 @@
 
                                             str = request.getParameter("dataset-b");
                                             if (str == null) {
-                                                //request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
-                                                request.setAttribute("dataset-b", "http://localhost:8890/wikimapia_sample");
+                                                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+                                                //request.setAttribute("dataset-b", "http://localhost:8890/wikimapia_sample");
                                             } //request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
                                             else {
                                                 request.setAttribute("dataset-b", request.getParameter("dataset-b"));
@@ -640,91 +640,91 @@
                                                                                                 <select multiple="multiple" id="classRecommendation" style="width: 50%">
                                                                                                 </select>
                                                                                             </div>
-                                                                                            <div id="matchingPanel">
-                                                                                                <table class="complex_selector table-responsive">
-                                                                                                    <p>
-                                                                                                        <label for="spinner">Select scoring threshold:</label>
-                                                                                                        <input id="spinner" name="value">
-                                                                                                    </p>
+                                                                                                    <div id="matchingPanel">
+                                                                                                        <table class="complex_selector table-responsive">
+                                                                                                            <p>
+                                                                                                                <label for="spinner">Select scoring threshold:</label>
+                                                                                                                <input id="spinner" name="value">
+                                                                                                            </p>
 
-                                                                                                    <tbody><tr>
-                                                                                                            <td id="datasetNameA" align="left" valign="bottom">Dataset A</td>
-                                                                                                            <td id="datasetNameB" align="left" valign="bottom">Dataset B</td>
-                                                                                                            <td>
-                                                                                                            </td>
-                                                                                                            <td align="left" valign="bottom">Selected</td>
-                                                                                                        </tr>
-                                                                                                        <tr>
-                                                                                                            <td>
-                                                                                                                <div class="horscroll">
-                                                                                                                    <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
-                                                                                                                    <ul id="schemasA" class="schemaList"></ul>
-                                                                                                                </div>
-                                                                                                            </td>
-                                                                                                            <td>
-                                                                                                                <div class="horscroll">
-                                                                                                                    <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
-                                                                                                                    <ul id="schemasB" class="schemaList"></ul>
-                                                                                                                </div>                                    </td>
-                                                                                                            <td>
-                                                                                                                <table align="center" border="0" width="100%"> 
-                                                                                                                    <tbody><tr>
-                                                                                                                            <td class="complex_selector_buttons">
-                                                                                                                                <input id="addSchema" name="b_add_role" value=">>" tabindex="13" type="submit"></input>
-                                                                                                                            </td>
-                                                                                                                        </tr>
-                                                                                                                        <tr>
-                                                                                                                            <td align="center">
-                                                                                                                                <input id="removeSchema" name="b_rem_role" value="&lt;&lt;" tabindex="14" type="submit"></input>
-                                                                                                                            </td>
-                                                                                                                        </tr>
-                                                                                                                    </tbody></table> 
-                                                                                                            </td>
-                                                                                                            <td>
-                                                                                                                <ul id="matchList" class="righted">
-                                                                                                                </ul>
-                                                                                                            </td>
-                                                                                                        </tr>
-                                                                                                    </tbody></table>
-                                                                                                <table border="1">
-                                                                                                    <tbody>
-                                                                                                        <tr>
-                                                                                                            <td style="width:26; background-color: green; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
-                                                                                                            <td id="legendSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
-                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
-                                                                                                            <td id="legendSetB" style="text-align: center;" align="left" valign="bottom">Dataset B Layer</td>
-                                                                                                            <td style="width:26; background-color: red; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
-                                                                                                            <td id="legendSetL" style="text-align: center;" align="left" valign="bottom">Link Layer</td>
-                                                                                                        </tr></form>
-                                                                                                    </tbody>
-                                                                                                </table>
-                                                                                                <input id="finalButton" type="submit" value="Preview" style="float:right" onclick="return true;"/>
+                                                                                                            <tbody><tr>
+                                                                                                                    <td id="datasetNameA" align="left" valign="bottom">Dataset A</td>
+                                                                                                                    <td id="datasetNameB" align="left" valign="bottom">Dataset B</td>
+                                                                                                                    <td>
+                                                                                                                    </td>
+                                                                                                                    <td align="left" valign="bottom">Selected</td>
+                                                                                                                </tr>
+                                                                                                                <tr>
+                                                                                                                    <td>
+                                                                                                                        <div class="horscroll">
+                                                                                                                            <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
+                                                                                                                            <ul id="schemasA" class="schemaList"></ul>
+                                                                                                                        </div>
+                                                                                                                    </td>
+                                                                                                                    <td>
+                                                                                                                        <div class="horscroll">
+                                                                                                                            <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
+                                                                                                                            <ul id="schemasB" class="schemaList"></ul>
+                                                                                                                        </div>                                    </td>
+                                                                                                                    <td>
+                                                                                                                        <table align="center" border="0" width="100%"> 
+                                                                                                                            <tbody><tr>
+                                                                                                                                    <td class="complex_selector_buttons">
+                                                                                                                                        <input id="addSchema" name="b_add_role" value=">>" tabindex="13" type="submit"></input>
+                                                                                                                                    </td>
+                                                                                                                                </tr>
+                                                                                                                                <tr>
+                                                                                                                                    <td align="center">
+                                                                                                                                        <input id="removeSchema" name="b_rem_role" value="&lt;&lt;" tabindex="14" type="submit"></input>
+                                                                                                                                    </td>
+                                                                                                                                </tr>
+                                                                                                                            </tbody></table> 
+                                                                                                                    </td>
+                                                                                                                    <td>
+                                                                                                                        <ul id="matchList" class="righted">
+                                                                                                                        </ul>
+                                                                                                                    </td>
+                                                                                                                </tr>
+                                                                                                            </tbody></table>
+                                                                                                        <table border="1">
+                                                                                                            <tbody>
+                                                                                                                <tr>
+                                                                                                                    <td style="width:26; background-color: green; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
+                                                                                                                    <td id="legendSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
+                                                                                                                    <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
+                                                                                                                    <td id="legendSetB" style="text-align: center;" align="left" valign="bottom">Dataset B Layer</td>
+                                                                                                                    <td style="width:26; background-color: red; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
+                                                                                                                    <td id="legendSetL" style="text-align: center;" align="left" valign="bottom">Link Layer</td>
+                                                                                                                </tr></form>
+                                                                                                            </tbody>
+                                                                                                        </table>
+                                                                                                        <input id="finalButton" type="submit" value="Preview" style="display: block; margin-left:auto; margin-right:0;" onclick="return true;"/>
 
-                                                                                                <div id="bFusionOptions">
-                                                                                                    <div class="table-responsive" id="batchFusionTable">
+                                                                                                        <div id="bFusionOptions">
+                                                                                                            <div class="table-responsive" id="batchFusionTable">
+                                                                                                            </div>
+                                                                                                            <form action="#">
+                                                                                                                <fieldset>
+                                                                                                                    <label for="speed">Perform batch fusion on : </label>
+                                                                                                                    <select name="speed" id="clusterSelector">
+                                                                                                                        <option value="-1" selected="selected">All links</option>
+                                                                                                                    </select>
+                                                                                                                </fieldset>
+                                                                                                            </form>
+                                                                                                            <!--
+                                                                                                            <div id="global-offsets">
+                                                                                                                <form action="#">
+                                                                                                                    <fieldset>
+                                                                                                                        <label for="x-offset">X</label>
+                                                                                                                        <input type="text" name="x-offset" id="x-offset" value="0.0" class="text ui-widget-content ui-corner-all">
+                                                                                                                        <label for="y-offset">Y</label>
+                                                                                                                        <input type="text" name="y-offset" id="y-offset" value="0.0" class="text ui-widget-content ui-corner-all">
+                                                                                                                    </fieldset>
+                                                                                                                </form>
+                                                                                                            </div>
+                                                                                                            -->
+                                                                                                        </div>
                                                                                                     </div>
-                                                                                                    <form action="#">
-                                                                                                        <fieldset>
-                                                                                                            <label for="speed">Perform batch fusion on : </label>
-                                                                                                            <select name="speed" id="clusterSelector">
-                                                                                                                <option value="-1" selected="selected">All links</option>
-                                                                                                            </select>
-                                                                                                        </fieldset>
-                                                                                                    </form>
-                                                                                                    <!--
-                                                                                                    <div id="global-offsets">
-                                                                                                        <form action="#">
-                                                                                                            <fieldset>
-                                                                                                                <label for="x-offset">X</label>
-                                                                                                                <input type="text" name="x-offset" id="x-offset" value="0.0" class="text ui-widget-content ui-corner-all">
-                                                                                                                <label for="y-offset">Y</label>
-                                                                                                                <input type="text" name="y-offset" id="y-offset" value="0.0" class="text ui-widget-content ui-corner-all">
-                                                                                                            </fieldset>
-                                                                                                        </form>
-                                                                                                    </div>
-                                                                                                    -->
-                                                                                                </div>
-                                                                                            </div>
                                                                                             <div id="clusteringPanel">
                                                                                                 <table style="width:100%">
                                                                                                     <tr>

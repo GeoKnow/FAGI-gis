@@ -801,7 +801,6 @@ function assignClusters(assigns) {
     for (var i = 0; i < assigns.numOfClusters; i++) {
         //alert($("#clusterSelector").html());
         $("#clusterSelector").append("<option value=\"" + i + "\" >Cluster " + i + "</option>");
-
     }
 
     $.each(FAGI.MapUI.Layers.vectorsLinks.features, function (index, element) {
@@ -846,7 +845,7 @@ function performClustering() {
             // the type of data we expect back
             dataType: "json",
             success: function (responseText) {
-                //console.log("All good "+responseText);
+                console.log("All good "+responseText);
                 assignClusters(responseText);
                 FAGI.Utilities.disableSpinner();
             },
