@@ -552,7 +552,7 @@
                                                                                                 <input id="fg-links-queries-submit" type="submit" value="Submit Query" style="float:right" onclick="return true;"/>
                                                                                             </div>
                                                                                             <div id="fusionPanel">
-                                                                                                <table class="complex_selector">
+                                                                                                <table class="complex_selector rwd-table-white">
                                                                                                     <tbody><tr>
                                                                                                             <td id="linkNameA" style="width:30%; text-align: center;" align="left" valign="bottom"><p style="word-break: keep-all;"> Dataset A</p></td>
                                                                                                             <td id="linkNameB" style="width:30%; text-align: center;" align="left" valign="bottom">Dataset B</td>
@@ -587,7 +587,7 @@
                                                                                                                     </tbody></table> 
                                                                                                             </td>
                                                                                                             <td style="width:30%">
-                                                                                                                <ul id="linkMatchList" class="righted">
+                                                                                                                <ul id="linkMatchList" style="word-break: break-all;word-wrap: break-word;" class="righted schemaList">
                                                                                                                 </ul>
                                                                                                             </td>
                                                                                                         </tr>
@@ -612,7 +612,7 @@
                                                                                                 </select>
                                                                                             </div>
                                                                                             <div id="matchingPanel">
-                                                                                                <table class="complex_selector table-responsive">
+                                                                                                <table class="complex_selector rwd-table-white">
                                                                                                     <p>
                                                                                                         <label for="spinner">Select scoring threshold:</label>
                                                                                                         <input id="spinner" name="value">
@@ -652,7 +652,7 @@
                                                                                                                     </tbody></table> 
                                                                                                             </td>
                                                                                                             <td>
-                                                                                                                <ul id="matchList" class="righted">
+                                                                                                                <ul id="matchList" style="word-break: break-all;word-wrap: break-word;" class="righted schemaList">
                                                                                                                 </ul>
                                                                                                             </td>
                                                                                                         </tr>
@@ -669,7 +669,7 @@
                                                                                                         </tr></form>
                                                                                                     </tbody>
                                                                                                 </table>
-                                                                                                <input id="finalButton" type="submit" value="Preview" style="float:right" onclick="return true;"/>
+                                                                                                        <input id="finalButton" type="submit" value="Preview" style="display: block; margin-left:auto; margin-right:0;" onclick="return true;"/>
 
                                                                                                 <div id="bFusionOptions">
                                                                                                     <div class="table-responsive" id="batchFusionTable">

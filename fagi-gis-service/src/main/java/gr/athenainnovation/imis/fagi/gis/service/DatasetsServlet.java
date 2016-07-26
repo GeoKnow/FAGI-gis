@@ -105,6 +105,7 @@ public class DatasetsServlet extends HttpServlet {
             System.out.println(activeUser.getMail());
             
             // Construct the names of all TEMP Graphs that FAGI uses
+            /*
             final String allLinksGraph = "http://localhost:8890/DAV/all_links_" + dbConf.getDBName()+"_fagi_" + activeUser.getName();
             final String linksGraph = "http://localhost:8890/DAV/links_" + dbConf.getDBName()+"_fagi_" + activeUser.getName() ;
             final String sampleLinksGraph = "http://localhost:8890/DAV/links_sample_" + dbConf.getDBName()+"_fagi_" + activeUser.getName() ;
@@ -116,6 +117,20 @@ public class DatasetsServlet extends HttpServlet {
             final String typeGraphA = targetGraph + "_" + dbConf.getDBName() + "A_types_fagi_" + activeUser.getName() ;
             final String typeGraphB = targetGraph + "_" + dbConf.getDBName() + "B_types_fagi_" + activeUser.getName() ;
             final String targetTempGraph = targetGraph+"_"+dbConf.getDBName()+"_fagi_" + activeUser.getName() ;
+            */
+            
+            final String allLinksGraph = "http://localhost:8890/DAV/all_links_" + dbConf.getDBName()+"_fagi_";
+            final String linksGraph = "http://localhost:8890/DAV/links_" + dbConf.getDBName()+"_fagi_";
+            final String sampleLinksGraph = "http://localhost:8890/DAV/links_sample_" + dbConf.getDBName()+"_fagi_";
+            final String allClusterGraph = "http://localhost:8890/DAV/all_cluster_" + dbConf.getDBName()+"_fagi_";
+            final String clusterGraph = "http://localhost:8890/DAV/cluster_" + dbConf.getDBName()+"_fagi_";
+            final String targetGraph = request.getParameter("t_graph") ;
+            final String metadataGraphA = targetGraph + "_" + dbConf.getDBName() + "A_fagi_";
+            final String metadataGraphB = targetGraph + "_" + dbConf.getDBName() + "B_fagi_";
+            final String typeGraphA = targetGraph + "_" + dbConf.getDBName() + "A_types_fagi_";
+            final String typeGraphB = targetGraph + "_" + dbConf.getDBName() + "B_types_fagi_";
+            final String targetTempGraph = targetGraph+"_"+dbConf.getDBName()+"_fagi_";
+            
             
             // Set graph configuration
             graphConf.setEndpointA(request.getParameter("da_end"));
