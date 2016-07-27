@@ -175,7 +175,9 @@ public class UserLoginServlet extends HttpServlet {
 
             foundUser = createUserDB(dbConn, dbConf);
 
-            if (foundUser) {
+            boolean exists = checkUser(dbConf, name, pass, mail);
+            
+            if (exists) {
                 ret.setMessage("User found");
                 ret.setStatusCode(0);
 
@@ -213,6 +215,19 @@ public class UserLoginServlet extends HttpServlet {
 
             out.println(mapper.writeValueAsString(ret));
 
+        } finally {
+            if (vSet != null) {
+                vSet.close();
+            }
+            if (dbConn != null) {
+                try {
+                    //dbConn.commit();
+                    dbConn.close();
+                    //dbConn.commit();
+                } catch (SQLException ex) {
+                    LOG.error("Virtgraph Close Exception", ex);
+                }
+            }
         }
     }
 

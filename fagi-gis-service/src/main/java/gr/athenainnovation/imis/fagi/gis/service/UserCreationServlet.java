@@ -131,6 +131,19 @@ public class UserCreationServlet extends HttpServlet {
             }
             
             out.printf(mapper.writeValueAsString(ret));
+        } finally {
+            if (vSet != null) {
+                vSet.close();
+            }
+            if (dbConn != null) {
+                try {
+                    //dbConn.commit();
+                    dbConn.close();
+                    //dbConn.commit();
+                } catch (SQLException ex) {
+                    LOG.error("Virtgraph Close Exception", ex);
+                }
+            }
         }
     }
 
