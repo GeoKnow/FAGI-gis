@@ -204,6 +204,9 @@ public class GeometryFuser {
         try {
             
             if (!success) {
+                if ( connection == null )
+                    return success;
+                
                 connection.rollback();
                 connection.close();
             }
