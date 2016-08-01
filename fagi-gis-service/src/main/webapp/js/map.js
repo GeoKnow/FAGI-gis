@@ -2798,6 +2798,7 @@ function doDragA(feature, pixel) {
             for (i = 0; i < FAGI.ActiveState.selectedGeomA.attributes.links.length; i++) {
                 var validated = FAGI.ActiveState.selectedGeomA.attributes.links[i].validated;
                 var otherEnd = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.lb;
+                var currently_selected = FAGI.ActiveState.selectedGeomA.attributes.links[i].attributes.currently_selected;
                 var otherEndLinkIdx;
                 for (var j = 0; j < otherEnd.attributes.links.length; j++) {
                     if (otherEnd.attributes.links[j] == FAGI.ActiveState.selectedGeomA.attributes.links[i]) {
@@ -4102,8 +4103,17 @@ function performFusion() {
         // the response is passed to the function
         success: function (responseJson) {
             //$('#connLabel').text(responseJson);
-            //alert(responseJson);
+            
+            FAGI.MapUI.Controls.selectControl.deactivate();
+            FAGI.MapUI.Controls.dragControlB.activate();
+            FAGI.MapUI.Controls.dragControlA.activate();
+            FAGI.MapUI.Controls.selectControl.activate();
+    
+            expandFusionPanel();
             previewLinkedGeom(responseJson);
+            
+            FAGI.Utilities.enableDatasetDownload();
+
             //fusionPanel(event, responseJson);
         },
         // code to run if the request fails; the raw request and
