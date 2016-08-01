@@ -699,7 +699,7 @@ label span {
 
 .righted {
     height: 30%;
-    overflow: auto !important;
+    //overflow: auto !important;
     list-style-type: none;
 } 
 
@@ -823,6 +823,39 @@ label {
         border: 20px solid white;
         //width: 20%;
         color: #dd5;
+    }
+}
+
+.rwd-table-white {
+    background: #34495E;
+    color: black;
+    word-break: break-all;
+    border-collapse: collapse;
+    border-style: hidden;
+    border-radius: 10px;
+    overflow: auto;
+    width: 100%;
+    table-layout: fixed;
+    tr {
+        border-color: lighten(#34495E, 10%);
+        text-align: center;
+        vertical-align: bottom;
+    }
+    th, td {
+        border: 20px solid white;
+        text-align: center;
+        vertical-align: bottom;
+        margin: .5em 1em;
+        //width: 20%;
+        word-break: break-all;
+    }
+    th, td:before {
+        text-align: center;
+        vertical-align: bottom;
+        word-break: break-all;
+        border: 20px solid white;
+        //width: 20%;
+        color: black;
     }
 }
 

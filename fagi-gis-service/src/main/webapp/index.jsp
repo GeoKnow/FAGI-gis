@@ -49,8 +49,8 @@
 
                                             str = request.getParameter("dataset-a");
                                             if (str == null) {
-                                                request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
-                                                //request.setAttribute("dataset-a", "http://localhost:8890/osm_sample");
+                                                //request.setAttribute("dataset-a", "http://localhost:8890/DAV/osm_demo");
+                                                request.setAttribute("dataset-a", "http://localhost:8890/osm_sample");
                                             } //request.setAttribute("dataset-a", "http://generator.geoknow.eu/resource/RdfImport_1443084682160");
                                             else {
                                                 request.setAttribute("dataset-a", request.getParameter("dataset-a"));
@@ -58,8 +58,8 @@
 
                                             str = request.getParameter("dataset-b");
                                             if (str == null) {
-                                                request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
-                                                //request.setAttribute("dataset-b", "http://localhost:8890/wikimapia_sample");
+                                                //request.setAttribute("dataset-b", "http://localhost:8890/DAV/wik_demo");
+                                                request.setAttribute("dataset-b", "http://localhost:8890/wikimapia_sample");
                                             } //request.setAttribute("dataset-b", "http://generator.geoknow.eu/resource/RdfImport_1443084718375");
                                             else {
                                                 request.setAttribute("dataset-b", request.getParameter("dataset-b"));
@@ -524,21 +524,21 @@
                                                                                                         <!-- <form action="/LinksServlet" method="post" enctype="multipart/form-data"> -->
                                                                                                         <form id="linksDiv" enctype="multipart/form-data">
                                                                                                             <tr>
-                                                                                                                <td style="text-align: center;" align="left" valign="bottom">Links file:</td>
-                                                                                                                <td style="text-align: center;" align="left" valign="bottom"> <input id="fg-file-input" name="file" type="file" /></td>
+                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom">Links file:</td>
+                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom"> <input id="fg-file-input" name="file" type="file" /></td>
                                                                                                                 <td>
                                                                                                                 </td>
-                                                                                                                <td style="text-align: center;" align="left" valign="bottom"><input id="buttonL" type="button" value="Upload" /></td>
+                                                                                                                <td style="width:216;  text-align: center;" align="left" valign="bottom"><input id="buttonL" type="button" value="Upload" /></td>
                                                                                                             </tr></form>
                                                                                                         <form id="filterLinksADiv" style="float:right" >
                                                                                                             <tr>
-                                                                                                                <td style="text-align: center;" align="left" valign="bottom">Filtering Options A:</td>
-                                                                                                                <td style="text-align: center;" align="left" valign="bottom">
+                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom">Filtering Options A:</td>
+                                                                                                                <td style="width:216; text-align: center;" align="left" valign="bottom">
                                                                                                                     <select multiple="multiple" id="typeListA" style="width: 100%">
                                                                                                                     </select></td>
                                                                                                                 <td>
                                                                                                                 </td>
-                                                                                                                <td style="text-align: center;" align="left" valign="bottom"><input style="width: 100%" id="buttonFilterLinksA" type="button" value="Filter" /></td>
+                                                                                                                <td style="width:100; text-align: center;" align="left" valign="bottom"><input style="width: 100%" id="buttonFilterLinksA" type="button" value="Filter" /></td>
                                                                                                             </tr></form>
                                                                                                         <form id="filterLinksBDiv" style="float:right" >
                                                                                                             <tr>
@@ -581,7 +581,7 @@
                                                                                                 <input id="fg-links-queries-submit" type="submit" value="Submit Query" style="float:right" onclick="return true;"/>
                                                                                             </div>
                                                                                             <div id="fusionPanel">
-                                                                                                <table class="complex_selector">
+                                                                                                <table class="complex_selector rwd-table-white">
                                                                                                     <tbody><tr>
                                                                                                             <td id="linkNameA" style="width:30%; text-align: center;" align="left" valign="bottom"><p style="word-break: keep-all;"> Dataset A</p></td>
                                                                                                             <td id="linkNameB" style="width:30%; text-align: center;" align="left" valign="bottom">Dataset B</td>
@@ -616,7 +616,7 @@
                                                                                                                     </tbody></table> 
                                                                                                             </td>
                                                                                                             <td style="width:30%">
-                                                                                                                <ul id="linkMatchList" class="righted">
+                                                                                                                <ul id="linkMatchList" style="word-break: break-all;word-wrap: break-word;" class="righted schemaList">
                                                                                                                 </ul>
                                                                                                             </td>
                                                                                                         </tr>
@@ -641,7 +641,7 @@
                                                                                                 </select>
                                                                                             </div>
                                                                                                     <div id="matchingPanel">
-                                                                                                        <table class="complex_selector table-responsive">
+                                                                                                <table class="complex_selector rwd-table-white">
                                                                                                             <p>
                                                                                                                 <label for="spinner">Select scoring threshold:</label>
                                                                                                                 <input id="spinner" name="value">
@@ -655,18 +655,18 @@
                                                                                                                     <td align="left" valign="bottom">Selected</td>
                                                                                                                 </tr>
                                                                                                                 <tr>
-                                                                                                                    <td style="width: 30%">
+                                                                                                            <td>
                                                                                                                         <div class="horscroll">
                                                                                                                             <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
                                                                                                                             <ul id="schemasA" class="schemaList"></ul>
                                                                                                                         </div>
                                                                                                                     </td>
-                                                                                                                    <td style="width: 30%">
+                                                                                                            <td>
                                                                                                                         <div class="horscroll">
                                                                                                                             <!--<select id="schemasA" name="sl_roles_available" size="5" multiple="TRUE" tabindex="12"></select>-->
                                                                                                                             <ul id="schemasB" class="schemaList"></ul>
                                                                                                                         </div>                                    </td>
-                                                                                                                    <td style="width: 10%">
+                                                                                                            <td>
                                                                                                                         <table align="center" border="0" width="100%"> 
                                                                                                                             <tbody><tr>
                                                                                                                                     <td class="complex_selector_buttons">
@@ -680,8 +680,8 @@
                                                                                                                                 </tr>
                                                                                                                             </tbody></table> 
                                                                                                                     </td>
-                                                                                                                    <td style="width: 30%">
-                                                                                                                        <ul id="matchList" class="righted">
+                                                                                                            <td>
+                                                                                                                <ul id="matchList" style="word-break: break-all;word-wrap: break-word;" class="righted schemaList">
                                                                                                                         </ul>
                                                                                                                     </td>
                                                                                                                 </tr>
@@ -689,9 +689,9 @@
                                                                                                         <table border="1">
                                                                                                             <tbody>
                                                                                                                 <tr>
-                                                                                                                    <td style="width:26; background-color: green; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
-                                                                                                                    <td id="legendSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
-                                                                                                                    <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
+                                                                                                            <td style="width:26; background-color: green; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
+                                                                                                            <td id="legendSetA" style="text-align: center;" align="left" valign="bottom">Dataset A Layer</td>
+                                                                                                            <td style="width:26; background-color: blue; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                                     <td id="legendSetB" style="text-align: center;" align="left" valign="bottom">Dataset B Layer</td>
                                                                                                                     <td style="width:26; background-color: red; table-layout:fixed; width:20px; overflow:hidden; word-wrap:break-word;text-align: center;" align="left" valign="bottom"></td>
                                                                                                                     <td id="legendSetL" style="text-align: center;" align="left" valign="bottom">Link Layer</td>
