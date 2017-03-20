@@ -55,7 +55,7 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>17.0</version>
-        </dependency>
+        </dependency>     
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
@@ -239,7 +239,7 @@
                         </mapper>
                     </data>
                     -->
-            </dataSet>
+            </dataSet>       
         </configuration>
         </execution>
       </executions>
@@ -268,7 +268,7 @@
                         <index>true</index>
                         <manifest>
                             <classpathPrefix>/usr/share/fagi-gis/</classpathPrefix>
-                            <!--<classpathPrefix>lib/</classpathPrefix>-->
+                            <classpathPrefix>lib/</classpathPrefix>
                             <addClasspath>true</addClasspath>
                             <mainClass>gr.athenainnovation.imis.fusion.gis.cli.FusionGISCLI</mainClass>
                         </manifest>
